@@ -551,6 +551,7 @@ Stage &Stage::serial(VarOrRVar var) {
 }
 
 Stage &Stage::distribute(VarOrRVar var) {
+    set_dim_type(var, ForType::Distributed);
     return *this;
 }
 
@@ -878,6 +879,7 @@ Func &Func::serial(VarOrRVar var) {
 
 Func &Func::distribute(VarOrRVar var) {
     invalidate_cache();
+    Stage(func.schedule(), name()).distribute(var);
     return *this;
 }
 

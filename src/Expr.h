@@ -234,6 +234,7 @@ namespace Internal {
 enum class ForType {
     Serial,
     Parallel,
+    Distributed,
     Vectorized,
     Unrolled
 };

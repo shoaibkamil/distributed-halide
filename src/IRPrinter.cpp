@@ -137,6 +137,9 @@ ostream &operator<<(ostream &out, const ForType &type) {
     case ForType::Parallel:
         out << "parallel";
         break;
+    case ForType::Distributed:
+        out << "distributed";
+        break;
     case ForType::Unrolled:
         out << "unrolled";
         break;
