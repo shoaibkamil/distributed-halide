@@ -378,6 +378,8 @@ private:
             stream << keyword("for");
         } else if (op->for_type == ForType::Parallel) {
             stream << keyword("parallel");
+        } else if (op->for_type == ForType::Distributed) {
+            stream << keyword("distributed");
         } else if (op->for_type == ForType::Vectorized) {
             stream << keyword("vectorized");
         } else if (op->for_type == ForType::Unrolled) {

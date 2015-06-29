@@ -765,6 +765,7 @@ private:
         string func = f->name.substr(0, first_dot);
         string var = f->name.substr(last_dot + 1);
         Site s = {f->for_type == ForType::Parallel ||
+                  f->for_type == ForType::Distributed ||
                   f->for_type == ForType::Vectorized,
                   LoopLevel(func, var)};
         sites.push_back(s);

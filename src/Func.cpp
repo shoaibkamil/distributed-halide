@@ -259,11 +259,11 @@ void Stage::set_dim_type(VarOrRVar var, ForType t) {
 
             // If it's an rvar and the for type is parallel, we need to
             // validate that this doesn't introduce a race condition.
-            if (!dims[i].pure && var.is_rvar && (t == ForType::Vectorized || t == ForType::Parallel)) {
+            if (!dims[i].pure && var.is_rvar && (t == ForType::Vectorized || t == ForType::Parallel || t == ForType::Distributed)) {
                 user_assert(schedule.allow_race_conditions())
                     << "In schedule for " << stage_name
                     << ", marking var " << var.name()
-                    << " as parallel or vectorized may introduce a race"
+                    << " as parallel, distributed or vectorized may introduce a race"
                     << " condition resulting in incorrect output."
                     << " It is possible to override this error using"
                     << " the allow_race_conditions() method. Use this"
