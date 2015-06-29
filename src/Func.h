@@ -64,6 +64,7 @@ public:
     EXPORT Stage &split(VarOrRVar old, VarOrRVar outer, VarOrRVar inner, Expr factor);
     EXPORT Stage &fuse(VarOrRVar inner, VarOrRVar outer, VarOrRVar fused);
     EXPORT Stage &serial(VarOrRVar var);
+    EXPORT Stage &distribute(VarOrRVar var);
     EXPORT Stage &parallel(VarOrRVar var);
     EXPORT Stage &vectorize(VarOrRVar var);
     EXPORT Stage &unroll(VarOrRVar var);
@@ -827,6 +828,9 @@ public:
 
     /** Mark a dimension to be traversed serially. This is the default. */
     EXPORT Func &serial(VarOrRVar var);
+
+    /** Mark a dimension to be traversed in a distributed fashion. */
+    EXPORT Func &distribute(VarOrRVar var);
 
     /** Mark a dimension to be traversed in parallel */
     EXPORT Func &parallel(VarOrRVar var);

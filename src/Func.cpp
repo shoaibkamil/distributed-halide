@@ -550,6 +550,10 @@ Stage &Stage::serial(VarOrRVar var) {
     return *this;
 }
 
+Stage &Stage::distribute(VarOrRVar var) {
+    return *this;
+}
+
 Stage &Stage::parallel(VarOrRVar var) {
     set_dim_type(var, ForType::Parallel);
     return *this;
@@ -869,6 +873,11 @@ Stage Func::specialize(Expr c) {
 Func &Func::serial(VarOrRVar var) {
     invalidate_cache();
     Stage(func.schedule(), name()).serial(var);
+    return *this;
+}
+
+Func &Func::distribute(VarOrRVar var) {
+    invalidate_cache();
     return *this;
 }
 

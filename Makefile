@@ -630,6 +630,7 @@ PERFORMANCE_TESTS = $(shell ls test/performance/*.cpp)
 ERROR_TESTS = $(shell ls test/error/*.cpp)
 WARNING_TESTS = $(shell ls test/warning/*.cpp)
 OPENGL_TESTS := $(shell ls test/opengl/*.cpp)
+DISTRIBUTED_TESTS := $(shell ls test/distributed/*.cpp)
 RENDERSCRIPT_TESTS := $(shell ls test/renderscript/*.cpp)
 GENERATOR_EXTERNAL_TESTS := $(shell ls test/generator/*test.cpp)
 TUTORIALS = $(filter-out %_generate.cpp, $(shell ls tutorial/*.cpp))
@@ -645,6 +646,7 @@ test_warnings: $(WARNING_TESTS:test/warning/%.cpp=warning_%)
 test_tutorials: $(TUTORIALS:tutorial/%.cpp=tutorial_%)
 test_valgrind: $(CORRECTNESS_TESTS:test/correctness/%.cpp=valgrind_%)
 test_opengl: $(OPENGL_TESTS:test/opengl/%.cpp=opengl_%)
+test_distributed: $(DISTRIBUTED_TESTS:test/distributed/%.cpp=distributed_%)
 test_renderscript: $(RENDERSCRIPT_TESTS:test/renderscript/%.cpp=renderscript_%)
 
 # There are two types of tests for generators:
@@ -695,6 +697,9 @@ $(BIN_DIR)/warning_%: test/warning/%.cpp $(BIN_DIR)/libHalide.so include/Halide.
 	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -Iinclude -L$(BIN_DIR) -lHalide $(LLVM_LDFLAGS) -lpthread -ldl -lz -o $@
 
 $(BIN_DIR)/opengl_%: test/opengl/%.cpp $(BIN_DIR)/libHalide.so include/Halide.h
+	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -Iinclude -Isrc -L$(BIN_DIR) -lHalide $(LLVM_LDFLAGS) -lpthread -ldl -lz -o $@
+
+$(BIN_DIR)/distributed_%: test/distributed/%.cpp $(BIN_DIR)/libHalide.so include/Halide.h
 	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -Iinclude -Isrc -L$(BIN_DIR) -lHalide $(LLVM_LDFLAGS) -lpthread -ldl -lz -o $@
 
 $(BIN_DIR)/renderscript_%: test/renderscript/%.cpp $(BIN_DIR)/libHalide.so include/Halide.h
@@ -839,6 +844,11 @@ warning_%: $(BIN_DIR)/warning_%
 
 opengl_%: HL_JIT_TARGET ?= host-opengl
 opengl_%: $(BIN_DIR)/opengl_%
+	@-mkdir -p tmp
+	cd tmp ; HL_JIT_TARGET=$(HL_JIT_TARGET) $(LD_PATH_SETUP) ../$< 2>&1
+	@-echo
+
+distributed_%: $(BIN_DIR)/distributed_%
 	@-mkdir -p tmp
 	cd tmp ; HL_JIT_TARGET=$(HL_JIT_TARGET) $(LD_PATH_SETUP) ../$< 2>&1
 	@-echo
