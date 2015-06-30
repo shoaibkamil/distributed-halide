@@ -80,6 +80,7 @@ DECLARE_CPP_INITMOD(android_opengl_context)
 DECLARE_CPP_INITMOD(ios_io)
 DECLARE_CPP_INITMOD(cuda)
 DECLARE_CPP_INITMOD(destructors)
+DECLARE_CPP_INITMOD(distributed_mpi)
 DECLARE_CPP_INITMOD(windows_cuda)
 DECLARE_CPP_INITMOD(fake_thread_pool)
 DECLARE_CPP_INITMOD(gcd_thread_pool)
@@ -397,6 +398,10 @@ llvm::Module *get_initial_module_for_target(Target t, llvm::LLVMContext *c, bool
                 modules.push_back(get_initmod_linux_host_cpu_count(c, bits_64, debug));
                 modules.push_back(get_initmod_posix_thread_pool(c, bits_64, debug));
                 modules.push_back(get_initmod_posix_get_symbol(c, bits_64, debug));
+
+                if (t.has_feature(Target::MPI)) {
+                    modules.push_back(get_initmod_distributed_mpi(c, bits_64, debug));
+                }
             } else if (t.os == Target::OSX) {
                 modules.push_back(get_initmod_osx_clock(c, bits_64, debug));
                 modules.push_back(get_initmod_posix_io(c, bits_64, debug));

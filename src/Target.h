@@ -57,6 +57,8 @@ struct Target {
 
         OpenGL,  ///< Enable the OpenGL runtime.
 
+        MPI,  ///< Enable the MPI distributed runtime.
+
         Renderscript, ///< Enable the Renderscript runtime.
 
         UserContext,  ///< Generated code takes a user_context pointer as first argument

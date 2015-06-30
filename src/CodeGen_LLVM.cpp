@@ -3044,16 +3044,16 @@ void CodeGen_LLVM::visit(const For *op) {
         // Return success
         builder->CreateRet(ConstantInt::get(i32, 0));
 
-        // Move the builder back to the main function and call do_par_for
+        // Move the builder back to the main function and call do_distr_for
         builder->restoreIP(call_site);
-        llvm::Function *do_par_for = module->getFunction("halide_do_par_for");
-        internal_assert(do_par_for) << "Could not find halide_do_par_for in initial module\n";
-        do_par_for->setDoesNotAlias(5);
-        //do_par_for->setDoesNotCapture(5);
+        llvm::Function *do_distr_for = module->getFunction("halide_do_distr_for");
+        internal_assert(do_distr_for) << "Could not find halide_do_distr_for in initial module\n";
+        do_distr_for->setDoesNotAlias(5);
+        //do_distr_for->setDoesNotCapture(5);
         ptr = builder->CreatePointerCast(ptr, i8->getPointerTo());
         Value *args[] = {user_context, function, min, extent, ptr};
-        debug(4) << "Creating call to do_par_for\n";
-        Value *result = builder->CreateCall(do_par_for, args);
+        debug(4) << "Creating call to do_distr_for\n";
+        Value *result = builder->CreateCall(do_distr_for, args);
 
         debug(3) << "Leaving distributed for loop over " << op->name << "\n";
 

@@ -445,6 +445,7 @@ RUNTIME_CPP_COMPONENTS = \
   cuda \
   destructors \
   device_interface \
+  distributed_mpi \
   fake_thread_pool \
   gcd_thread_pool \
   gpu_device_selection \
