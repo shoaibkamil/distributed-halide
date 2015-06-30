@@ -29,7 +29,7 @@ class DistributeLoops : public IRMutator {
         set<string> names;
     };
 
-    class FindInputBuffers : public IRVisitor {
+    class FindBuffersUsingVariable : public IRVisitor {
         using IRVisitor::visit;
         void visit(const Call *call) {
             GetVariablesInExpr vars;
@@ -37,23 +37,42 @@ class DistributeLoops : public IRMutator {
                 arg.accept(&vars);
             }
             if (vars.names.count(name)) {
-                buffers.push_back(call->name);
+                inputs.push_back(call->name);
+            }
+        }
+
+        void visit(const Provide *provide) {
+            GetVariablesInExpr vars;
+            for (Expr arg : provide->args) {
+                arg.accept(&vars);
+            }
+            if (vars.names.count(name)) {
+                outputs.push_back(provide->name);
             }
         }
     public:
         string name;
-        vector<string> buffers;
-        FindInputBuffers(string n) : name(n) {}
+        vector<string> inputs, outputs;
+        FindBuffersUsingVariable(string n) : name(n) {}
     };
 public:
     using IRMutator::visit;
 
     void visit(const For *for_loop) {
         if (for_loop->for_type == ForType::Distributed) {
-            // Find all input buffers in the loop body using the
-            // distributed loop variable.
-            FindInputBuffers inputs(for_loop->name);
-            for_loop->body.accept(&inputs);
+            // Find all input and output buffers in the loop body
+            // using the distributed loop variable.
+            FindBuffersUsingVariable find(for_loop->name);
+            for_loop->body.accept(&find);
+
+            // debug(0) << "Input buffers needed for distributed loop " << for_loop->name << ":\n";
+            // for (string b : find.inputs) {
+            //     debug(0) << b << "\n";
+            // }
+            // debug(0) << "Output buffers needed for distributed loop " << for_loop->name << ":\n";
+            // for (string b : find.outputs) {
+            //     debug(0) << b << "\n";
+            // }
 
             stmt = For::make(for_loop->name, for_loop->min, for_loop->extent,
                              ForType::Serial, for_loop->device_api, for_loop->body);
