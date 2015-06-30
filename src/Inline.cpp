@@ -43,7 +43,7 @@ class Inliner : public IRMutator {
                 user_error << "Cannot parallelize dimension "
                            << d.var << " of function "
                            << f.name() << " because the function is scheduled inline.\n";
-            } else if (d.for_type == ForType::Distribute) {
+            } else if (d.for_type == ForType::Distributed) {
                 user_error << "Cannot distribute dimension "
                            << d.var << " of function "
                            << f.name() << " because the function is scheduled inline.\n";
