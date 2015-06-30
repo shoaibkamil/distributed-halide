@@ -2978,6 +2978,96 @@ void CodeGen_LLVM::visit(const For *op) {
         Value *did_succeed = builder->CreateICmpEQ(result, ConstantInt::get(i32, 0));
         create_assertion(did_succeed, Expr(), result);
 
+    } else if (op->for_type == ForType::Distributed) {
+
+        debug(3) << "Entering distributed for loop over " << op->name << "\n";
+
+        // Find every symbol that the body of this loop refers to
+        // and dump it into a closure
+        Closure closure(op->body, op->name, buffer_t_type);
+
+        // Allocate a closure
+        StructType *closure_t = closure.build_type(context);
+        Value *ptr = create_alloca_at_entry(closure_t, 1);
+
+        // Fill in the closure
+        closure.pack_struct(closure_t, ptr, symbol_table, builder);
+
+        // Make a new function that does one iteration of the body of the loop
+        llvm::Type *voidPointerType = (llvm::Type *)(i8->getPointerTo());
+        llvm::Type *args_t[] = {voidPointerType, i32, voidPointerType};
+        FunctionType *func_t = FunctionType::get(i32, args_t, false);
+        llvm::Function *containing_function = function;
+        function = llvm::Function::Create(func_t, llvm::Function::InternalLinkage,
+                                          "par for " + function->getName() + "_" + op->name, module);
+        function->setDoesNotAlias(3);
+
+        // Make the initial basic block and jump the builder into the new function
+        IRBuilderBase::InsertPoint call_site = builder->saveIP();
+        BasicBlock *block = BasicBlock::Create(*context, "entry", function);
+        builder->SetInsertPoint(block);
+
+        // Get the user context value before swapping out the symbol table.
+        Value *user_context = get_user_context();
+
+        // Save the destructor block
+        BasicBlock *parent_destructor_block = destructor_block;
+        destructor_block = NULL;
+
+        // Make a new scope to use
+        Scope<Value *> saved_symbol_table;
+        symbol_table.swap(saved_symbol_table);
+
+        // Get the function arguments
+
+        // The user context is first argument of the function; it's
+        // important that we override the name to be "__user_context",
+        // since the LLVM function has a random auto-generated name for
+        // this argument.
+        llvm::Function::arg_iterator iter = function->arg_begin();
+        sym_push("__user_context", iter);
+
+        // Next is the loop variable.
+        ++iter;
+        sym_push(op->name, iter);
+
+        // The closure pointer is the third and last argument.
+        ++iter;
+        iter->setName("closure");
+        Value *closure_handle = builder->CreatePointerCast(iter, closure_t->getPointerTo());
+        // Load everything from the closure into the new scope
+        closure.unpack_struct(symbol_table, closure_t, closure_handle, builder);
+
+        // Generate the new function body
+        codegen(op->body);
+
+        // Return success
+        builder->CreateRet(ConstantInt::get(i32, 0));
+
+        // Move the builder back to the main function and call do_par_for
+        builder->restoreIP(call_site);
+        llvm::Function *do_par_for = module->getFunction("halide_do_par_for");
+        internal_assert(do_par_for) << "Could not find halide_do_par_for in initial module\n";
+        do_par_for->setDoesNotAlias(5);
+        //do_par_for->setDoesNotCapture(5);
+        ptr = builder->CreatePointerCast(ptr, i8->getPointerTo());
+        Value *args[] = {user_context, function, min, extent, ptr};
+        debug(4) << "Creating call to do_par_for\n";
+        Value *result = builder->CreateCall(do_par_for, args);
+
+        debug(3) << "Leaving distributed for loop over " << op->name << "\n";
+
+        // Now restore the scope
+        symbol_table.swap(saved_symbol_table);
+        function = containing_function;
+
+        // Restore the destructor block
+        destructor_block = parent_destructor_block;
+
+        // Check for success
+        Value *did_succeed = builder->CreateICmpEQ(result, ConstantInt::get(i32, 0));
+        create_assertion(did_succeed, Expr(), result);
+        
     } else {
         internal_error << "Unknown type of For node. Only Serial and Parallel For nodes should survive down to codegen.\n";
     }
