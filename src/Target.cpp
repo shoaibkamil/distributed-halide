@@ -107,7 +107,7 @@ Target get_host_target() {
         }
     }
 
-#ifdef WITH_MPI
+#if WITH_MPI
     initial_features.push_back(Target::MPI);
 #endif
 

@@ -273,6 +273,7 @@ set(HEADER_FILES
   Deinterleave.h
   Derivative.h
   DeviceInterface.h
+  DistributeLoops.h
   EarlyFree.h
   Error.h
   Expr.h
@@ -411,6 +412,7 @@ add_library(Halide ${HALIDE_LIBRARY_TYPE}
   Deinterleave.cpp
   Derivative.cpp
   DeviceInterface.cpp
+  DistributeLoops.cpp
   EarlyFree.cpp
   Error.cpp
   ExprUsesVar.cpp

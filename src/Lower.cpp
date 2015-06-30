@@ -14,6 +14,7 @@
 #include "Debug.h"
 #include "DebugToFile.h"
 #include "Deinterleave.h"
+#include "DistributeLoops.h"
 #include "EarlyFree.h"
 #include "FindCalls.h"
 #include "Function.h"
@@ -150,6 +151,12 @@ Stmt lower(const vector<Function> &outputs, const Target &t, const vector<IRMuta
         debug(1) << "Injecting image intrinsics...\n";
         s = inject_image_intrinsics(s);
         debug(2) << "Lowering after image intrinsics:\n" << s << "\n\n";
+    }
+
+    if (t.has_feature(Target::MPI)) {
+        debug(1) << "Converting distributed for loops to MPI calls...\n";
+        s = distribute_loops(s);
+        debug(2) << "Lowering after converting distributed for loops:\n" << s << "\n\n";
     }
 
     debug(1) << "Performing storage flattening...\n";
