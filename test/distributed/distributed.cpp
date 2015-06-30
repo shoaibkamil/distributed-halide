@@ -1,14 +1,17 @@
 #include "Halide.h"
+#include "mpi.h"
 #include <stdio.h>
 
 using namespace Halide;
 
 int main(int argc, char **argv) {
+    MPI_Init(&argc, &argv);
+
     Var x, y;
     {
         Func f;
         f(x, y) = x + y;
-        
+
         f.compute_root().distribute(x);
 
         Image<int> im = f.realize(10, 10);
@@ -24,5 +27,7 @@ int main(int argc, char **argv) {
     }
 
     printf("Success!\n");
+
+    MPI_Finalize();
     return 0;
 }
