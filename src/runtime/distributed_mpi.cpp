@@ -27,7 +27,6 @@ WEAK int default_do_distr_for(void *user_context, halide_task f,
             return result;
         }
     }
-    printf(">>> after do distr for\n");
     // Return zero if the job succeeded, otherwise return the exit
     // status.
     return 0;

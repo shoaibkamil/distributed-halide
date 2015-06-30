@@ -2999,7 +2999,7 @@ void CodeGen_LLVM::visit(const For *op) {
         FunctionType *func_t = FunctionType::get(i32, args_t, false);
         llvm::Function *containing_function = function;
         function = llvm::Function::Create(func_t, llvm::Function::InternalLinkage,
-                                          "par for " + function->getName() + "_" + op->name, module);
+                                          "distr for " + function->getName() + "_" + op->name, module);
         function->setDoesNotAlias(3);
 
         // Make the initial basic block and jump the builder into the new function
