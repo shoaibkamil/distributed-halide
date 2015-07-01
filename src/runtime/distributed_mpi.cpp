@@ -42,7 +42,7 @@ WEAK int default_do_distr_for(void *user_context, halide_task f,
         halide_initialize_mpi();
     }
     int rank = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
     int b = (int)ceil((double)size / halide_num_processes);
     int start = min + b*rank,
         finish = min + b*(rank+1);
@@ -90,5 +90,22 @@ WEAK int halide_do_distr_for(void *user_context, int (*f)(void *, int, uint8_t *
                            int min, int size, uint8_t *closure) {
   return (*halide_custom_do_distr_for)(user_context, f, min, size, closure);
 }
+
+WEAK int halide_do_distr_size() {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    return halide_num_processes;
+}
+
+WEAK int halide_do_distr_rank() {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    int rank = 0;
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
+    return rank;
+}
+
 
 } // extern "C"
