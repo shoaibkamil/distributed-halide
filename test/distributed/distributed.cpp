@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
             in(i) = i;
         }
         Func f;
-        f(x, y) = in(x) + in(y);
+        f(x, y) = x + in(y);
 
         f.compute_root().distribute(y);
 

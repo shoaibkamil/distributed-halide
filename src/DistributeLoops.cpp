@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "Bounds.h"
+#include "Parameter.h"
 #include "DistributeLoops.h"
 #include "IRMutator.h"
 #include "Scope.h"
@@ -66,6 +67,7 @@ class DistributeLoops : public IRMutator {
             }
             if (vars.names.count(name)) {
                 inputs.push_back(call->name);
+                elem_sizes[call->name] = call->type.bytes();
             }
             IRVisitor::visit(call);
         }
@@ -77,13 +79,23 @@ class DistributeLoops : public IRMutator {
             }
             if (vars.names.count(name)) {
                 outputs.push_back(provide->name);
+                internal_assert(provide->values.size() == 1);
+                elem_sizes[provide->name] = provide->values[0].type().bytes();
             }
             IRVisitor::visit(provide);
         }
+
+        map<string, Expr> elem_sizes;
     public:
         string name;
         vector<string> inputs, outputs;
         FindBuffersUsingVariable(string n) : name(n) {}
+
+        // Return the size (in bytes) of the given buffer, or an
+        // undefined expression if the given buffer is unknown.
+        Expr elem_size(string buf) {
+            return elem_sizes[buf];
+        }
     };
 
     inline Expr num_processors() const {
@@ -97,16 +109,13 @@ class DistributeLoops : public IRMutator {
     // Return a new loop that has iterations determined by processor
     // rank.
     Stmt distribute_loop_iterations(const For *for_loop) const {
-        Var P("P"), p("p");
-        Expr slice_size = (for_loop->extent - for_loop->min) / P;
-        Expr newmin = slice_size*p, newmax = slice_size*(p+1);
+        Expr slice_size = for_loop->extent / num_processors();
+        Expr newmin = slice_size*rank(), newmax = slice_size*(rank()+1);
         Expr newextent = simplify(newmax - newmin);
         // TODO: choose correct loop type here.
         Stmt newloop = For::make(for_loop->name, newmin, newextent,
                                  ForType::Serial, for_loop->device_api,
                                  for_loop->body);
-        newloop = LetStmt::make(P.name(), num_processors(),
-                                LetStmt::make(p.name(), rank(), newloop));
         return newloop;
     }
 
@@ -132,11 +141,17 @@ public:
         provided = boxes_provided(newloop);
         for (string in : find.inputs) {
             Box b = required[in];
-            //debug(0) << "Input buffer " << in << " requires: " << box2str(b) << "\n";
         }
 
-        // // Send result back to root processor
-        // Expr condition = NE::make(p, 0);
+        // Send required regions of input buffers.
+        Box b = required[find.inputs[0]];
+        Expr rowsize = b[0].max - b[0].min + 1;
+        Expr elemsize = find.elem_size(find.inputs[0]);
+        Expr bytes = rowsize * elemsize;
+        
+        Stmt p = Evaluate::make(print({string("Rank"), rank(), string(", rowsize:"), rowsize,
+                        string(", #bytes="), bytes}));
+        stmt = Block::make(p, newloop);
 
         // // Get address of buffer
         // Expr first_elem = Load::make(UInt(8), find.outputs[0], 0, Buffer(), Parameter());
@@ -146,7 +161,7 @@ public:
         // Expr send = Call::make(Int(32), "halide_do_distr_send", {buf, count, 0}, Call::Extern);
         // Expr maybesend = IfThenElse::make(condition, send);
 
-        stmt = newloop;
+        //stmt = newloop;
     }
 
 };
