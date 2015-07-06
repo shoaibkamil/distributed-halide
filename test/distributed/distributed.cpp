@@ -24,8 +24,12 @@ int main(int argc, char **argv) {
 
     Var x, y;
     {
+        Image<int> in(20);
+        for (int i = 0; i < in.width(); i++) {
+            in(i) = i;
+        }
         Func f;
-        f(x, y) = x + y;
+        f(x, y) = in(x) + in(y);
 
         f.compute_root().distribute(y);
 

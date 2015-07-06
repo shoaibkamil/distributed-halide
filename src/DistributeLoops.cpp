@@ -49,6 +49,7 @@ class DistributeLoops : public IRMutator {
         using IRVisitor::visit;
         void visit(const Variable *var) {
             names.insert(var->name);
+            IRVisitor::visit(var);
         }
     public:
         set<string> names;
@@ -66,6 +67,7 @@ class DistributeLoops : public IRMutator {
             if (vars.names.count(name)) {
                 inputs.push_back(call->name);
             }
+            IRVisitor::visit(call);
         }
 
         void visit(const Provide *provide) {
@@ -76,6 +78,7 @@ class DistributeLoops : public IRMutator {
             if (vars.names.count(name)) {
                 outputs.push_back(provide->name);
             }
+            IRVisitor::visit(provide);
         }
     public:
         string name;
@@ -120,12 +123,17 @@ public:
         FindBuffersUsingVariable find(for_loop->name);
         for_loop->body.accept(&find);
 
-        map<string, Box> required, provided;
-        required = boxes_required(for_loop->body);
-        provided = boxes_provided(for_loop->body);
-
         // Split original loop into chunks of iterations for each rank.
         Stmt newloop = distribute_loop_iterations(for_loop);
+
+        // Get required regions of input buffers for new loop.
+        map<string, Box> required, provided;
+        required = boxes_required(newloop);
+        provided = boxes_provided(newloop);
+        for (string in : find.inputs) {
+            Box b = required[in];
+            //debug(0) << "Input buffer " << in << " requires: " << box2str(b) << "\n";
+        }
 
         // // Send result back to root processor
         // Expr condition = NE::make(p, 0);
