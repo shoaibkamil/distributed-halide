@@ -9,10 +9,42 @@ extern int printf(const char *format, ...);
 extern double ceil(double d);
 
 typedef int MPI_Comm;
+#define MPI_COMM_WORLD ((MPI_Comm)0x44000000)
+
+typedef int MPI_Datatype;
+#define MPI_CHAR           ((MPI_Datatype)0x4c000101)
+#define MPI_SIGNED_CHAR    ((MPI_Datatype)0x4c000118)
+#define MPI_UNSIGNED_CHAR  ((MPI_Datatype)0x4c000102)
+#define MPI_BYTE           ((MPI_Datatype)0x4c00010d)
+#define MPI_WCHAR          ((MPI_Datatype)0x4c00040e)
+#define MPI_SHORT          ((MPI_Datatype)0x4c000203)
+#define MPI_UNSIGNED_SHORT ((MPI_Datatype)0x4c000204)
+#define MPI_INT            ((MPI_Datatype)0x4c000405)
+#define MPI_UNSIGNED       ((MPI_Datatype)0x4c000406)
+#define MPI_LONG           ((MPI_Datatype)0x4c000807)
+#define MPI_UNSIGNED_LONG  ((MPI_Datatype)0x4c000808)
+#define MPI_FLOAT          ((MPI_Datatype)0x4c00040a)
+#define MPI_DOUBLE         ((MPI_Datatype)0x4c00080b)
+#define MPI_LONG_DOUBLE    ((MPI_Datatype)0x4c00100c)
+#define MPI_LONG_LONG_INT  ((MPI_Datatype)0x4c000809)
+#define MPI_UNSIGNED_LONG_LONG ((MPI_Datatype)0x4c000819)
+#define MPI_LONG_LONG      MPI_LONG_LONG_INT
+
+typedef struct MPI_Status {
+    int count_lo;
+    int count_hi_and_cancelled;
+    int MPI_SOURCE;
+    int MPI_TAG;
+    int MPI_ERROR;
+} MPI_Status;
+
 extern int MPI_Comm_size(MPI_Comm, int *);
 extern int MPI_Comm_rank(MPI_Comm, int *);
 extern int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
-#define MPI_COMM_WORLD ((MPI_Comm)0x44000000)
+extern int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+                    MPI_Comm comm);
+extern int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+                    MPI_Comm comm, MPI_Status *status);
 MPI_Comm HALIDE_MPI_COMM;
 
 WEAK int halide_do_task(void *user_context, halide_task f, int idx,
@@ -107,5 +139,21 @@ WEAK int halide_do_distr_rank() {
     return rank;
 }
 
+WEAK int halide_do_distr_send(const void *buf, int count, int dest) {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    int tag = 0;
+    return MPI_Send(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM);
+}
+
+WEAK int halide_do_distr_recv(void *buf, int count, int source) {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    int tag = 0;
+    MPI_Status status;
+    return MPI_Recv(buf, count, MPI_UNSIGNED_CHAR, source, tag, HALIDE_MPI_COMM, &status);
+}
 
 } // extern "C"
