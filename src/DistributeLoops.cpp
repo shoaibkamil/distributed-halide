@@ -51,6 +51,7 @@ public:
     AbstractBuffer(const Buffer &buffer) {
         _type = buffer.type();
         _name = buffer.name();
+        _dimensions = buffer.dimensions();
         for (int d = 0; d < buffer.dimensions(); d++) {
             mins.push_back(buffer.min(d));
             extents.push_back(buffer.extent(d));
@@ -61,6 +62,7 @@ public:
     AbstractBuffer(const Parameter &param) {
         _type = param.type();
         _name = param.name();
+        _dimensions = param.dimensions();
         for (int d = 0; d < param.dimensions(); d++) {
             mins.push_back(param.min_constraint(d));
             extents.push_back(param.extent_constraint(d));
@@ -71,10 +73,12 @@ public:
     AbstractBuffer(const Provide *provide) {
         _type = provide->values[0].type();
         _name = provide->name;
+        _dimensions = -1;
     }
 
     int dimensions() const {
-        return mins.size();
+        internal_assert(_dimensions >= 0) << "Called dimensions on AbstractBuffer of Provide type.\n";
+        return _dimensions;
     }
 
     Expr extent(int dim) const {
@@ -93,7 +97,7 @@ public:
         return _type;
     }
 
-    string name() const {
+    const string &name() const {
         return _name;
     }
 
@@ -103,6 +107,7 @@ public:
 private:
     string _name;
     Type _type;
+    int _dimensions;
     vector<Expr> mins;
     vector<Expr> extents;
     vector<Expr> strides;
