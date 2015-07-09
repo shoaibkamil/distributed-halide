@@ -15,6 +15,7 @@
 #include "ExprUsesVar.h"
 #include "Simplify.h"
 #include "Var.h"
+#include "Image.h"
 
 namespace Halide {
 namespace Internal {
@@ -42,6 +43,70 @@ string box2str(const Box &b) {
     maxs << ")";
     return mins.str() + " to " + maxs.str();
 }
+
+// Helper class that wraps information common to Buffer and Parameter classes.
+// Also provides a wrapper for Provide nodes which do not have buffer references.
+class AbstractBuffer {
+public:
+    AbstractBuffer(const Buffer &buffer) {
+        _type = buffer.type();
+        _name = buffer.name();
+        for (int d = 0; d < buffer.dimensions(); d++) {
+            mins.push_back(buffer.min(d));
+            extents.push_back(buffer.extent(d));
+            strides.push_back(buffer.stride(d));
+        }
+    }
+
+    AbstractBuffer(const Parameter &param) {
+        _type = param.type();
+        _name = param.name();
+        for (int d = 0; d < param.dimensions(); d++) {
+            mins.push_back(param.min_constraint(d));
+            extents.push_back(param.extent_constraint(d));
+            strides.push_back(param.stride_constraint(d));
+        }
+    }
+
+    AbstractBuffer(const Provide *provide) {
+        _type = provide->values[0].type();
+        _name = provide->name;
+    }
+
+    int dimensions() const {
+        return mins.size();
+    }
+
+    Expr extent(int dim) const {
+        return extents[dim];
+    }
+
+    Expr min(int dim) const {
+        return mins[dim];
+    }
+
+    Expr stride(int dim) const {
+        return strides[dim];
+    }
+
+    Type type() const {
+        return _type;
+    }
+
+    string name() const {
+        return _name;
+    }
+
+    Expr elem_size() const {
+        return _type.bytes();
+    }
+private:
+    string _name;
+    Type _type;
+    vector<Expr> mins;
+    vector<Expr> extents;
+    vector<Expr> strides;
+};
 }
 
 class DistributeLoops : public IRMutator {
@@ -66,8 +131,13 @@ class DistributeLoops : public IRMutator {
                 arg.accept(&vars);
             }
             if (vars.names.count(name)) {
-                inputs.push_back(call->name);
-                elem_sizes[call->name] = call->type.bytes();
+                internal_assert(call->call_type == Call::Image);
+                if (call->image.defined()) {
+                    inputs.push_back(AbstractBuffer(call->image));
+                } else {
+                    inputs.push_back(AbstractBuffer(call->param));
+                }
+
             }
             IRVisitor::visit(call);
         }
@@ -78,9 +148,8 @@ class DistributeLoops : public IRMutator {
                 arg.accept(&vars);
             }
             if (vars.names.count(name)) {
-                outputs.push_back(provide->name);
                 internal_assert(provide->values.size() == 1);
-                elem_sizes[provide->name] = provide->values[0].type().bytes();
+                outputs.push_back(AbstractBuffer(provide));
             }
             IRVisitor::visit(provide);
         }
@@ -88,14 +157,8 @@ class DistributeLoops : public IRMutator {
         map<string, Expr> elem_sizes;
     public:
         string name;
-        vector<string> inputs, outputs;
+        vector<AbstractBuffer> inputs, outputs;
         FindBuffersUsingVariable(string n) : name(n) {}
-
-        // Return the size (in bytes) of the given buffer, or an
-        // undefined expression if the given buffer is unknown.
-        Expr elem_size(string buf) {
-            return elem_sizes[buf];
-        }
     };
 
     inline Expr num_processors() const {
@@ -139,16 +202,16 @@ public:
         map<string, Box> required, provided;
         required = boxes_required(newloop);
         provided = boxes_provided(newloop);
-        for (string in : find.inputs) {
-            Box b = required[in];
+        for (const AbstractBuffer &in : find.inputs) {
+            Box b = required[in.name()];
         }
 
         // Send required regions of input buffers.
-        Box b = required[find.inputs[0]];
+        Box b = required[find.inputs[0].name()];
         Expr rowsize = b[0].max - b[0].min + 1;
-        Expr elemsize = find.elem_size(find.inputs[0]);
+        Expr elemsize = find.inputs[0].elem_size();
         Expr bytes = rowsize * elemsize;
-        
+
         Stmt p = Evaluate::make(print({string("Rank"), rank(), string(", rowsize:"), rowsize,
                         string(", #bytes="), bytes}));
         stmt = Block::make(p, newloop);
