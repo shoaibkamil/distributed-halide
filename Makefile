@@ -81,6 +81,7 @@ OPENGL_CXX_FLAGS=$(if $(WITH_OPENGL), -DWITH_OPENGL=1, )
 
 CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
 MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
+MPI_RUN=$(if $(MPI_NODES), srun -N$(MPI_NODES), )
 
 RENDERSCRIPT_CXX_FLAGS=$(if $(WITH_RENDERSCRIPT), -DWITH_RENDERSCRIPT=1, )
 
@@ -858,7 +859,7 @@ opengl_%: $(BIN_DIR)/opengl_%
 
 distributed_%: $(BIN_DIR)/distributed_%
 	@-mkdir -p tmp
-	cd tmp ; HL_JIT_TARGET=$(HL_JIT_TARGET) $(LD_PATH_SETUP) ../$< 2>&1
+	cd tmp ; HL_JIT_TARGET=$(HL_JIT_TARGET) $(LD_PATH_SETUP) $(MPI_RUN) ../$< 2>&1
 	@-echo
 
 renderscript_jit_%: HL_JIT_TARGET = host-renderscript
