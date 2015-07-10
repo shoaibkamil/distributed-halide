@@ -22,6 +22,9 @@ int mpi_printf(const char *format, ...) {
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
 
+    int rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     Var x, y;
     {
         Image<int> in(20);
@@ -34,12 +37,15 @@ int main(int argc, char **argv) {
         f.compute_root().distribute(y);
 
         Image<int> im = f.realize(10, 20);
-        for (int y = 0; y < im.height(); y++) {
-            for (int x = 0; x < im.width(); x++) {
-                int correct = x + y;
-                if (im(x, y) != correct) {
-                    mpi_printf("im(%d, %d) = %d instead of %d\n", x, y, im(x, y), correct);
-                    return -1;
+        if (rank == 0) {
+            for (int y = 0; y < im.height(); y++) {
+                for (int x = 0; x < im.width(); x++) {
+                    int correct = x + y;
+                    if (im(x, y) != correct) {
+                        mpi_printf("im(%d, %d) = %d instead of %d\n", x, y, im(x, y), correct);
+                        MPI_Finalize();
+                        return -1;
+                    }
                 }
             }
         }
