@@ -29,23 +29,21 @@ int main(int argc, char **argv) {
     {
         Image<int> in(20);
         for (int i = 0; i < in.width(); i++) {
-            in(i) = i;
+            in(i) = 2*i;
         }
         Func f;
-        f(x, y) = x + in(y);
+        f(x) = in(x) + 1;
 
-        f.compute_root().distribute(y);
+        f.compute_root().distribute(x);
 
-        Image<int> im = f.realize(10, 20);
+        Image<int> im = f.realize(20);
         if (rank == 0) {
-            for (int y = 0; y < im.height(); y++) {
-                for (int x = 0; x < im.width(); x++) {
-                    int correct = x + y;
-                    if (im(x, y) != correct) {
-                        mpi_printf("im(%d, %d) = %d instead of %d\n", x, y, im(x, y), correct);
-                        MPI_Finalize();
-                        return -1;
-                    }
+            for (int x = 0; x < im.width(); x++) {
+                int correct = 2*x + 1;
+                if (im(x) != correct) {
+                    mpi_printf("im(%d) = %d instead of %d\n", x, im(x), correct);
+                    MPI_Finalize();
+                    return -1;
                 }
             }
         }
