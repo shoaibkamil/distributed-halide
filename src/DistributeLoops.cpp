@@ -212,9 +212,10 @@ class DistributeLoops : public IRMutator {
         return newloop;
     }
 
-    // Construct a statement to send the required region of 'buffer'
-    // (specified by box 'b') from rank 0 to each processor.
-    Stmt send_input_buffer(const AbstractBuffer &buffer, const Box &b) const {
+    typedef enum { Send, Recv } CommunicateCmd;
+    // Construct a statement to send/recv the required region of 'buffer'
+    // (specified by box 'b') between rank 0 and each processor.
+    Stmt communicate_buffer(CommunicateCmd cmd, const AbstractBuffer &buffer, const Box &b) const {
         internal_assert(b.size() > 0);
         switch (b.size()) {
         case 1: {
@@ -223,15 +224,25 @@ class DistributeLoops : public IRMutator {
 
             // Loop through each rank (not including 0) to evaluate
             // the box needed (since the box given is expressed in
-            // terms of a rank variable), then send it off.
+            // terms of a rank variable), then communicate it.
             Expr address = address_of(buffer, b[0].min);
-            Stmt sendstmt = Evaluate::make(send(address, rowbytes, Var("Rank")));
-            Stmt sendloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, sendstmt);
+            Stmt commstmt, othercommstmt;
+            switch (cmd) {
+            case Send:
+                commstmt = Evaluate::make(send(address, rowbytes, Var("Rank")));
+                othercommstmt = Evaluate::make(Let::make("Rank", rank(),
+                                                         recv(address, rowbytes, 0)));
+                break;
+            case Recv:
+                commstmt = Evaluate::make(recv(address, rowbytes, Var("Rank")));
+                othercommstmt = Evaluate::make(Let::make("Rank", rank(),
+                                                         send(address, rowbytes, 0)));
+                break;
+            }
+            Stmt commloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, commstmt);
 
-            Stmt recvstmt = Evaluate::make(Let::make("Rank", rank(), recv(address, rowbytes, 0)));
-
-            // Rank 0 sends; all other ranks issue receives.
-            return IfThenElse::make(EQ::make(rank(), 0), sendloop, recvstmt);
+            // Rank 0 sends/recvs; all other ranks issue the complement.
+            return IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
         }
         default:
             internal_assert(false) << "Unimplemented.\n";
@@ -239,32 +250,17 @@ class DistributeLoops : public IRMutator {
         }
     }
 
+    // Construct a statement to send the required region of 'buffer'
+    // (specified by box 'b') from rank 0 to each processor.
+    Stmt send_input_buffer(const AbstractBuffer &buffer, const Box &b) const {
+        return communicate_buffer(Send, buffer, b);
+    }
+
     // Construct a statement to receive the region of 'buffer'
     // (specified by box 'b') provided by each processor back to rank
     // 0.
     Stmt recv_output_buffer(const AbstractBuffer &buffer, const Box &b) const {
-        internal_assert(b.size() > 0);
-        switch (b.size()) {
-        case 1: {
-            Expr rowsize = b[0].max - b[0].min + 1;
-            Expr rowbytes = rowsize * buffer.elem_size();
-
-            // Loop through each rank (not including 0) to evaluate
-            // the box needed (since the box given is expressed in
-            // terms of a rank variable), then send it off.
-            Expr address = address_of(buffer, b[0].min);
-            Stmt recvstmt = Evaluate::make(recv(address, rowbytes, Var("Rank")));
-            Stmt recvloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, recvstmt);
-
-            Stmt sendstmt = Evaluate::make(Let::make("Rank", rank(), send(address, rowbytes, 0)));
-
-            // Rank 0 receives; all other ranks issue sends.
-            return IfThenElse::make(EQ::make(rank(), 0), recvloop, sendstmt);
-        }
-        default:
-            internal_assert(false) << "Unimplemented.\n";
-            return Stmt();
-        }
+        return communicate_buffer(Recv, buffer, b);
     }
 
 public:
