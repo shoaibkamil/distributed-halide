@@ -82,14 +82,17 @@ public:
     }
 
     Expr extent(int dim) const {
+        internal_assert(dim >= 0 && dim < (int)extents.size());
         return extents[dim];
     }
 
     Expr min(int dim) const {
+        internal_assert(dim >= 0 && dim < (int)mins.size());
         return mins[dim];
     }
 
     Expr stride(int dim) const {
+        internal_assert(dim >= 0 && dim < (int)strides.size());
         return strides[dim];
     }
 
@@ -186,12 +189,29 @@ class DistributeLoops : public IRMutator {
         return Call::make(Int(32), "halide_do_distr_recv", {address, count, rank}, Call::Extern);
     }
 
-    // Return the (symbolic) address of the given buffer at the given element index.
-    Expr address_of(const AbstractBuffer &buffer, Expr index) const {
-        // A load of UInt(8) will take an index in bytes; we are given an index in elements.
-        index = index * buffer.elem_size();
-        Expr first_elem = Load::make(UInt(8), buffer.name(), index, Buffer(), Parameter());
+    // Return the (symbolic) address of the given buffer at the given
+    // byte index.
+    Expr address_of(const string &buffer, Expr index) const {
+        Expr first_elem = Load::make(UInt(8), buffer, index, Buffer(), Parameter());
         return Call::make(Handle(), Call::address_of, {first_elem}, Call::Intrinsic);
+    }
+
+    // Return the (symbolic) address of the given buffer at the given
+    // byte index.
+    Expr address_of(const AbstractBuffer &buffer, Expr index) const {
+        return address_of(buffer.name(), index);
+    }
+
+    // Return the (symbolic) address of the given n-D buffer at the
+    // given element index.
+    Expr address_of(const AbstractBuffer &buffer, const vector<Expr> &index) const {
+        Expr idx = 0;
+        for (int i = 0; i < (int)index.size(); i++) {
+            idx += i*buffer.extent(i) + index[i];
+        }
+        // A load of UInt(8) will take an index in bytes; we are given an index in elements.
+        idx = idx * buffer.elem_size();
+        return address_of(buffer.name(), idx);
     }
 
     // Return a new loop that has iterations determined by processor
@@ -206,7 +226,7 @@ class DistributeLoops : public IRMutator {
         Expr newextent = min(newmax, oldmax) - newmin;
         // TODO: choose correct loop type here (parallel if original
         // loop was distributed+parallel).
-        Stmt newloop = For::make(for_loop->name, newmin, newextent,
+        Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
                                  ForType::Serial, for_loop->device_api,
                                  for_loop->body);
         return newloop;
