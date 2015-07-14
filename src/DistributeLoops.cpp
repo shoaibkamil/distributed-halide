@@ -327,12 +327,18 @@ class DistributeLoops : public IRMutator {
         return communicate_buffer(Recv, buffer, b);
     }
 
+    // Allocate a buffer of the given name, type, and size that will
+    // be used in the given body.
     Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) {
         vector<Expr> extents;
+        Expr stride = 1;
         for (unsigned i = 0; i < b.size(); i++) {
-            extents.push_back(simplify(b[i].max - b[i].min + 1));
+            Expr extent = simplify(b[i].max - b[i].min + 1);
+            body = LetStmt::make(name + ".min." + std::to_string(i), 0, body);
+            body = LetStmt::make(name + ".stride." + std::to_string(i), stride, body);
+            extents.push_back(extent);
+            stride *= extent;
         }
-        // return LetStmt::make("Rank", rank(), Allocate::make(name, type, extents, const_true(), body));
         return Allocate::make(name, type, extents, const_true(), body);
     }
 
@@ -358,8 +364,6 @@ public:
         required = boxes_required(newloop);
         provided = boxes_provided(newloop);
 
-        // newloop = LetStmt::make("Rank", rank(), newloop);
-
         // Construct the send statements to send required regions for
         // each input buffer.
         Stmt sendstmt;
@@ -372,8 +376,6 @@ public:
             }
             ChangeDistributedLoopBuffers change(in.name(), in.name() + "_partitioned", b);
             newloop = change.mutate(newloop);
-            newloop = LetStmt::make(in.name() + "_partitioned.min.0", 0, newloop);
-            newloop = LetStmt::make(in.name() + "_partitioned.stride.0", 1, newloop);
         }
 
         // Construct receive statements to gather output buffer regions
@@ -388,8 +390,6 @@ public:
             }
             ChangeDistributedLoopBuffers change(out.name(), out.name() + "_partitioned", b);
             newloop = change.mutate(newloop);
-            newloop = LetStmt::make(out.name() + "_partitioned.min.0", 0, newloop);
-            newloop = LetStmt::make(out.name() + "_partitioned.stride.0", 1, newloop);
         }
 
         newloop = Block::make(sendstmt, Block::make(newloop, recvstmt));
@@ -414,9 +414,6 @@ public:
             }
         }
 
-        // stmt = LetStmt::make("SliceSize",
-        //                      cast(for_loop->extent.type(), ceil(cast(Float(32), for_loop->extent) / num_processors())),
-        //                      allocates);
         stmt = LetStmt::make("SliceSize",
                              cast(for_loop->extent.type(), ceil(cast(Float(32), for_loop->extent) / num_processors())),
                              LetStmt::make("Rank", rank(), allocates));
