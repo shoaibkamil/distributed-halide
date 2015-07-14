@@ -98,31 +98,31 @@ int main(int argc, char **argv) {
         }
     }
 
-    // {
-    //     Image<int> in(10, 20);
-    //     for (int x = 0; x < in.width(); x++) {
-    //         for (int y = 0; y < in.height(); y++) {
-    //             in(x, y) = x + y;
-    //         }
-    //     }
+    {
+        Image<int> in(10, 20);
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = x + y;
+            }
+        }
 
-    //     Func f;
-    //     f(x, y) = 2 * in(x, y);
-    //     f.distribute(y);
-    //     Image<int> out = f.realize(10, 20);
-    //     if (rank == 0) {
-    //         for (int x = 0; x < out.width(); x++) {
-    //             for (int y = 0; y < out.height(); y++) {
-    //                 int correct = 2*(x+y);
-    //                 if (out(x,y) != correct) {
-    //                     mpi_printf("out(%d,%d) = %d instead of %d\n", x, y,out(x,y), correct);
-    //                     MPI_Finalize();
-    //                     return -1;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+        Func f;
+        f(x, y) = 2 * in(x, y);
+        f.distribute(y);
+        Image<int> out = f.realize(10, 20);
+        if (rank == 0) {
+            for (int y = 0; y < out.height(); y++) {
+                for (int x = 0; x < out.width(); x++) {
+                    int correct = 2*(x+y);
+                    if (out(x,y) != correct) {
+                        mpi_printf("out(%d,%d) = %d instead of %d\n", x, y,out(x,y), correct);
+                        MPI_Finalize();
+                        return -1;
+                    }
+                }
+            }
+        }
+    }
 
     mpi_printf("Success!\n");
 

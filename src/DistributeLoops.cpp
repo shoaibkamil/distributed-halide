@@ -55,7 +55,7 @@ public:
         for (int d = 0; d < buffer.dimensions(); d++) {
             mins.push_back(buffer.min(d));
             extents.push_back(buffer.extent(d));
-            strides.push_back(buffer.stride(d));
+            //strides.push_back(buffer.stride(d));
         }
     }
 
@@ -66,7 +66,7 @@ public:
         for (int d = 0; d < param.dimensions(); d++) {
             mins.push_back(param.min_constraint(d));
             extents.push_back(param.extent_constraint(d));
-            strides.push_back(param.stride_constraint(d));
+            //strides.push_back(param.stride_constraint(d));
         }
     }
 
@@ -76,25 +76,25 @@ public:
         _dimensions = -1;
     }
 
-    int dimensions() const {
-        internal_assert(_dimensions >= 0) << "Called dimensions on AbstractBuffer of Provide type.\n";
-        return _dimensions;
-    }
+    // int dimensions() const {
+    //     internal_assert(_dimensions >= 0) << "Called dimensions on AbstractBuffer of Provide type.\n";
+    //     return _dimensions;
+    // }
 
-    Expr extent(int dim) const {
-        internal_assert(dim >= 0 && dim < (int)extents.size());
-        return extents[dim];
-    }
+    // Expr extent(int dim) const {
+    //     internal_assert(dim >= 0 && dim < (int)extents.size());
+    //     return extents[dim];
+    // }
 
-    Expr min(int dim) const {
-        internal_assert(dim >= 0 && dim < (int)mins.size());
-        return mins[dim];
-    }
+    // Expr min(int dim) const {
+    //     internal_assert(dim >= 0 && dim < (int)mins.size());
+    //     return mins[dim];
+    // }
 
-    Expr stride(int dim) const {
-        internal_assert(dim >= 0 && dim < (int)strides.size());
-        return strides[dim];
-    }
+    // Expr stride(int dim) const {
+    //     internal_assert(dim >= 0 && dim < (int)strides.size());
+    //     return strides[dim];
+    // }
 
     Type type() const {
         return _type;
@@ -111,13 +111,21 @@ public:
     Expr elem_size() const {
         return _type.bytes();
     }
+
+    Expr size_of(const Box &b) const {
+        Expr num_elems = 1;
+        for (unsigned i = 0; i < b.size(); i++) {
+            num_elems *= b[i].max - b[i].min + 1;
+        }
+        return simplify(num_elems * elem_size());
+    }
 private:
     string _name;
     Type _type;
     int _dimensions;
     vector<Expr> mins;
     vector<Expr> extents;
-    vector<Expr> strides;
+    //    vector<Expr> strides;
 };
 }
 
@@ -247,17 +255,87 @@ class DistributeLoops : public IRMutator {
 
     // Return the (symbolic) address of the given n-D buffer at the
     // given element index.
-    Expr address_of(const AbstractBuffer &buffer, const vector<Expr> &index) const {
-        Expr idx = 0;
-        for (int i = 0; i < (int)index.size(); i++) {
-            idx += i*buffer.extent(i) + index[i];
-        }
-        return address_of(buffer.name(), idx);
-    }
+    // Expr address_of(const AbstractBuffer &buffer, const vector<Expr> &index) const {
+    //     Expr idx = 0;
+    //     for (int i = 0; i < (int)index.size(); i++) {
+    //         idx += i*buffer.extent(i) + index[i];
+    //     }
+    //     return address_of(buffer.name(), idx);
+    // }
 
+    // Construct a statement to copy 'size' bytes from src to dest.
     Stmt copy_memory(Expr dest, Expr src, Expr size) const {
         return Evaluate::make(Call::make(UInt(8), Call::copy_memory,
                                          {dest, src, size}, Call::Intrinsic));
+    }
+
+    // Construct a statement to pack the given box of the given buffer
+    // into the contiguous region of memory with the given name.
+    Stmt pack_region(const string &dest_name, const AbstractBuffer &buffer, const Box &b) const {
+        vector<Var> dims;
+        for (unsigned i = 0; i < b.size(); i++) {
+            dims.push_back(Var(buffer.name() + "_dim" + std::to_string(i)));
+        }
+
+        // Construct src/dest pointer expressions as expressions in
+        // terms of the box dimension variables.
+        Expr srcoffset = 0, destoffset = 0;
+        Expr stride = b[0].max - b[0].min + 1;
+        for (unsigned i = 1; i < b.size(); i++) {
+            Expr extent = b[i].max - b[i].min + 1;
+            Expr dim = dims[i];
+            srcoffset += (dim + b[i].min) * stride * buffer.elem_size();
+            destoffset += dim * stride * buffer.elem_size();
+            stride *= extent;
+        }
+
+        // Construct loop nest to copy each contiguous row.  TODO:
+        // ensure this nesting is in the correct row/column major
+        // order.
+        Expr rowsize = simplify(b[0].max - b[0].min + 1) * buffer.elem_size();
+        Expr src = address_of(buffer.name(), srcoffset);
+        Expr dest = address_of(dest_name, destoffset);
+        Stmt copyloop = copy_memory(dest, src, rowsize);
+        for (int i = b.size() - 1; i >= 1; i--) {
+            copyloop = For::make(dims[i].name(), 0, b[i].max - b[i].min + 1,
+                                 ForType::Serial, DeviceAPI::Host, copyloop);
+        }
+        return copyloop;
+    }
+
+    // Construct a statement to unpack the given contiguous region of
+    // memory with the given name into the given box of the given
+    // buffer.
+    Stmt unpack_region(const string &src_name, const AbstractBuffer &buffer, const Box &b) const {
+        vector<Var> dims;
+        for (unsigned i = 0; i < b.size(); i++) {
+            dims.push_back(Var(buffer.name() + "_dim" + std::to_string(i)));
+        }
+
+        // Construct src/dest pointer expressions as expressions in
+        // terms of the box dimension variables.
+        Expr srcoffset = 0, destoffset = 0;
+        Expr stride = b[0].max - b[0].min + 1;
+        for (unsigned i = 1; i < b.size(); i++) {
+            Expr extent = b[i].max - b[i].min + 1;
+            Expr dim = dims[i];
+            srcoffset += dim * stride * buffer.elem_size();
+            destoffset += (dim + b[i].min) * stride * buffer.elem_size();
+            stride *= extent;
+        }
+
+        // Construct loop nest to copy each contiguous row.  TODO:
+        // ensure this nesting is in the correct row/column major
+        // order.
+        Expr rowsize = simplify(b[0].max - b[0].min + 1) * buffer.elem_size();
+        Expr src = address_of(src_name, srcoffset);
+        Expr dest = address_of(buffer.name(), destoffset);
+        Stmt copyloop = copy_memory(dest, src, rowsize);
+        for (int i = b.size() - 1; i >= 1; i--) {
+            copyloop = For::make(dims[i].name(), 0, b[i].max - b[i].min + 1,
+                                 ForType::Serial, DeviceAPI::Host, copyloop);
+        }
+        return copyloop;
     }
 
     // Return a new loop that has iterations determined by processor
@@ -314,8 +392,38 @@ class DistributeLoops : public IRMutator {
             return IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
         }
         default:
-            internal_assert(false) << "Unimplemented.\n";
-            return Stmt();
+            string scratch_name = buffer.name() + "_commscratch";
+
+            Expr numbytes = buffer.size_of(b);
+            Expr address = address_of(scratch_name, 0);
+            Expr partitioned_addr = address_of(buffer.partitioned_name(), 0);
+            Stmt commstmt, othercommstmt, copy, packunpack;
+            switch (cmd) {
+            case Send:
+                // Pack buffer into scratch
+                packunpack = pack_region(scratch_name, buffer, b);
+                commstmt = Block::make(packunpack, Evaluate::make(send(address, numbytes, Var("Rank"))));
+                othercommstmt = Evaluate::make(recv(partitioned_addr, numbytes, 0));
+                copy = Block::make(packunpack, copy_memory(partitioned_addr, address, numbytes));
+                break;
+            case Recv:
+                // Unpack buffer from scratch
+                packunpack = unpack_region(scratch_name, buffer, b);
+                commstmt = Block::make(Evaluate::make(recv(address, numbytes, Var("Rank"))),
+                                       packunpack);
+                othercommstmt = Evaluate::make(send(partitioned_addr, numbytes, 0));
+                copy = Block::make(copy_memory(address, partitioned_addr, numbytes), packunpack);
+                break;
+            }
+            Stmt commloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, commstmt);
+
+            commloop = Block::make(copy, commloop);
+
+            // Rank 0 sends/recvs; all other ranks issue the complement.
+            Stmt body = IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
+
+            // Allocate scratch
+            return allocate_scratch(scratch_name, buffer.type(), b, body);
         }
     }
 
@@ -334,7 +442,7 @@ class DistributeLoops : public IRMutator {
 
     // Allocate a buffer of the given name, type, and size that will
     // be used in the given body.
-    Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) {
+    Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) const {
         vector<Expr> extents;
         Expr stride = 1;
         for (unsigned i = 0; i < b.size(); i++) {
