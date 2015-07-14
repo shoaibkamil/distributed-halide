@@ -104,6 +104,10 @@ public:
         return _name;
     }
 
+    string partitioned_name() const {
+        return _name + "_partitioned";
+    }
+
     Expr elem_size() const {
         return _type.bytes();
     }
@@ -287,7 +291,7 @@ class DistributeLoops : public IRMutator {
             // the box needed (since the box given is expressed in
             // terms of a rank variable), then communicate it.
             Expr address = address_of(buffer, b[0].min);
-            Expr partitioned_addr = address_of(buffer.name() + "_partitioned", 0);
+            Expr partitioned_addr = address_of(buffer.partitioned_name(), 0);
             Stmt commstmt, othercommstmt, copy;
             switch (cmd) {
             case Send:
@@ -374,7 +378,7 @@ public:
             } else {
                 sendstmt = send_input_buffer(in, b);
             }
-            ChangeDistributedLoopBuffers change(in.name(), in.name() + "_partitioned", b);
+            ChangeDistributedLoopBuffers change(in.name(), in.partitioned_name(), b);
             newloop = change.mutate(newloop);
         }
 
@@ -388,7 +392,7 @@ public:
             } else {
                 recvstmt = recv_output_buffer(out, b);
             }
-            ChangeDistributedLoopBuffers change(out.name(), out.name() + "_partitioned", b);
+            ChangeDistributedLoopBuffers change(out.name(), out.partitioned_name(), b);
             newloop = change.mutate(newloop);
         }
 
@@ -396,7 +400,7 @@ public:
 
         Stmt allocates;
         for (const AbstractBuffer &in : find.inputs) {
-            string scratch_name = in.name() + "_partitioned";
+            string scratch_name = in.partitioned_name();
             if (allocates.defined()) {
                 allocates = allocate_scratch(scratch_name, in.type(),
                                              required[in.name()], allocates);
@@ -405,7 +409,7 @@ public:
             }
         }
         for (const AbstractBuffer &out : find.outputs) {
-            string scratch_name = out.name() + "_partitioned";
+            string scratch_name = out.partitioned_name();
             if (allocates.defined()) {
                 allocates = allocate_scratch(scratch_name, out.type(),
                                              provided[out.name()], allocates);
