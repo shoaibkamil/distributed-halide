@@ -26,8 +26,6 @@ int main(int argc, char **argv) {
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    Var x, y;
-
     // {
     //     // Cropping test. Really this should go into DistributeLoops.cpp.
     //     Image<int> in(10, 10);
@@ -76,6 +74,8 @@ int main(int argc, char **argv) {
     //     delete[] dest;
     // }
 
+    Var x, y, z;
+
     {
         Image<int> in(20);
         for (int i = 0; i < in.width(); i++) {
@@ -118,6 +118,40 @@ int main(int argc, char **argv) {
                         mpi_printf("out(%d,%d) = %d instead of %d\n", x, y,out(x,y), correct);
                         MPI_Finalize();
                         return -1;
+                    }
+                }
+            }
+        }
+    }
+
+    {
+        Image<int> in(10, 20, 30);
+
+        for (int z = 0; z < in.channels(); z++) {
+            for (int y = 0; y < in.height(); y++) {
+                for (int x = 0; x < in.width(); x++) {
+                    in(x, y, z) = x + y + z;
+                }
+            }
+        }
+
+        Func f, g;
+        f(x, y, z) = 2 * in(x, y, z);
+        g(x, y, z) = 2 * in(x, y, z);
+        f.distribute(z);
+        g.distribute(y);
+        Image<int> fout = f.realize(10, 20, 30);
+        Image<int> gout = g.realize(10, 20, 30);
+        if (rank == 0) {
+            for (int z = 0; z < fout.channels(); z++) {
+                for (int y = 0; y < fout.height(); y++) {
+                    for (int x = 0; x < fout.width(); x++) {
+                        int correct = 2*(x+y+z);
+                        if (fout(x,y,z) != correct || gout(x,y,z) != correct) {
+                            mpi_printf("out(%d,%d,%d) = %d instead of %d\n", x, y, z, fout(x,y,z), correct);
+                            MPI_Finalize();
+                            return -1;
+                        }
                     }
                 }
             }

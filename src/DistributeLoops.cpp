@@ -55,7 +55,7 @@ public:
         for (int d = 0; d < buffer.dimensions(); d++) {
             mins.push_back(buffer.min(d));
             extents.push_back(buffer.extent(d));
-            //strides.push_back(buffer.stride(d));
+            strides.push_back(buffer.stride(d));
         }
     }
 
@@ -66,7 +66,7 @@ public:
         for (int d = 0; d < param.dimensions(); d++) {
             mins.push_back(param.min_constraint(d));
             extents.push_back(param.extent_constraint(d));
-            //strides.push_back(param.stride_constraint(d));
+            strides.push_back(param.stride_constraint(d));
         }
     }
 
@@ -91,10 +91,17 @@ public:
     //     return mins[dim];
     // }
 
-    // Expr stride(int dim) const {
-    //     internal_assert(dim >= 0 && dim < (int)strides.size());
-    //     return strides[dim];
-    // }
+    Expr stride(int dim) const {
+        internal_assert(dim >= 0 && dim < (int)strides.size());
+        return strides[dim];
+    }
+
+    void set_stride(int dim, Expr stride) {
+        if (dim >= (int)strides.size()) {
+            strides.resize(dim+1);
+        }
+        strides[dim] = stride;
+    }
 
     Type type() const {
         return _type;
@@ -125,7 +132,7 @@ private:
     int _dimensions;
     vector<Expr> mins;
     vector<Expr> extents;
-    //    vector<Expr> strides;
+    vector<Expr> strides;
 };
 }
 
@@ -284,7 +291,7 @@ class DistributeLoops : public IRMutator {
         for (unsigned i = 1; i < b.size(); i++) {
             Expr extent = b[i].max - b[i].min + 1;
             Expr dim = dims[i];
-            srcoffset += (dim + b[i].min) * stride * buffer.elem_size();
+            srcoffset += (dim + b[i].min) * buffer.stride(i) * buffer.elem_size();
             destoffset += dim * stride * buffer.elem_size();
             stride *= extent;
         }
@@ -320,7 +327,7 @@ class DistributeLoops : public IRMutator {
             Expr extent = b[i].max - b[i].min + 1;
             Expr dim = dims[i];
             srcoffset += dim * stride * buffer.elem_size();
-            destoffset += (dim + b[i].min) * stride * buffer.elem_size();
+            destoffset += (dim + b[i].min) * buffer.stride(i) * buffer.elem_size();
             stride *= extent;
         }
 
@@ -467,6 +474,17 @@ public:
         // using the distributed loop variable.
         FindBuffersUsingVariable find(for_loop->name);
         for_loop->body.accept(&find);
+
+        map<string, Box> preprovided;
+        preprovided = boxes_provided(for_loop);
+        for (AbstractBuffer &out : find.outputs) {
+            Box b = preprovided[out.name()];
+            Expr stride = 1;
+            for (unsigned i = 0; i < b.size(); i++) {
+                out.set_stride(i, stride);
+                stride *= b[i].max - b[i].min + 1;
+            }
+        }
 
         // Split original loop into chunks of iterations for each rank.
         Stmt newloop = distribute_loop_iterations(for_loop);
