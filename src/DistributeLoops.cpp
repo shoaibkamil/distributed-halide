@@ -169,6 +169,42 @@ class DistributeLoops : public IRMutator {
         FindBuffersUsingVariable(string n) : name(n) {}
     };
 
+
+    class ChangeDistributedLoopBuffers : public IRMutator {
+        string name, newname;
+        const Box &box;
+    public:
+        using IRMutator::visit;
+        ChangeDistributedLoopBuffers(const string &n, const string &nn, const Box &b) :
+            name(n), newname(nn), box(b) {}
+
+        void visit(const Call *call) {
+            if (call->name == name) {
+                vector<Expr> newargs;
+                for (unsigned i = 0; i < box.size(); i++) {
+                    newargs.push_back(simplify(call->args[i] - box[i].min));
+                }
+                expr = Call::make(call->type, newname, newargs, call->call_type,
+                                  call->func, call->value_index, call->image,
+                                  call->param);
+            } else {
+                IRMutator::visit(call);
+            }
+        }
+
+        void visit(const Provide *provide) {
+            if (provide->name == name) {
+                vector<Expr> newargs;
+                for (unsigned i = 0; i < box.size(); i++) {
+                    newargs.push_back(simplify(provide->args[i] - box[i].min));
+                }
+                stmt = Provide::make(newname, provide->values, newargs);
+            } else {
+                IRMutator::visit(provide);
+            }
+        }
+    };
+
     // Return total number of processors available.
     Expr num_processors() const {
         return Call::make(Int(32), "halide_do_distr_size", {}, Call::Extern);
@@ -214,11 +250,16 @@ class DistributeLoops : public IRMutator {
         return address_of(buffer.name(), idx);
     }
 
+    Stmt copy_memory(Expr dest, Expr src, Expr size) const {
+        return Evaluate::make(Call::make(UInt(8), Call::copy_memory,
+                                         {dest, src, size}, Call::Intrinsic));
+    }
+
     // Return a new loop that has iterations determined by processor
     // rank.
     Stmt distribute_loop_iterations(const For *for_loop) const {
-        Var r("Rank");
-        Expr slice_size = cast(for_loop->extent.type(), ceil(cast(Float(32), for_loop->extent) / num_processors()));
+        Expr r = Var("Rank");
+        Var slice_size("SliceSize");
         Expr newmin = for_loop->min + slice_size*r,
             newmax = newmin + slice_size,
             oldmax = for_loop->min + for_loop->extent;
@@ -246,20 +287,23 @@ class DistributeLoops : public IRMutator {
             // the box needed (since the box given is expressed in
             // terms of a rank variable), then communicate it.
             Expr address = address_of(buffer, b[0].min);
-            Stmt commstmt, othercommstmt;
+            Expr partitioned_addr = address_of(buffer.name() + "_partitioned", 0);
+            Stmt commstmt, othercommstmt, copy;
             switch (cmd) {
             case Send:
                 commstmt = Evaluate::make(send(address, rowbytes, Var("Rank")));
-                othercommstmt = Evaluate::make(Let::make("Rank", rank(),
-                                                         recv(address, rowbytes, 0)));
+                othercommstmt = Evaluate::make(recv(partitioned_addr, rowbytes, 0));
+                copy = copy_memory(partitioned_addr, address, rowbytes);
                 break;
             case Recv:
                 commstmt = Evaluate::make(recv(address, rowbytes, Var("Rank")));
-                othercommstmt = Evaluate::make(Let::make("Rank", rank(),
-                                                         send(address, rowbytes, 0)));
+                othercommstmt = Evaluate::make(send(partitioned_addr, rowbytes, 0));
+                copy = copy_memory(address, partitioned_addr, rowbytes);
                 break;
             }
             Stmt commloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, commstmt);
+
+            commloop = Block::make(copy, commloop);
 
             // Rank 0 sends/recvs; all other ranks issue the complement.
             return IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
@@ -283,6 +327,15 @@ class DistributeLoops : public IRMutator {
         return communicate_buffer(Recv, buffer, b);
     }
 
+    Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) {
+        vector<Expr> extents;
+        for (unsigned i = 0; i < b.size(); i++) {
+            extents.push_back(simplify(b[i].max - b[i].min + 1));
+        }
+        // return LetStmt::make("Rank", rank(), Allocate::make(name, type, extents, const_true(), body));
+        return Allocate::make(name, type, extents, const_true(), body);
+    }
+
 public:
     using IRMutator::visit;
 
@@ -299,16 +352,15 @@ public:
         // Split original loop into chunks of iterations for each rank.
         Stmt newloop = distribute_loop_iterations(for_loop);
 
-        // Get required regions of input buffers for new loop.
+        // Get required regions of input buffers in terms of processor
+        // rank variable.
         map<string, Box> required, provided;
         required = boxes_required(newloop);
         provided = boxes_provided(newloop);
 
-        // Add the let statement after boxes have been calculated to
-        // ensure the box intervals use the variable.
-        newloop = LetStmt::make("Rank", rank(), newloop);
+        // newloop = LetStmt::make("Rank", rank(), newloop);
 
-        // Insert the send statements to send required regions for
+        // Construct the send statements to send required regions for
         // each input buffer.
         Stmt sendstmt;
         for (const AbstractBuffer &in : find.inputs) {
@@ -318,9 +370,13 @@ public:
             } else {
                 sendstmt = send_input_buffer(in, b);
             }
+            ChangeDistributedLoopBuffers change(in.name(), in.name() + "_partitioned", b);
+            newloop = change.mutate(newloop);
+            newloop = LetStmt::make(in.name() + "_partitioned.min.0", 0, newloop);
+            newloop = LetStmt::make(in.name() + "_partitioned.stride.0", 1, newloop);
         }
 
-        // Insert receive statements to gather output buffer regions
+        // Construct receive statements to gather output buffer regions
         // back to rank 0.
         Stmt recvstmt;
         for (const AbstractBuffer &out : find.outputs) {
@@ -330,9 +386,40 @@ public:
             } else {
                 recvstmt = recv_output_buffer(out, b);
             }
+            ChangeDistributedLoopBuffers change(out.name(), out.name() + "_partitioned", b);
+            newloop = change.mutate(newloop);
+            newloop = LetStmt::make(out.name() + "_partitioned.min.0", 0, newloop);
+            newloop = LetStmt::make(out.name() + "_partitioned.stride.0", 1, newloop);
         }
 
-        stmt = Block::make(sendstmt, Block::make(newloop, recvstmt));
+        newloop = Block::make(sendstmt, Block::make(newloop, recvstmt));
+
+        Stmt allocates;
+        for (const AbstractBuffer &in : find.inputs) {
+            string scratch_name = in.name() + "_partitioned";
+            if (allocates.defined()) {
+                allocates = allocate_scratch(scratch_name, in.type(),
+                                             required[in.name()], allocates);
+            } else {
+                allocates = allocate_scratch(scratch_name, in.type(), required[in.name()], newloop);
+            }
+        }
+        for (const AbstractBuffer &out : find.outputs) {
+            string scratch_name = out.name() + "_partitioned";
+            if (allocates.defined()) {
+                allocates = allocate_scratch(scratch_name, out.type(),
+                                             provided[out.name()], allocates);
+            } else {
+                allocates = allocate_scratch(scratch_name, out.type(), provided[out.name()], newloop);
+            }
+        }
+
+        // stmt = LetStmt::make("SliceSize",
+        //                      cast(for_loop->extent.type(), ceil(cast(Float(32), for_loop->extent) / num_processors())),
+        //                      allocates);
+        stmt = LetStmt::make("SliceSize",
+                             cast(for_loop->extent.type(), ceil(cast(Float(32), for_loop->extent) / num_processors())),
+                             LetStmt::make("Rank", rank(), allocates));
     }
 
 };
