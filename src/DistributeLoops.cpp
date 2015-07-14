@@ -237,8 +237,11 @@ class DistributeLoops : public IRMutator {
     }
 
     // Return the (symbolic) address of the given buffer at the given
-    // byte index.
+    // element index.
     Expr address_of(const AbstractBuffer &buffer, Expr index) const {
+        // A load of UInt(8) will take an index in bytes; we are given
+        // an index in elements.
+        index *= buffer.elem_size();
         return address_of(buffer.name(), index);
     }
 
@@ -249,8 +252,6 @@ class DistributeLoops : public IRMutator {
         for (int i = 0; i < (int)index.size(); i++) {
             idx += i*buffer.extent(i) + index[i];
         }
-        // A load of UInt(8) will take an index in bytes; we are given an index in elements.
-        idx = idx * buffer.elem_size();
         return address_of(buffer.name(), idx);
     }
 
