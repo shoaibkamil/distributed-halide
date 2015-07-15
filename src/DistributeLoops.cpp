@@ -48,48 +48,40 @@ string box2str(const Box &b) {
 // Also provides a wrapper for Provide nodes which do not have buffer references.
 class AbstractBuffer {
 public:
-    AbstractBuffer(const Buffer &buffer) {
-        _type = buffer.type();
-        _name = buffer.name();
-        _dimensions = buffer.dimensions();
-        for (int d = 0; d < buffer.dimensions(); d++) {
-            mins.push_back(buffer.min(d));
-            extents.push_back(buffer.extent(d));
-            strides.push_back(buffer.stride(d));
+    AbstractBuffer(Type type, const string &name) : _type(type), _name(name), _dimensions(-1) {}
+
+    int dimensions() const {
+        internal_assert(_dimensions >= 0);
+        return _dimensions;
+    }
+
+    void set_dimensions(int d) {
+        _dimensions = d;
+    }
+
+    Expr extent(int dim) const {
+        internal_assert(dim >= 0 && dim < (int)extents.size());
+        return extents[dim];
+    }
+
+    void set_extent(int dim, Expr extent) {
+        if (dim >= (int)extents.size()) {
+            extents.resize(dim+1);
         }
+        extents[dim] = extent;
     }
 
-    AbstractBuffer(const Parameter &param) {
-        _type = param.type();
-        _name = param.name();
-        _dimensions = param.dimensions();
-        for (int d = 0; d < param.dimensions(); d++) {
-            mins.push_back(param.min_constraint(d));
-            extents.push_back(param.extent_constraint(d));
-            strides.push_back(param.stride_constraint(d));
+    Expr min(int dim) const {
+        internal_assert(dim >= 0 && dim < (int)mins.size());
+        return mins[dim];
+    }
+
+    void set_min(int dim, Expr min) {
+        if (dim >= (int)mins.size()) {
+            mins.resize(dim+1);
         }
+        mins[dim] = min;
     }
-
-    AbstractBuffer(const Provide *provide) {
-        _type = provide->values[0].type();
-        _name = provide->name;
-        _dimensions = -1;
-    }
-
-    // int dimensions() const {
-    //     internal_assert(_dimensions >= 0) << "Called dimensions on AbstractBuffer of Provide type.\n";
-    //     return _dimensions;
-    // }
-
-    // Expr extent(int dim) const {
-    //     internal_assert(dim >= 0 && dim < (int)extents.size());
-    //     return extents[dim];
-    // }
-
-    // Expr min(int dim) const {
-    //     internal_assert(dim >= 0 && dim < (int)mins.size());
-    //     return mins[dim];
-    // }
 
     Expr stride(int dim) const {
         internal_assert(dim >= 0 && dim < (int)strides.size());
@@ -107,16 +99,16 @@ public:
         return _type;
     }
 
+    Expr elem_size() const {
+        return _type.bytes();
+    }
+
     const string &name() const {
         return _name;
     }
 
     string partitioned_name() const {
         return _name + "_partitioned";
-    }
-
-    Expr elem_size() const {
-        return _type.bytes();
     }
 
     Expr size_of(const Box &b) const {
@@ -127,68 +119,114 @@ public:
         return simplify(num_elems * elem_size());
     }
 private:
-    string _name;
     Type _type;
+    string _name;
     int _dimensions;
     vector<Expr> mins;
     vector<Expr> extents;
     vector<Expr> strides;
 };
+
+// Build a set of all the variables referenced.
+class GetVariablesInExpr : public IRVisitor {
+    using IRVisitor::visit;
+    void visit(const Variable *var) {
+        names.insert(var->name);
+        IRVisitor::visit(var);
+    }
+public:
+    set<string> names;
+};
+
+// Build a list of all input and output buffers using a particular
+// variable as an index.
+class FindBuffersUsingVariable : public IRVisitor {
+    using IRVisitor::visit;
+    void visit(const Call *call) {
+        GetVariablesInExpr vars;
+        for (Expr arg : call->args) {
+            arg.accept(&vars);
+        }
+        if (vars.names.count(name)) {
+            internal_assert(call->call_type == Call::Image);
+            if (call->image.defined()) {
+                inputs.push_back(AbstractBuffer(call->image.type(), call->image.name()));
+            } else {
+                inputs.push_back(AbstractBuffer(call->param.type(), call->param.name()));
+            }
+
+        }
+        IRVisitor::visit(call);
+    }
+
+    void visit(const Provide *provide) {
+        GetVariablesInExpr vars;
+        for (Expr arg : provide->args) {
+            arg.accept(&vars);
+        }
+        if (vars.names.count(name)) {
+            internal_assert(provide->values.size() == 1);
+            outputs.push_back(AbstractBuffer(provide->values[0].type(), provide->name));
+        }
+        IRVisitor::visit(provide);
+    }
+
+    map<string, Expr> elem_sizes;
+public:
+    string name;
+    vector<AbstractBuffer> inputs, outputs;
+    FindBuffersUsingVariable(string n) : name(n) {}
+};
+
+// Return a list of the input buffers used in the given for loop.
+vector<AbstractBuffer> buffers_required(const For *for_loop) {
+    FindBuffersUsingVariable find(for_loop->name);
+    for_loop->body.accept(&find);
+    vector<AbstractBuffer> result(find.inputs.begin(), find.inputs.end());
+
+    map<string, Box> required = boxes_required(for_loop);
+    for (AbstractBuffer &buf : result) {
+        Box b = required[buf.name()];
+        Expr stride = 1;
+        buf.set_dimensions(b.size());
+        for (unsigned i = 0; i < b.size(); i++) {
+            Expr extent = b[i].max - b[i].min + 1;
+            buf.set_min(i, b[i].min);
+            buf.set_extent(i, extent);
+            buf.set_stride(i, stride);
+            stride *= extent;
+        }
+    }
+
+    return result;
+}
+
+// Return a list of the output buffers used in the given for loop.
+vector<AbstractBuffer> buffers_provided(const For *for_loop) {
+    FindBuffersUsingVariable find(for_loop->name);
+    for_loop->body.accept(&find);
+    vector<AbstractBuffer> result(find.outputs.begin(), find.outputs.end());
+
+    map<string, Box> provided = boxes_provided(for_loop);
+    for (AbstractBuffer &buf : result) {
+        Box b = provided[buf.name()];
+        Expr stride = 1;
+        buf.set_dimensions(b.size());
+        for (unsigned i = 0; i < b.size(); i++) {
+            Expr extent = b[i].max - b[i].min + 1;
+            buf.set_min(i, b[i].min);
+            buf.set_extent(i, extent);
+            buf.set_stride(i, stride);
+            stride *= extent;
+        }
+    }
+
+    return result;
+}
+
 }
 
 class DistributeLoops : public IRMutator {
-    // Build a set of all the variables referenced.
-    class GetVariablesInExpr : public IRVisitor {
-        using IRVisitor::visit;
-        void visit(const Variable *var) {
-            names.insert(var->name);
-            IRVisitor::visit(var);
-        }
-    public:
-        set<string> names;
-    };
-
-    // Build a list of all input and output buffers using a particular
-    // variable as an index.
-    class FindBuffersUsingVariable : public IRVisitor {
-        using IRVisitor::visit;
-        void visit(const Call *call) {
-            GetVariablesInExpr vars;
-            for (Expr arg : call->args) {
-                arg.accept(&vars);
-            }
-            if (vars.names.count(name)) {
-                internal_assert(call->call_type == Call::Image);
-                if (call->image.defined()) {
-                    inputs.push_back(AbstractBuffer(call->image));
-                } else {
-                    inputs.push_back(AbstractBuffer(call->param));
-                }
-
-            }
-            IRVisitor::visit(call);
-        }
-
-        void visit(const Provide *provide) {
-            GetVariablesInExpr vars;
-            for (Expr arg : provide->args) {
-                arg.accept(&vars);
-            }
-            if (vars.names.count(name)) {
-                internal_assert(provide->values.size() == 1);
-                outputs.push_back(AbstractBuffer(provide));
-            }
-            IRVisitor::visit(provide);
-        }
-
-        map<string, Expr> elem_sizes;
-    public:
-        string name;
-        vector<AbstractBuffer> inputs, outputs;
-        FindBuffersUsingVariable(string n) : name(n) {}
-    };
-
-
     class ChangeDistributedLoopBuffers : public IRMutator {
         string name, newname;
         const Box &box;
@@ -472,20 +510,10 @@ public:
         }
         // Find all input and output buffers in the loop body
         // using the distributed loop variable.
-        FindBuffersUsingVariable find(for_loop->name);
-        for_loop->body.accept(&find);
-
-        map<string, Box> preprovided;
-        preprovided = boxes_provided(for_loop);
-        for (AbstractBuffer &out : find.outputs) {
-            Box b = preprovided[out.name()];
-            Expr stride = 1;
-            for (unsigned i = 0; i < b.size(); i++) {
-                out.set_stride(i, stride);
-                stride *= b[i].max - b[i].min + 1;
-            }
-        }
-
+        vector<AbstractBuffer> inputs, outputs;
+        inputs = buffers_required(for_loop);
+        outputs = buffers_provided(for_loop);
+        
         // Split original loop into chunks of iterations for each rank.
         Stmt newloop = distribute_loop_iterations(for_loop);
 
@@ -498,7 +526,7 @@ public:
         // Construct the send statements to send required regions for
         // each input buffer.
         Stmt sendstmt;
-        for (const AbstractBuffer &in : find.inputs) {
+        for (const AbstractBuffer &in : inputs) {
             Box b = required[in.name()];
             if (sendstmt.defined()) {
                 sendstmt = Block::make(sendstmt, send_input_buffer(in, b));
@@ -512,7 +540,7 @@ public:
         // Construct receive statements to gather output buffer regions
         // back to rank 0.
         Stmt recvstmt;
-        for (const AbstractBuffer &out : find.outputs) {
+        for (const AbstractBuffer &out : outputs) {
             Box b = provided[out.name()];
             if (recvstmt.defined()) {
                 recvstmt = Block::make(recvstmt, recv_output_buffer(out, b));
@@ -526,7 +554,7 @@ public:
         newloop = Block::make(sendstmt, Block::make(newloop, recvstmt));
 
         Stmt allocates;
-        for (const AbstractBuffer &in : find.inputs) {
+        for (const AbstractBuffer &in : inputs) {
             string scratch_name = in.partitioned_name();
             if (allocates.defined()) {
                 allocates = allocate_scratch(scratch_name, in.type(),
@@ -535,7 +563,7 @@ public:
                 allocates = allocate_scratch(scratch_name, in.type(), required[in.name()], newloop);
             }
         }
-        for (const AbstractBuffer &out : find.outputs) {
+        for (const AbstractBuffer &out : outputs) {
             string scratch_name = out.partitioned_name();
             if (allocates.defined()) {
                 allocates = allocate_scratch(scratch_name, out.type(),
