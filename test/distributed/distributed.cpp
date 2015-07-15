@@ -192,6 +192,36 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        Image<int> in(10, 20);
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = x + y;
+            }
+        }
+
+        Func f, g;
+        f(x, y) = 2 * in(x, y);
+        g(x, y) = 2 * f(x, y);
+
+        f.compute_root().distribute(y);
+        g.distribute(y);
+
+        Image<int> out = g.realize(10, 20);
+        if (rank == 0) {
+            for (int y = 0; y < out.height(); y++) {
+                for (int x = 0; x < out.width(); x++) {
+                    int correct = 4*(x+y);
+                    if (out(x,y) != correct) {
+                        mpi_printf("out(%d,%d) = %d instead of %d\n", x, y,out(x,y), correct);
+                        MPI_Finalize();
+                        return -1;
+                    }
+                }
+            }
+        }
+    }
+
     mpi_printf("Success!\n");
 
     MPI_Finalize();
