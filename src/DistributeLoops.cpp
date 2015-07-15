@@ -478,6 +478,61 @@ class DistributeLoops : public IRMutator {
         return Allocate::make(name, type, extents, const_true(), body);
     }
 
+    // Construct a send loop which sends the required region of each
+    // input buffer from rank 0 to each processor rank that needs it.
+    Stmt send_all_required_regions(const map<string, Box> &required, const vector<AbstractBuffer> &inputs) const {
+        Stmt sendstmt;
+        for (const AbstractBuffer &in : inputs) {
+            const Box &b = required.at(in.name());
+            if (sendstmt.defined()) {
+                sendstmt = Block::make(sendstmt, send_input_buffer(in, b));
+            } else {
+                sendstmt = send_input_buffer(in, b);
+            }
+        }
+        return sendstmt;
+    }
+
+    // Construct a receive loop which receives the provided region of each
+    // output buffer from each processor rank that provides it to rank 0.
+    Stmt receive_all_provided_regions(const map<string, Box> &provided, const vector<AbstractBuffer> &outputs) const {
+        Stmt recvstmt;
+        for (const AbstractBuffer &out : outputs) {
+            Box b = provided.at(out.name());
+            if (recvstmt.defined()) {
+                recvstmt = Block::make(recvstmt, recv_output_buffer(out, b));
+            } else {
+                recvstmt = recv_output_buffer(out, b);
+            }
+        }
+        return recvstmt;
+    }
+
+    // Allocate "partitioned" input and output buffers with the proper
+    // sizes for each rank. The allocations are valid throughout
+    // 'body'.
+    Stmt allocate_partitioned_buffers(const vector<AbstractBuffer> &inputs, const vector<AbstractBuffer> &outputs,
+                                      const map<string, Box> &required, const map<string, Box> &provided, Stmt body) const {
+        Stmt allocates;
+        for (const AbstractBuffer &in : inputs) {
+            const Box &b = required.at(in.name());
+            if (allocates.defined()) {
+                allocates = allocate_scratch(in.partitioned_name(), in.type(), b, allocates);
+            } else {
+                allocates = allocate_scratch(in.partitioned_name(), in.type(), b, body);
+            }
+        }
+        for (const AbstractBuffer &out : outputs) {
+            const Box &b = provided.at(out.name());
+            if (allocates.defined()) {
+                allocates = allocate_scratch(out.partitioned_name(), out.type(), b, allocates);
+            } else {
+                allocates = allocate_scratch(out.partitioned_name(), out.type(), b, body);
+            }
+        }
+        return allocates;
+    }
+
 public:
     using IRMutator::visit;
 
@@ -502,54 +557,29 @@ public:
         provided = boxes_provided(newloop);
 
         // Construct the send statements to send required regions for
-        // each input buffer.
-        Stmt sendstmt;
+        // each input buffer from rank 0.
+        Stmt sendstmt = send_all_required_regions(required, inputs);
+        // Update the references in the loop to use the "partitioned" input buffers.
         for (const AbstractBuffer &in : inputs) {
             Box b = required[in.name()];
-            if (sendstmt.defined()) {
-                sendstmt = Block::make(sendstmt, send_input_buffer(in, b));
-            } else {
-                sendstmt = send_input_buffer(in, b);
-            }
             ChangeDistributedLoopBuffers change(in.name(), in.partitioned_name(), b);
             newloop = change.mutate(newloop);
         }
 
         // Construct receive statements to gather output buffer regions
         // back to rank 0.
-        Stmt recvstmt;
+        Stmt recvstmt = receive_all_provided_regions(provided, outputs);
+        // Update the references in the loop to use the "partitioned" output buffers.
         for (const AbstractBuffer &out : outputs) {
             Box b = provided[out.name()];
-            if (recvstmt.defined()) {
-                recvstmt = Block::make(recvstmt, recv_output_buffer(out, b));
-            } else {
-                recvstmt = recv_output_buffer(out, b);
-            }
             ChangeDistributedLoopBuffers change(out.name(), out.partitioned_name(), b);
             newloop = change.mutate(newloop);
         }
 
         newloop = Block::make(sendstmt, Block::make(newloop, recvstmt));
 
-        Stmt allocates;
-        for (const AbstractBuffer &in : inputs) {
-            string scratch_name = in.partitioned_name();
-            if (allocates.defined()) {
-                allocates = allocate_scratch(scratch_name, in.type(),
-                                             required[in.name()], allocates);
-            } else {
-                allocates = allocate_scratch(scratch_name, in.type(), required[in.name()], newloop);
-            }
-        }
-        for (const AbstractBuffer &out : outputs) {
-            string scratch_name = out.partitioned_name();
-            if (allocates.defined()) {
-                allocates = allocate_scratch(scratch_name, out.type(),
-                                             provided[out.name()], allocates);
-            } else {
-                allocates = allocate_scratch(scratch_name, out.type(), provided[out.name()], newloop);
-            }
-        }
+        // Construct allocation statements to allcate the partitioned input and output buffers.
+        Stmt allocates = allocate_partitioned_buffers(inputs, outputs, required, provided, newloop);
 
         stmt = LetStmt::make("SliceSize",
                              cast(for_loop->extent.type(), ceil(cast(Float(32), for_loop->extent) / num_processors())),
