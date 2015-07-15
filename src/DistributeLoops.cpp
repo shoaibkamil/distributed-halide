@@ -48,6 +48,7 @@ string box2str(const Box &b) {
 // Also provides a wrapper for Provide nodes which do not have buffer references.
 class AbstractBuffer {
 public:
+    AbstractBuffer() : _dimensions(-1) {}
     AbstractBuffer(Type type, const string &name) : _type(type), _name(name), _dimensions(-1) {}
 
     int dimensions() const {
@@ -184,13 +185,14 @@ public:
 };
 
 // Return a list of the input buffers used in the given for loop.
-vector<AbstractBuffer> buffers_required(const For *for_loop) {
+map<string, AbstractBuffer> buffers_required(const For *for_loop) {
     FindBuffersUsingVariable find(for_loop->name);
     for_loop->body.accept(&find);
-    vector<AbstractBuffer> result(find.inputs.begin(), find.inputs.end());
+    vector<AbstractBuffer> buffers(find.inputs.begin(), find.inputs.end());
+    map<string, AbstractBuffer> result;
 
     map<string, Box> required = boxes_required(for_loop);
-    for (AbstractBuffer &buf : result) {
+    for (AbstractBuffer buf : buffers) {
         Box b = required[buf.name()];
         Expr stride = 1;
         buf.set_dimensions(b.size());
@@ -201,19 +203,21 @@ vector<AbstractBuffer> buffers_required(const For *for_loop) {
             buf.set_stride(i, stride);
             stride *= extent;
         }
+        result[buf.name()] = buf;
     }
 
     return result;
 }
 
 // Return a list of the output buffers used in the given for loop.
-vector<AbstractBuffer> buffers_provided(const For *for_loop) {
+map<string, AbstractBuffer> buffers_provided(const For *for_loop) {
     FindBuffersUsingVariable find(for_loop->name);
     for_loop->body.accept(&find);
-    vector<AbstractBuffer> result(find.outputs.begin(), find.outputs.end());
+    vector<AbstractBuffer> buffers(find.outputs.begin(), find.outputs.end());
+    map<string, AbstractBuffer> result;
 
     map<string, Box> provided = boxes_provided(for_loop);
-    for (AbstractBuffer &buf : result) {
+    for (AbstractBuffer buf : buffers) {
         Box b = provided[buf.name()];
         Expr stride = 1;
         buf.set_dimensions(b.size());
@@ -224,14 +228,57 @@ vector<AbstractBuffer> buffers_provided(const For *for_loop) {
             buf.set_stride(i, stride);
             stride *= extent;
         }
+        result[buf.name()] = buf;
     }
 
     return result;
 }
 
+// Return total number of processors available.
+Expr num_processors() {
+    return Call::make(Int(32), "halide_do_distr_size", {}, Call::Extern);
 }
 
-class DistributeLoops : public IRMutator {
+// Return rank of the current processor.
+Expr rank() {
+    return Call::make(Int(32), "halide_do_distr_rank", {}, Call::Extern);
+}
+
+// Insert call to send 'count' bytes starting at 'address' to 'rank'.
+Expr send(Expr address, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_send", {address, count, rank}, Call::Extern);
+}
+
+// Insert call to receive 'count' bytes from 'rank' to buffer starting at 'address'.
+Expr recv(Expr address, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_recv", {address, count, rank}, Call::Extern);
+}
+
+// Return the (symbolic) address of the given buffer at the given
+// byte index.
+Expr address_of(const string &buffer, Expr index) {
+    Expr first_elem = Load::make(UInt(8), buffer, index, Buffer(), Parameter());
+    return Call::make(Handle(), Call::address_of, {first_elem}, Call::Intrinsic);
+}
+
+// Return the (symbolic) address of the given buffer at the given
+// element index.
+Expr address_of(const AbstractBuffer &buffer, Expr index) {
+    // A load of UInt(8) will take an index in bytes; we are given
+    // an index in elements.
+    index *= buffer.elem_size();
+    return address_of(buffer.name(), index);
+}
+
+// Construct a statement to copy 'size' bytes from src to dest.
+Stmt copy_memory(Expr dest, Expr src, Expr size) {
+    return Evaluate::make(Call::make(UInt(8), Call::copy_memory,
+                                    {dest, src, size}, Call::Intrinsic));
+}
+
+}
+
+class InjectCommunication : public IRMutator {
     class ChangeDistributedLoopBuffers : public IRMutator {
         string name, newname;
         const Box &box;
@@ -266,48 +313,6 @@ class DistributeLoops : public IRMutator {
             }
         }
     };
-
-    // Return total number of processors available.
-    Expr num_processors() const {
-        return Call::make(Int(32), "halide_do_distr_size", {}, Call::Extern);
-    }
-
-    // Return rank of the current processor.
-    Expr rank() const {
-        return Call::make(Int(32), "halide_do_distr_rank", {}, Call::Extern);
-    }
-
-    // Insert call to send 'count' bytes starting at 'address' to 'rank'.
-    Expr send(Expr address, Expr count, Expr rank) const {
-        return Call::make(Int(32), "halide_do_distr_send", {address, count, rank}, Call::Extern);
-    }
-
-    // Insert call to receive 'count' bytes from 'rank' to buffer starting at 'address'.
-    Expr recv(Expr address, Expr count, Expr rank) const {
-        return Call::make(Int(32), "halide_do_distr_recv", {address, count, rank}, Call::Extern);
-    }
-
-    // Return the (symbolic) address of the given buffer at the given
-    // byte index.
-    Expr address_of(const string &buffer, Expr index) const {
-        Expr first_elem = Load::make(UInt(8), buffer, index, Buffer(), Parameter());
-        return Call::make(Handle(), Call::address_of, {first_elem}, Call::Intrinsic);
-    }
-
-    // Return the (symbolic) address of the given buffer at the given
-    // element index.
-    Expr address_of(const AbstractBuffer &buffer, Expr index) const {
-        // A load of UInt(8) will take an index in bytes; we are given
-        // an index in elements.
-        index *= buffer.elem_size();
-        return address_of(buffer.name(), index);
-    }
-
-    // Construct a statement to copy 'size' bytes from src to dest.
-    Stmt copy_memory(Expr dest, Expr src, Expr size) const {
-        return Evaluate::make(Call::make(UInt(8), Call::copy_memory,
-                                         {dest, src, size}, Call::Intrinsic));
-    }
 
     typedef enum { Pack, Unpack } PackCmd;
     // Construct a statement to pack/unpack the given box of the given buffer
@@ -353,24 +358,6 @@ class DistributeLoops : public IRMutator {
         }
         return copyloop;
 
-    }
-
-    // Return a new loop that has iterations determined by processor
-    // rank.
-    Stmt distribute_loop_iterations(const For *for_loop) const {
-        Expr r = Var("Rank");
-        Var slice_size("SliceSize");
-        Expr newmin = for_loop->min + slice_size*r,
-            newmax = newmin + slice_size,
-            oldmax = for_loop->min + for_loop->extent;
-        // Make sure we don't run over old max.
-        Expr newextent = min(newmax, oldmax) - newmin;
-        // TODO: choose correct loop type here (parallel if original
-        // loop was distributed+parallel).
-        Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
-                                 ForType::Serial, for_loop->device_api,
-                                 for_loop->body);
-        return newloop;
     }
 
     typedef enum { Send, Recv } CommunicateCmd;
@@ -451,10 +438,11 @@ class DistributeLoops : public IRMutator {
 
     // Construct a send loop which sends the required region of each
     // input buffer from rank 0 to each processor rank that needs it.
-    Stmt send_all_required_regions(const map<string, Box> &required, const vector<AbstractBuffer> &inputs) const {
+    Stmt send_all_required_regions(const map<string, Box> &required) const {
         Stmt sendstmt;
-        for (const AbstractBuffer &in : inputs) {
-            const Box &b = required.at(in.name());
+        for (const auto it : required) {
+            const AbstractBuffer &in = inputs.at(it.first);
+            const Box &b = it.second;
             if (sendstmt.defined()) {
                 sendstmt = Block::make(sendstmt, send_input_buffer(in, b));
             } else {
@@ -466,10 +454,11 @@ class DistributeLoops : public IRMutator {
 
     // Construct a receive loop which receives the provided region of each
     // output buffer from each processor rank that provides it to rank 0.
-    Stmt receive_all_provided_regions(const map<string, Box> &provided, const vector<AbstractBuffer> &outputs) const {
+    Stmt receive_all_provided_regions(const map<string, Box> &provided) const {
         Stmt recvstmt;
-        for (const AbstractBuffer &out : outputs) {
-            Box b = provided.at(out.name());
+        for (const auto it : provided) {
+            const AbstractBuffer &out = outputs.at(it.first);
+            const Box &b = it.second;
             if (recvstmt.defined()) {
                 recvstmt = Block::make(recvstmt, recv_output_buffer(out, b));
             } else {
@@ -482,19 +471,21 @@ class DistributeLoops : public IRMutator {
     // Allocate "partitioned" input and output buffers with the proper
     // sizes for each rank. The allocations are valid throughout
     // 'body'.
-    Stmt allocate_partitioned_buffers(const vector<AbstractBuffer> &inputs, const vector<AbstractBuffer> &outputs,
-                                      const map<string, Box> &required, const map<string, Box> &provided, Stmt body) const {
+    Stmt allocate_partitioned_buffers(const map<string, Box> &required,
+                                      const map<string, Box> &provided, Stmt body) const {
         Stmt allocates;
-        for (const AbstractBuffer &in : inputs) {
-            const Box &b = required.at(in.name());
+        for (const auto it : required) {
+            const AbstractBuffer &in = inputs.at(it.first);
+            const Box &b = it.second;
             if (allocates.defined()) {
                 allocates = allocate_scratch(in.partitioned_name(), in.type(), b, allocates);
             } else {
                 allocates = allocate_scratch(in.partitioned_name(), in.type(), b, body);
             }
         }
-        for (const AbstractBuffer &out : outputs) {
-            const Box &b = provided.at(out.name());
+        for (const auto it : provided) {
+            const AbstractBuffer &out = outputs.at(it.first);
+            const Box &b = it.second;
             if (allocates.defined()) {
                 allocates = allocate_scratch(out.partitioned_name(), out.type(), b, allocates);
             } else {
@@ -505,6 +496,11 @@ class DistributeLoops : public IRMutator {
     }
 
 public:
+    const map<string, AbstractBuffer> &inputs, &outputs;
+    InjectCommunication(const map<string, AbstractBuffer> &in,
+                        const map<string, AbstractBuffer> &out) :
+        inputs(in), outputs(out) {}
+
     using IRMutator::visit;
 
     void visit(const For *for_loop) {
@@ -512,14 +508,11 @@ public:
             IRMutator::visit(for_loop);
             return;
         }
-        // Find all input and output buffers in the loop body
-        // using the distributed loop variable.
-        vector<AbstractBuffer> inputs, outputs;
-        inputs = buffers_required(for_loop);
-        outputs = buffers_provided(for_loop);
-
-        // Split original loop into chunks of iterations for each rank.
-        Stmt newloop = distribute_loop_iterations(for_loop);
+        // TODO: choose correct loop type here (parallel if original
+        // loop was distributed+parallel).
+        Stmt newloop = For::make(for_loop->name, for_loop->min, for_loop->extent,
+                                 ForType::Serial, for_loop->device_api,
+                                 for_loop->body);
 
         // Get required regions of input buffers in terms of processor
         // rank variable.
@@ -529,20 +522,22 @@ public:
 
         // Construct the send statements to send required regions for
         // each input buffer from rank 0.
-        Stmt sendstmt = send_all_required_regions(required, inputs);
+        Stmt sendstmt = send_all_required_regions(required);
         // Update the references in the loop to use the "partitioned" input buffers.
-        for (const AbstractBuffer &in : inputs) {
-            Box b = required[in.name()];
+        for (const auto it : required) {
+            const AbstractBuffer &in = inputs.at(it.first);
+            const Box &b = it.second;
             ChangeDistributedLoopBuffers change(in.name(), in.partitioned_name(), b);
             newloop = change.mutate(newloop);
         }
 
         // Construct receive statements to gather output buffer regions
         // back to rank 0.
-        Stmt recvstmt = receive_all_provided_regions(provided, outputs);
+        Stmt recvstmt = receive_all_provided_regions(provided);
         // Update the references in the loop to use the "partitioned" output buffers.
-        for (const AbstractBuffer &out : outputs) {
-            Box b = provided[out.name()];
+        for (const auto it : provided) {
+            const AbstractBuffer &out = outputs.at(it.first);
+            const Box &b = it.second;
             ChangeDistributedLoopBuffers change(out.name(), out.partitioned_name(), b);
             newloop = change.mutate(newloop);
         }
@@ -550,17 +545,70 @@ public:
         newloop = Block::make(sendstmt, Block::make(newloop, recvstmt));
 
         // Construct allocation statements to allcate the partitioned input and output buffers.
-        Stmt allocates = allocate_partitioned_buffers(inputs, outputs, required, provided, newloop);
+        Stmt allocates = allocate_partitioned_buffers(required, provided, newloop);
 
-        stmt = LetStmt::make("SliceSize",
-                             cast(for_loop->extent.type(), ceil(cast(Float(32), for_loop->extent) / num_processors())),
-                             LetStmt::make("Rank", rank(), allocates));
+        stmt = allocates;
     }
 
 };
 
+// For each distributed for loop, mutate its bounds to be determined
+// by processor rank.
+class DistributeLoops : public IRMutator {
+    // Return a new loop that has iterations determined by processor
+    // rank.
+    Stmt distribute_loop_iterations(const For *for_loop) const {
+        Expr r = Var("Rank");
+        Var slice_size("SliceSize");
+        Expr newmin = for_loop->min + slice_size*r,
+            newmax = newmin + slice_size,
+            oldmax = for_loop->min + for_loop->extent;
+        // Make sure we don't run over old max.
+        Expr newextent = min(newmax, oldmax) - newmin;
+        Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
+                                 for_loop->for_type, for_loop->device_api,
+                                 for_loop->body);
+        return newloop;
+    }
+public:
+    using IRMutator::visit;
+
+    void visit(const For *for_loop) {
+        if (for_loop->for_type != ForType::Distributed) {
+            IRMutator::visit(for_loop);
+            return;
+        }
+        // Split original loop into chunks of iterations for each rank.
+        stmt = distribute_loop_iterations(for_loop);
+        stmt = LetStmt::make("SliceSize",
+                             cast(for_loop->extent.type(), ceil(cast(Float(32), for_loop->extent) / num_processors())),
+                             LetStmt::make("Rank", rank(), stmt));
+    }
+};
+
+// Construct a map of all input and output buffers used in a
+// pipeline. The results are a map from buffer name -> AbstractBuffer
+// with information about the buffer.
+class GetPipelineInputsAndOutputs : public IRVisitor {
+public:
+    map<string, AbstractBuffer> inputs, outputs;
+    using IRVisitor::visit;
+    void visit(const For *for_loop) {
+        map<string, AbstractBuffer> in, out;
+        in = buffers_required(for_loop);
+        out = buffers_provided(for_loop);
+        inputs.insert(in.begin(), in.end());
+        outputs.insert(out.begin(), out.end());
+        IRVisitor::visit(for_loop);
+    }
+};
+
 Stmt distribute_loops(Stmt s) {
-    return DistributeLoops().mutate(s);
+    GetPipelineInputsAndOutputs getio;
+    s.accept(&getio);
+    map<string, AbstractBuffer> inputs = getio.inputs, outputs = getio.outputs;
+    s = DistributeLoops().mutate(s);
+    return InjectCommunication(inputs, outputs).mutate(s);
 }
 
 }
