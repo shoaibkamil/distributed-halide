@@ -149,11 +149,17 @@ class FindBuffersUsingVariable : public IRVisitor {
             arg.accept(&vars);
         }
         if (vars.names.count(name)) {
-            internal_assert(call->call_type == Call::Image);
-            if (call->image.defined()) {
-                inputs.push_back(AbstractBuffer(call->image.type(), call->image.name()));
+            if (call->call_type == Call::Image) {
+                if (call->image.defined()) {
+                    inputs.push_back(AbstractBuffer(call->image.type(), call->image.name()));
+                } else {
+                    inputs.push_back(AbstractBuffer(call->param.type(), call->param.name()));
+                }
+            } else if (call->call_type == Call::Halide) {
+                internal_assert(call->func.outputs() == 1);
+                inputs.push_back(AbstractBuffer(call->func.output_types()[0], call->func.name()));
             } else {
-                inputs.push_back(AbstractBuffer(call->param.type(), call->param.name()));
+                internal_assert(false) << "Unhandled call type.\n";
             }
 
         }

@@ -158,39 +158,39 @@ int main(int argc, char **argv) {
         }
     }
 
-    // {
-    //     Image<int> in(10, 20, 30);
+    {
+        Image<int> in(10, 20, 30);
 
-    //     for (int z = 0; z < in.channels(); z++) {
-    //         for (int y = 0; y < in.height(); y++) {
-    //             for (int x = 0; x < in.width(); x++) {
-    //                 in(x, y, z) = x + y + z;
-    //             }
-    //         }
-    //     }
+        for (int z = 0; z < in.channels(); z++) {
+            for (int y = 0; y < in.height(); y++) {
+                for (int x = 0; x < in.width(); x++) {
+                    in(x, y, z) = x + y + z;
+                }
+            }
+        }
 
-    //     Func f, g;
-    //     f(x, y, z) = 2 * in(x, y, z);
-    //     g(x, y, z) = 2 * f(x, y, z);
-    //     f.compute_root();
-    //     g.distribute(z);
+        Func f, g;
+        f(x, y, z) = 2 * in(x, y, z);
+        g(x, y, z) = 2 * f(x, y, z);
+        f.compute_root();
+        g.distribute(z);
 
-    //     Image<int> out = g.realize(10, 20, 30);
-    //     if (rank == 0) {
-    //         for (int z = 0; z < out.channels(); z++) {
-    //             for (int y = 0; y < out.height(); y++) {
-    //                 for (int x = 0; x < out.width(); x++) {
-    //                     int correct = 4*(x+y+z);
-    //                     if (out(x,y,z) != correct) {
-    //                         mpi_printf("out(%d,%d,%d) = %d instead of %d\n", x, y, z, out(x,y,z), correct);
-    //                         MPI_Finalize();
-    //                         return -1;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+        Image<int> out = g.realize(10, 20, 30);
+        if (rank == 0) {
+            for (int z = 0; z < out.channels(); z++) {
+                for (int y = 0; y < out.height(); y++) {
+                    for (int x = 0; x < out.width(); x++) {
+                        int correct = 4*(x+y+z);
+                        if (out(x,y,z) != correct) {
+                            mpi_printf("out(%d,%d,%d) = %d instead of %d\n", x, y, z, out(x,y,z), correct);
+                            MPI_Finalize();
+                            return -1;
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     mpi_printf("Success!\n");
 
