@@ -417,7 +417,7 @@ class DistributeLoops : public IRMutator {
                 Stmt pack = pack_region(scratch_name, buffer, b);
                 commstmt = Block::make(pack, Evaluate::make(send(scratch_address, numbytes, Var("Rank"))));
                 othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
-                copy = Block::make(pack, copy_memory(partition_address, scratch_address, numbytes));
+                copy = pack_region(buffer.partitioned_name(), buffer, b);
             } else {
                 scratch_address = address_of(buffer, b[0].min);
                 commstmt = Evaluate::make(send(scratch_address, numbytes, Var("Rank")));
@@ -431,7 +431,7 @@ class DistributeLoops : public IRMutator {
                 Stmt unpack = unpack_region(scratch_name, buffer, b);
                 commstmt = Block::make(Evaluate::make(recv(scratch_address, numbytes, Var("Rank"))), unpack);
                 othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
-                copy = Block::make(copy_memory(scratch_address, partition_address, numbytes), unpack);
+                copy = unpack_region(buffer.partitioned_name(), buffer, b);
             } else {
                 scratch_address = address_of(buffer, b[0].min);
                 commstmt = Evaluate::make(recv(scratch_address, numbytes, Var("Rank")));
