@@ -276,230 +276,225 @@ Stmt copy_memory(Expr dest, Expr src, Expr size) {
                                     {dest, src, size}, Call::Intrinsic));
 }
 
+class ChangeDistributedLoopBuffers : public IRMutator {
+    string name, newname;
+    const Box &box;
+public:
+    using IRMutator::visit;
+    ChangeDistributedLoopBuffers(const string &n, const string &nn, const Box &b) :
+        name(n), newname(nn), box(b) {}
+
+    void visit(const Call *call) {
+        if (call->name == name) {
+            vector<Expr> newargs;
+            for (unsigned i = 0; i < box.size(); i++) {
+                newargs.push_back(simplify(call->args[i] - box[i].min));
+            }
+            expr = Call::make(call->type, newname, newargs, call->call_type,
+                              call->func, call->value_index, call->image,
+                              call->param);
+        } else {
+            IRMutator::visit(call);
+        }
+    }
+
+    void visit(const Provide *provide) {
+        if (provide->name == name) {
+            vector<Expr> newargs;
+            for (unsigned i = 0; i < box.size(); i++) {
+                newargs.push_back(simplify(provide->args[i] - box[i].min));
+            }
+            stmt = Provide::make(newname, provide->values, newargs);
+        } else {
+            IRMutator::visit(provide);
+        }
+    }
+};
+
+typedef enum { Pack, Unpack } PackCmd;
+// Construct a statement to pack/unpack the given box of the given buffer
+// to/from the contiguous scratch region of memory with the given name.
+Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &buffer, const Box &b) {
+    internal_assert(b.size() > 0);
+    vector<Var> dims;
+    for (unsigned i = 0; i < b.size(); i++) {
+        dims.push_back(Var(buffer.name() + "_dim" + std::to_string(i)));
+    }
+
+    // Construct src/dest pointer expressions as expressions in
+    // terms of the box dimension variables.
+    Expr bufferoffset = 0, scratchoffset = 0;
+    Expr scratchstride = b[0].max - b[0].min + 1;
+    for (unsigned i = 1; i < b.size(); i++) {
+        Expr extent = b[i].max - b[i].min + 1;
+        Expr dim = dims[i];
+        bufferoffset += (dim + b[i].min) * buffer.stride(i) * buffer.elem_size();
+        scratchoffset += dim * scratchstride * buffer.elem_size();
+        scratchstride *= extent;
+    }
+
+    // Construct loop nest to copy each contiguous row.  TODO:
+    // ensure this nesting is in the correct row/column major
+    // order.
+    Expr rowsize = simplify(b[0].max - b[0].min + 1) * buffer.elem_size();
+    Expr bufferaddr = address_of(buffer.name(), bufferoffset);
+    Expr scratchaddr = address_of(scratch_name, scratchoffset);
+
+    Stmt copyloop;
+    switch (cmd) {
+    case Pack:
+        copyloop = copy_memory(scratchaddr, bufferaddr, rowsize);
+        break;
+    case Unpack:
+        copyloop = copy_memory(bufferaddr, scratchaddr, rowsize);
+        break;
+    }
+    for (int i = b.size() - 1; i >= 1; i--) {
+        copyloop = For::make(dims[i].name(), 0, b[i].max - b[i].min + 1,
+                             ForType::Serial, DeviceAPI::Host, copyloop);
+    }
+    return copyloop;
+}
+
+// Allocate a buffer of the given name, type, and size that will
+// be used in the given body.
+Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) {
+    vector<Expr> extents;
+    Expr stride = 1;
+    for (unsigned i = 0; i < b.size(); i++) {
+        Expr extent = simplify(b[i].max - b[i].min + 1);
+        body = LetStmt::make(name + ".min." + std::to_string(i), 0, body);
+        body = LetStmt::make(name + ".stride." + std::to_string(i), stride, body);
+        extents.push_back(extent);
+        stride *= extent;
+    }
+    return Allocate::make(name, type, extents, const_true(), body);
+}
+
+typedef enum { Send, Recv } CommunicateCmd;
+// Construct a statement to send/recv the required region of 'buffer'
+// (specified by box 'b') between rank 0 and each processor.
+Stmt communicate_buffer(CommunicateCmd cmd, const AbstractBuffer &buffer, const Box &b) {
+    internal_assert(b.size() > 0);
+    const string scratch_name = buffer.name() + "_commscratch";
+    Stmt copy, commstmt, othercommstmt;
+    Expr numbytes = buffer.size_of(b);
+    Expr scratch_address = address_of(scratch_name, 0);
+    Expr partition_address = address_of(buffer.partitioned_name(), 0);
+
+    switch (cmd) {
+    case Send:
+        if (b.size() == 1) {
+            scratch_address = address_of(buffer, b[0].min);
+            commstmt = Evaluate::make(send(scratch_address, numbytes, Var("Rank")));
+            othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
+            copy = copy_memory(partition_address, scratch_address, numbytes);
+        } else {
+            Stmt pack = pack_region(Pack, scratch_name, buffer, b);
+            commstmt = Block::make(pack, Evaluate::make(send(scratch_address, numbytes, Var("Rank"))));
+            othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
+            copy = pack_region(Pack, buffer.partitioned_name(), buffer, b);
+        }
+        break;
+    case Recv:
+        if (b.size() == 1) {
+            scratch_address = address_of(buffer, b[0].min);
+            commstmt = Evaluate::make(recv(scratch_address, numbytes, Var("Rank")));
+            othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
+            copy = copy_memory(scratch_address, partition_address, numbytes);
+        } else {
+            Stmt unpack = pack_region(Unpack, scratch_name, buffer, b);
+            commstmt = Block::make(Evaluate::make(recv(scratch_address, numbytes, Var("Rank"))), unpack);
+            othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
+            copy = pack_region(Unpack, buffer.partitioned_name(), buffer, b);
+        }
+        break;
+    }
+    Stmt commloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, commstmt);
+    commloop = Block::make(copy, commloop);
+    // Rank 0 sends/recvs; all other ranks issue the complement.
+    Stmt body = IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
+
+    // Allocate scratch
+    return allocate_scratch(scratch_name, buffer.type(), b, body);
+}
+
+// Construct a statement to send the required region of 'buffer'
+// (specified by box 'b') from rank 0 to each processor.
+Stmt send_input_buffer(const AbstractBuffer &buffer, const Box &b) {
+    return communicate_buffer(Send, buffer, b);
+}
+
+// Construct a statement to receive the region of 'buffer'
+// (specified by box 'b') provided by each processor back to rank
+// 0.
+Stmt recv_output_buffer(const AbstractBuffer &buffer, const Box &b) {
+    return communicate_buffer(Recv, buffer, b);
+}
+
+// Construct a send loop which sends the required region of each
+// input buffer from rank 0 to each processor rank that needs it.
+Stmt send_all_required_regions(const map<string, Box> &required,
+                               const map<string, AbstractBuffer> &inputs) {
+    Stmt sendstmt;
+    for (const auto it : required) {
+        const AbstractBuffer &in = inputs.at(it.first);
+        const Box &b = it.second;
+        if (sendstmt.defined()) {
+            sendstmt = Block::make(sendstmt, send_input_buffer(in, b));
+        } else {
+            sendstmt = send_input_buffer(in, b);
+        }
+    }
+    return sendstmt;
+}
+
+// Construct a receive loop which receives the provided region of each
+// output buffer from each processor rank that provides it to rank 0.
+Stmt receive_all_provided_regions(const map<string, Box> &provided,
+                                  const map<string, AbstractBuffer> &outputs) {
+    Stmt recvstmt;
+    for (const auto it : provided) {
+        const AbstractBuffer &out = outputs.at(it.first);
+        const Box &b = it.second;
+        if (recvstmt.defined()) {
+            recvstmt = Block::make(recvstmt, recv_output_buffer(out, b));
+        } else {
+            recvstmt = recv_output_buffer(out, b);
+        }
+    }
+    return recvstmt;
+}
+
+// Allocate "partitioned" input and output buffers with the proper
+// sizes for each rank. The allocations are valid throughout
+// 'body'.
+Stmt allocate_partitioned_buffers(const map<string, Box> &regions,
+                                  const map<string, AbstractBuffer> &buffers, Stmt body) {
+    Stmt allocates;
+    for (const auto it : regions) {
+        const AbstractBuffer &buf = buffers.at(it.first);
+        const Box &b = it.second;
+        if (allocates.defined()) {
+            allocates = allocate_scratch(buf.partitioned_name(), buf.type(), b, allocates);
+        } else {
+            allocates = allocate_scratch(buf.partitioned_name(), buf.type(), b, body);
+        }
+    }
+    return allocates;
+}
+
 }
 
 class InjectCommunication : public IRMutator {
-    class ChangeDistributedLoopBuffers : public IRMutator {
-        string name, newname;
-        const Box &box;
-    public:
-        using IRMutator::visit;
-        ChangeDistributedLoopBuffers(const string &n, const string &nn, const Box &b) :
-            name(n), newname(nn), box(b) {}
-
-        void visit(const Call *call) {
-            if (call->name == name) {
-                vector<Expr> newargs;
-                for (unsigned i = 0; i < box.size(); i++) {
-                    newargs.push_back(simplify(call->args[i] - box[i].min));
-                }
-                expr = Call::make(call->type, newname, newargs, call->call_type,
-                                  call->func, call->value_index, call->image,
-                                  call->param);
-            } else {
-                IRMutator::visit(call);
-            }
-        }
-
-        void visit(const Provide *provide) {
-            if (provide->name == name) {
-                vector<Expr> newargs;
-                for (unsigned i = 0; i < box.size(); i++) {
-                    newargs.push_back(simplify(provide->args[i] - box[i].min));
-                }
-                stmt = Provide::make(newname, provide->values, newargs);
-            } else {
-                IRMutator::visit(provide);
-            }
-        }
-    };
-
-    typedef enum { Pack, Unpack } PackCmd;
-    // Construct a statement to pack/unpack the given box of the given buffer
-    // to/from the contiguous scratch region of memory with the given name.
-    Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &buffer, const Box &b) const {
-        internal_assert(b.size() > 0);
-        vector<Var> dims;
-        for (unsigned i = 0; i < b.size(); i++) {
-            dims.push_back(Var(buffer.name() + "_dim" + std::to_string(i)));
-        }
-
-        // Construct src/dest pointer expressions as expressions in
-        // terms of the box dimension variables.
-        Expr bufferoffset = 0, scratchoffset = 0;
-        Expr scratchstride = b[0].max - b[0].min + 1;
-        for (unsigned i = 1; i < b.size(); i++) {
-            Expr extent = b[i].max - b[i].min + 1;
-            Expr dim = dims[i];
-            bufferoffset += (dim + b[i].min) * buffer.stride(i) * buffer.elem_size();
-            scratchoffset += dim * scratchstride * buffer.elem_size();
-            scratchstride *= extent;
-        }
-
-        // Construct loop nest to copy each contiguous row.  TODO:
-        // ensure this nesting is in the correct row/column major
-        // order.
-        Expr rowsize = simplify(b[0].max - b[0].min + 1) * buffer.elem_size();
-        Expr bufferaddr = address_of(buffer.name(), bufferoffset);
-        Expr scratchaddr = address_of(scratch_name, scratchoffset);
-
-        Stmt copyloop;
-        switch (cmd) {
-        case Pack:
-            copyloop = copy_memory(scratchaddr, bufferaddr, rowsize);
-            break;
-        case Unpack:
-            copyloop = copy_memory(bufferaddr, scratchaddr, rowsize);
-            break;
-        }
-        for (int i = b.size() - 1; i >= 1; i--) {
-            copyloop = For::make(dims[i].name(), 0, b[i].max - b[i].min + 1,
-                                 ForType::Serial, DeviceAPI::Host, copyloop);
-        }
-        return copyloop;
-
-    }
-
-    typedef enum { Send, Recv } CommunicateCmd;
-    // Construct a statement to send/recv the required region of 'buffer'
-    // (specified by box 'b') between rank 0 and each processor.
-    Stmt communicate_buffer(CommunicateCmd cmd, const AbstractBuffer &buffer, const Box &b) const {
-        internal_assert(b.size() > 0);
-        const string scratch_name = buffer.name() + "_commscratch";
-        Stmt copy, commstmt, othercommstmt;
-        Expr numbytes = buffer.size_of(b);
-        Expr scratch_address = address_of(scratch_name, 0);
-        Expr partition_address = address_of(buffer.partitioned_name(), 0);
-
-        switch (cmd) {
-        case Send:
-            if (b.size() == 1) {
-                scratch_address = address_of(buffer, b[0].min);
-                commstmt = Evaluate::make(send(scratch_address, numbytes, Var("Rank")));
-                othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
-                copy = copy_memory(partition_address, scratch_address, numbytes);
-            } else {
-                Stmt pack = pack_region(Pack, scratch_name, buffer, b);
-                commstmt = Block::make(pack, Evaluate::make(send(scratch_address, numbytes, Var("Rank"))));
-                othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
-                copy = pack_region(Pack, buffer.partitioned_name(), buffer, b);
-            }
-            break;
-        case Recv:
-            if (b.size() == 1) {
-                scratch_address = address_of(buffer, b[0].min);
-                commstmt = Evaluate::make(recv(scratch_address, numbytes, Var("Rank")));
-                othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
-                copy = copy_memory(scratch_address, partition_address, numbytes);
-            } else {
-                Stmt unpack = pack_region(Unpack, scratch_name, buffer, b);
-                commstmt = Block::make(Evaluate::make(recv(scratch_address, numbytes, Var("Rank"))), unpack);
-                othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
-                copy = pack_region(Unpack, buffer.partitioned_name(), buffer, b);
-            }
-            break;
-        }
-        Stmt commloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, commstmt);
-        commloop = Block::make(copy, commloop);
-        // Rank 0 sends/recvs; all other ranks issue the complement.
-        Stmt body = IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
-
-        // Allocate scratch
-        return allocate_scratch(scratch_name, buffer.type(), b, body);
-    }
-
-    // Construct a statement to send the required region of 'buffer'
-    // (specified by box 'b') from rank 0 to each processor.
-    Stmt send_input_buffer(const AbstractBuffer &buffer, const Box &b) const {
-        return communicate_buffer(Send, buffer, b);
-    }
-
-    // Construct a statement to receive the region of 'buffer'
-    // (specified by box 'b') provided by each processor back to rank
-    // 0.
-    Stmt recv_output_buffer(const AbstractBuffer &buffer, const Box &b) const {
-        return communicate_buffer(Recv, buffer, b);
-    }
-
-    // Allocate a buffer of the given name, type, and size that will
-    // be used in the given body.
-    Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) const {
-        vector<Expr> extents;
-        Expr stride = 1;
-        for (unsigned i = 0; i < b.size(); i++) {
-            Expr extent = simplify(b[i].max - b[i].min + 1);
-            body = LetStmt::make(name + ".min." + std::to_string(i), 0, body);
-            body = LetStmt::make(name + ".stride." + std::to_string(i), stride, body);
-            extents.push_back(extent);
-            stride *= extent;
-        }
-        return Allocate::make(name, type, extents, const_true(), body);
-    }
-
-    // Construct a send loop which sends the required region of each
-    // input buffer from rank 0 to each processor rank that needs it.
-    Stmt send_all_required_regions(const map<string, Box> &required) const {
-        Stmt sendstmt;
-        for (const auto it : required) {
-            const AbstractBuffer &in = inputs.at(it.first);
-            const Box &b = it.second;
-            if (sendstmt.defined()) {
-                sendstmt = Block::make(sendstmt, send_input_buffer(in, b));
-            } else {
-                sendstmt = send_input_buffer(in, b);
-            }
-        }
-        return sendstmt;
-    }
-
-    // Construct a receive loop which receives the provided region of each
-    // output buffer from each processor rank that provides it to rank 0.
-    Stmt receive_all_provided_regions(const map<string, Box> &provided) const {
-        Stmt recvstmt;
-        for (const auto it : provided) {
-            const AbstractBuffer &out = outputs.at(it.first);
-            const Box &b = it.second;
-            if (recvstmt.defined()) {
-                recvstmt = Block::make(recvstmt, recv_output_buffer(out, b));
-            } else {
-                recvstmt = recv_output_buffer(out, b);
-            }
-        }
-        return recvstmt;
-    }
-
-    // Allocate "partitioned" input and output buffers with the proper
-    // sizes for each rank. The allocations are valid throughout
-    // 'body'.
-    Stmt allocate_partitioned_buffers(const map<string, Box> &required,
-                                      const map<string, Box> &provided, Stmt body) const {
-        Stmt allocates;
-        for (const auto it : required) {
-            const AbstractBuffer &in = inputs.at(it.first);
-            const Box &b = it.second;
-            if (allocates.defined()) {
-                allocates = allocate_scratch(in.partitioned_name(), in.type(), b, allocates);
-            } else {
-                allocates = allocate_scratch(in.partitioned_name(), in.type(), b, body);
-            }
-        }
-        for (const auto it : provided) {
-            const AbstractBuffer &out = outputs.at(it.first);
-            const Box &b = it.second;
-            if (allocates.defined()) {
-                allocates = allocate_scratch(out.partitioned_name(), out.type(), b, allocates);
-            } else {
-                allocates = allocate_scratch(out.partitioned_name(), out.type(), b, body);
-            }
-        }
-        return allocates;
-    }
-
 public:
     const map<string, AbstractBuffer> &inputs, &outputs;
+    const map<string, Box> &rank_required, &rank_provided;
     InjectCommunication(const map<string, AbstractBuffer> &in,
-                        const map<string, AbstractBuffer> &out) :
-        inputs(in), outputs(out) {}
+                        const map<string, AbstractBuffer> &out,
+                        const map<string, Box> &rreq,
+                        const map<string, Box> &rprov) :
+        inputs(in), outputs(out), rank_required(rreq), rank_provided(rprov) {}
 
     using IRMutator::visit;
 
@@ -522,7 +517,7 @@ public:
 
         // Construct the send statements to send required regions for
         // each input buffer from rank 0.
-        Stmt sendstmt = send_all_required_regions(required);
+        Stmt sendstmt = send_all_required_regions(required, inputs);
         // Update the references in the loop to use the "partitioned" input buffers.
         for (const auto it : required) {
             const AbstractBuffer &in = inputs.at(it.first);
@@ -533,7 +528,7 @@ public:
 
         // Construct receive statements to gather output buffer regions
         // back to rank 0.
-        Stmt recvstmt = receive_all_provided_regions(provided);
+        Stmt recvstmt = receive_all_provided_regions(provided, outputs);
         // Update the references in the loop to use the "partitioned" output buffers.
         for (const auto it : provided) {
             const AbstractBuffer &out = outputs.at(it.first);
@@ -545,8 +540,8 @@ public:
         newloop = Block::make(sendstmt, Block::make(newloop, recvstmt));
 
         // Construct allocation statements to allcate the partitioned input and output buffers.
-        Stmt allocates = allocate_partitioned_buffers(required, provided, newloop);
-
+        Stmt allocates = allocate_partitioned_buffers(required, inputs, newloop);
+        allocates = allocate_partitioned_buffers(provided, outputs, allocates);
         stmt = allocates;
     }
 
@@ -571,6 +566,10 @@ class DistributeLoops : public IRMutator {
         return newloop;
     }
 public:
+    // Maps from buffer name -> region used expressed in terms of
+    // processor rank.
+    map<string, Box> rank_required, rank_provided;
+
     using IRMutator::visit;
 
     void visit(const For *for_loop) {
@@ -579,10 +578,24 @@ public:
             return;
         }
         // Split original loop into chunks of iterations for each rank.
-        stmt = distribute_loop_iterations(for_loop);
+        Stmt newloop = distribute_loop_iterations(for_loop);
+
+        // Get required/provided regions of input/output buffers in
+        // terms of processor rank variable.
+        map<string, Box> required, provided;
+        required = boxes_required(newloop);
+        provided = boxes_provided(newloop);
+        for (const auto it : required) {
+            rank_required[it.first] = it.second;
+        }
+        for (const auto it : provided) {
+            rank_provided[it.first] = it.second;
+        }
+
         stmt = LetStmt::make("SliceSize",
-                             cast(for_loop->extent.type(), ceil(cast(Float(32), for_loop->extent) / num_processors())),
-                             LetStmt::make("Rank", rank(), stmt));
+                             cast(for_loop->extent.type(),
+                                  ceil(cast(Float(32), for_loop->extent) / num_processors())),
+                             LetStmt::make("Rank", rank(), newloop));
     }
 };
 
@@ -605,10 +618,12 @@ public:
 
 Stmt distribute_loops(Stmt s) {
     GetPipelineInputsAndOutputs getio;
+    DistributeLoops distribute;
     s.accept(&getio);
-    map<string, AbstractBuffer> inputs = getio.inputs, outputs = getio.outputs;
-    s = DistributeLoops().mutate(s);
-    return InjectCommunication(inputs, outputs).mutate(s);
+    s = distribute.mutate(s);
+    s = InjectCommunication(getio.inputs, getio.outputs,
+                            distribute.rank_required, distribute.rank_provided).mutate(s);
+    return s;
 }
 
 }
