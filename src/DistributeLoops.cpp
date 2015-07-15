@@ -112,6 +112,7 @@ public:
     }
 
     Expr size_of(const Box &b) const {
+        internal_assert(b.size() > 0);
         Expr num_elems = 1;
         for (unsigned i = 0; i < b.size(); i++) {
             num_elems *= b[i].max - b[i].min + 1;
@@ -170,8 +171,6 @@ class FindBuffersUsingVariable : public IRVisitor {
         }
         IRVisitor::visit(provide);
     }
-
-    map<string, Expr> elem_sizes;
 public:
     string name;
     vector<AbstractBuffer> inputs, outputs;
@@ -406,70 +405,49 @@ class DistributeLoops : public IRMutator {
     // (specified by box 'b') between rank 0 and each processor.
     Stmt communicate_buffer(CommunicateCmd cmd, const AbstractBuffer &buffer, const Box &b) const {
         internal_assert(b.size() > 0);
-        switch (b.size()) {
-        case 1: {
-            Expr rowsize = b[0].max - b[0].min + 1;
-            Expr rowbytes = rowsize * buffer.elem_size();
+        const string scratch_name = buffer.name() + "_commscratch";
+        Stmt copy, commstmt, othercommstmt;
+        Expr numbytes = buffer.size_of(b);
+        Expr scratch_address = address_of(scratch_name, 0);
+        Expr partition_address = address_of(buffer.partitioned_name(), 0);
 
-            // Loop through each rank (not including 0) to evaluate
-            // the box needed (since the box given is expressed in
-            // terms of a rank variable), then communicate it.
-            Expr address = address_of(buffer, b[0].min);
-            Expr partitioned_addr = address_of(buffer.partitioned_name(), 0);
-            Stmt commstmt, othercommstmt, copy;
-            switch (cmd) {
-            case Send:
-                commstmt = Evaluate::make(send(address, rowbytes, Var("Rank")));
-                othercommstmt = Evaluate::make(recv(partitioned_addr, rowbytes, 0));
-                copy = copy_memory(partitioned_addr, address, rowbytes);
-                break;
-            case Recv:
-                commstmt = Evaluate::make(recv(address, rowbytes, Var("Rank")));
-                othercommstmt = Evaluate::make(send(partitioned_addr, rowbytes, 0));
-                copy = copy_memory(address, partitioned_addr, rowbytes);
-                break;
+        switch (cmd) {
+        case Send: {
+            if (b.size() > 1) {
+                Stmt pack = pack_region(scratch_name, buffer, b);
+                commstmt = Block::make(pack, Evaluate::make(send(scratch_address, numbytes, Var("Rank"))));
+                othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
+                copy = Block::make(pack, copy_memory(partition_address, scratch_address, numbytes));
+            } else {
+                scratch_address = address_of(buffer, b[0].min);
+                commstmt = Evaluate::make(send(scratch_address, numbytes, Var("Rank")));
+                othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
+                copy = copy_memory(partition_address, scratch_address, numbytes);
             }
-            Stmt commloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, commstmt);
-
-            commloop = Block::make(copy, commloop);
-
-            // Rank 0 sends/recvs; all other ranks issue the complement.
-            return IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
+            break;
         }
-        default:
-            string scratch_name = buffer.name() + "_commscratch";
-
-            Expr numbytes = buffer.size_of(b);
-            Expr address = address_of(scratch_name, 0);
-            Expr partitioned_addr = address_of(buffer.partitioned_name(), 0);
-            Stmt commstmt, othercommstmt, copy, packunpack;
-            switch (cmd) {
-            case Send:
-                // Pack buffer into scratch
-                packunpack = pack_region(scratch_name, buffer, b);
-                commstmt = Block::make(packunpack, Evaluate::make(send(address, numbytes, Var("Rank"))));
-                othercommstmt = Evaluate::make(recv(partitioned_addr, numbytes, 0));
-                copy = Block::make(packunpack, copy_memory(partitioned_addr, address, numbytes));
-                break;
-            case Recv:
-                // Unpack buffer from scratch
-                packunpack = unpack_region(scratch_name, buffer, b);
-                commstmt = Block::make(Evaluate::make(recv(address, numbytes, Var("Rank"))),
-                                       packunpack);
-                othercommstmt = Evaluate::make(send(partitioned_addr, numbytes, 0));
-                copy = Block::make(copy_memory(address, partitioned_addr, numbytes), packunpack);
-                break;
+        case Recv: {
+            if (b.size() > 1) {
+                Stmt unpack = unpack_region(scratch_name, buffer, b);
+                commstmt = Block::make(Evaluate::make(recv(scratch_address, numbytes, Var("Rank"))), unpack);
+                othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
+                copy = Block::make(copy_memory(scratch_address, partition_address, numbytes), unpack);
+            } else {
+                scratch_address = address_of(buffer, b[0].min);
+                commstmt = Evaluate::make(recv(scratch_address, numbytes, Var("Rank")));
+                othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
+                copy = copy_memory(scratch_address, partition_address, numbytes);
             }
-            Stmt commloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, commstmt);
-
-            commloop = Block::make(copy, commloop);
-
-            // Rank 0 sends/recvs; all other ranks issue the complement.
-            Stmt body = IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
-
-            // Allocate scratch
-            return allocate_scratch(scratch_name, buffer.type(), b, body);
+            break;
         }
+        }
+        Stmt commloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, commstmt);
+        commloop = Block::make(copy, commloop);
+        // Rank 0 sends/recvs; all other ranks issue the complement.
+        Stmt body = IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
+
+        // Allocate scratch
+        return allocate_scratch(scratch_name, buffer.type(), b, body);
     }
 
     // Construct a statement to send the required region of 'buffer'
@@ -513,7 +491,7 @@ public:
         vector<AbstractBuffer> inputs, outputs;
         inputs = buffers_required(for_loop);
         outputs = buffers_provided(for_loop);
-        
+
         // Split original loop into chunks of iterations for each rank.
         Stmt newloop = distribute_loop_iterations(for_loop);
 
