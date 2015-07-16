@@ -44,6 +44,52 @@ string box2str(const Box &b) {
     return mins.str() + " to " + maxs.str();
 }
 
+// Computes the intersection of the two given boxes. Makes a "best
+// effort" to determine if the boxes do not intersect, but if the box
+// intervals have free variables, the intersection returned may be
+// empty at runtime (when the variable values are known). Thus, any
+// code using the intersection returned from this function must check
+// for validity at runtime. For that reason this is encapsulated in a
+// separate class so that the types may not be mixed.
+class BoxIntersection {
+private:
+    Box box;
+    bool known_empty;
+public:
+    BoxIntersection() : known_empty(false) {}
+
+    BoxIntersection(const Box &a, const Box &b) {
+        internal_assert(a.size() == b.size());
+        unsigned size = a.size();
+        box = Box(size);
+        for (unsigned i = 0; i < size; i++) {
+            if (is_positive_const(simplify(b[i].min - a[i].max))) known_empty = true;
+            Expr dim_min = simplify(max(a[i].min, b[i].min));
+            Expr dim_max = simplify(min(a[i].max, b[i].max));
+            box[i] = Interval(dim_min, dim_max);
+        }
+    }
+
+    // Return an expression determining whether the intersection is
+    // empty or not.
+    Expr empty() const {
+        internal_assert(box.size() > 0);
+        if (known_empty) {
+            return const_true();
+        } else {
+            // If any dimension's min is greater than (or equal to) its max, the
+            // intersection is empty.
+            Expr e = GE::make(box[0].min, box[0].max);
+            for (unsigned i = 1; i < box.size(); i++) {
+                e = Or::make(e, GE::make(box[i].min, box[i].max));
+            }
+            return simplify(e);
+        }
+    }
+
+    const Box &get() const { return box; }
+};
+
 // Helper class that wraps information common to Buffer and Parameter classes.
 // Also provides a wrapper for Provide nodes which do not have buffer references.
 class AbstractBuffer {
@@ -432,9 +478,9 @@ Stmt recv_output_buffer(const AbstractBuffer &buffer, const Box &b) {
     return communicate_buffer(Recv, buffer, b);
 }
 
-// Construct a send loop which sends the required region of each
-// input buffer from rank 0 to each processor rank that needs it.
-Stmt send_all_required_regions(const map<string, Box> &required,
+// Construct a receive loop which receives the required region of each
+// input buffer from the rank that provides it.
+Stmt recv_all_required_regions(const map<string, Box> &required,
                                const map<string, AbstractBuffer> &inputs) {
     Stmt sendstmt;
     for (const auto it : required) {
@@ -449,10 +495,10 @@ Stmt send_all_required_regions(const map<string, Box> &required,
     return sendstmt;
 }
 
-// Construct a receive loop which receives the provided region of each
-// output buffer from each processor rank that provides it to rank 0.
-Stmt receive_all_provided_regions(const map<string, Box> &provided,
-                                  const map<string, AbstractBuffer> &outputs) {
+// Construct a send loop which sends the provided region of each
+// output buffer to each rank that requires it.
+Stmt send_all_provided_regions(const map<string, Box> &provided,
+                               const map<string, AbstractBuffer> &outputs) {
     Stmt recvstmt;
     for (const auto it : provided) {
         const AbstractBuffer &out = outputs.at(it.first);
@@ -515,9 +561,9 @@ public:
         required = boxes_required(newloop);
         provided = boxes_provided(newloop);
 
-        // Construct the send statements to send required regions for
-        // each input buffer from rank 0.
-        Stmt sendstmt = send_all_required_regions(required, inputs);
+        // Construct the receive statements to receive required regions for
+        // each input buffer from ranks that provide them.
+        Stmt recvstmt = recv_all_required_regions(required, inputs);
         // Update the references in the loop to use the "partitioned" input buffers.
         for (const auto it : required) {
             const AbstractBuffer &in = inputs.at(it.first);
@@ -526,9 +572,9 @@ public:
             newloop = change.mutate(newloop);
         }
 
-        // Construct receive statements to gather output buffer regions
-        // back to rank 0.
-        Stmt recvstmt = receive_all_provided_regions(provided, outputs);
+        // Construct send statements to send output buffer regions
+        // to ranks that require them.
+        Stmt sendstmt = send_all_provided_regions(provided, outputs);
         // Update the references in the loop to use the "partitioned" output buffers.
         for (const auto it : provided) {
             const AbstractBuffer &out = outputs.at(it.first);
@@ -537,7 +583,7 @@ public:
             newloop = change.mutate(newloop);
         }
 
-        newloop = Block::make(sendstmt, Block::make(newloop, recvstmt));
+        newloop = Block::make(recvstmt, Block::make(newloop, sendstmt));
 
         // Construct allocation statements to allcate the partitioned input and output buffers.
         Stmt allocates = allocate_partitioned_buffers(required, inputs, newloop);
