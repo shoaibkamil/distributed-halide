@@ -44,6 +44,26 @@ string box2str(const Box &b) {
     return mins.str() + " to " + maxs.str();
 }
 
+// Simplify the given box, using the given environment of variable
+// to value.
+Box simplify_box(const Box &b, const Scope<Expr> &env) {
+    Box result(b.size());
+    for (unsigned i = 0; i < b.size(); i++) {
+        Expr min, max;
+        for (auto it = env.cbegin(), ite = env.cend(); it != ite; ++it) {
+            if (min.defined()) {
+                min = Let::make(it.name(), it.value(), min);
+                max = Let::make(it.name(), it.value(), max);
+            } else {
+                min = Let::make(it.name(), it.value(), b[i].min);
+                max = Let::make(it.name(), it.value(), b[i].max);
+            }
+        }
+        result[i] = Interval(simplify(min), simplify(max));
+    }
+    return result;
+}
+
 // Computes the intersection of the two given boxes. Makes a "best
 // effort" to determine if the boxes do not intersect, but if the box
 // intervals have free variables, the intersection returned may be
@@ -53,7 +73,7 @@ string box2str(const Box &b) {
 // separate class so that the types may not be mixed.
 class BoxIntersection {
 private:
-    Box box;
+    Box _box;
     bool known_empty;
 public:
     BoxIntersection() : known_empty(false) {}
@@ -61,33 +81,33 @@ public:
     BoxIntersection(const Box &a, const Box &b) {
         internal_assert(a.size() == b.size());
         unsigned size = a.size();
-        box = Box(size);
+        _box = Box(size);
         for (unsigned i = 0; i < size; i++) {
             if (is_positive_const(simplify(b[i].min - a[i].max))) known_empty = true;
             Expr dim_min = simplify(max(a[i].min, b[i].min));
             Expr dim_max = simplify(min(a[i].max, b[i].max));
-            box[i] = Interval(dim_min, dim_max);
+            _box[i] = Interval(dim_min, dim_max);
         }
     }
 
     // Return an expression determining whether the intersection is
     // empty or not.
     Expr empty() const {
-        internal_assert(box.size() > 0);
+        internal_assert(_box.size() > 0);
         if (known_empty) {
             return const_true();
         } else {
             // If any dimension's min is greater than (or equal to) its max, the
             // intersection is empty.
-            Expr e = GE::make(box[0].min, box[0].max);
-            for (unsigned i = 1; i < box.size(); i++) {
-                e = Or::make(e, GE::make(box[i].min, box[i].max));
+            Expr e = GE::make(_box[0].min, _box[0].max);
+            for (unsigned i = 1; i < _box.size(); i++) {
+                e = Or::make(e, GE::make(_box[i].min, _box[i].max));
             }
             return simplify(e);
         }
     }
 
-    const Box &get() const { return box; }
+    const Box &box() const { return _box; }
 };
 
 // Helper class that wraps information common to Buffer and Parameter classes.
@@ -611,12 +631,26 @@ class DistributeLoops : public IRMutator {
                                  for_loop->body);
         return newloop;
     }
+
+    Scope<Expr> env;
 public:
     // Maps from buffer name -> region used expressed in terms of
     // processor rank.
     map<string, Box> rank_required, rank_provided;
 
     using IRMutator::visit;
+
+    void visit(const Let *let) {
+        env.push(let->name, let->value);
+        IRMutator::visit(let);
+        env.pop(let->name);
+    }
+
+    void visit(const LetStmt *let) {
+        env.push(let->name, let->value);
+        IRMutator::visit(let);
+        env.pop(let->name);
+    }
 
     void visit(const For *for_loop) {
         if (for_loop->for_type != ForType::Distributed) {
@@ -629,13 +663,15 @@ public:
         // Get required/provided regions of input/output buffers in
         // terms of processor rank variable.
         map<string, Box> required, provided;
+
         required = boxes_required(newloop);
         provided = boxes_provided(newloop);
+
         for (const auto it : required) {
-            rank_required[it.first] = it.second;
+            rank_required[it.first] = simplify_box(it.second, env);
         }
         for (const auto it : provided) {
-            rank_provided[it.first] = it.second;
+            rank_provided[it.first] = simplify_box(it.second, env);
         }
 
         stmt = LetStmt::make("SliceSize",
