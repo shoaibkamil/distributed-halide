@@ -93,16 +93,16 @@ int main(int argc, char **argv) {
         DistributedImage<int> out(20);
         out.set_domain(x);
         out.placement().distribute(x);
-        // out = f.realize_distributed();
-        // for (int x = 0; x < out.width(); x++) {
-        //     int gx = out.global(x);
-        //     int correct = 2*gx + 1;
-        //     if (out(x) != correct) {
-        //         mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
-        //         MPI_Finalize();
-        //         return -1;
-        //     }
-        // }
+        out.allocate();
+        f.realize(out.get_buffer());
+        for (int x = 0; x < out.width(); x++) {
+            int correct = 2*x + 1;
+            if (out(x) != correct) {
+                mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
+                MPI_Finalize();
+                return -1;
+            }
+        }
     }
 
     // {

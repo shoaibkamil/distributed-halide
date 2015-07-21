@@ -169,6 +169,11 @@ public:
         image = Image<T>(b);
     }
 
+    /** Return the underlying buffer. Only relevant for jitting. */
+    Buffer get_buffer() {
+        return param.get();
+    }
+
     int dimensions() const { return image.dimensions(); }
     int extent(int dim) const { return image.extent(dim); }
     int width() const { return image.width(); }
