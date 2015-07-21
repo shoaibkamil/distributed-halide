@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
         in.allocate();
 
         for (int x = 0; x < in.width(); x++) {
-            in(x) = 2 * x;
+            in(x) = 2 * in.global(x);
         }
 
         Func f;
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
         out.allocate();
         f.realize(out.get_buffer());
         for (int x = 0; x < out.width(); x++) {
-            int correct = 2*x + 1;
+            int correct = 2*out.global(x) + 1;
             if (out(x) != correct) {
                 mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
                 MPI_Finalize();

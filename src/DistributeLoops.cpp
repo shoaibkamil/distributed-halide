@@ -698,6 +698,10 @@ public:
     }
 };
 
+Stmt distribute_loops_only(Stmt s) {
+    return DistributeLoops().mutate(s);
+}
+
 Stmt distribute_loops(Stmt s) {
     GetPipelineInputsAndOutputs getio;
     DistributeLoops distribute;

@@ -59,11 +59,12 @@ Stmt partial_lower(Func f) {
     s = allocation_bounds_inference(s, env, func_bounds);
     s = storage_folding(s);
     s = simplify(s, false);
-    s = distribute_loops(s);
+    s = distribute_loops_only(s);
     return s;
 }
 
-vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents) {
+vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
+                              vector<Expr> &mins) {
     vector<int> bounds;
     Stmt s = partial_lower(f);
     GetBoxes get;
@@ -75,16 +76,13 @@ vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents) {
     MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
     const Box &b = get.boxes.begin()->second;
     for (int i = 0; i < (int)b.size(); i++) {
+        Expr slice_size = cast(Int(32), ceil(cast(Float(32), full_extents[i]) / num_processors));
         Expr sz = b[i].max - b[i].min + 1;
-        sz = Let::make("Rank", rank, sz);
-        sz = Let::make("SliceSize",
-                       cast(Int(32),
-                            ceil(cast(Float(32), full_extents[i]) / num_processors)),
-                       sz);
-        sz = simplify(sz);
+        sz = simplify(Let::make("Rank", rank, Let::make("SliceSize", slice_size, sz)));
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL);
         bounds.push_back(*dim);
+        mins.push_back(simplify(Let::make("Rank", rank, Let::make("SliceSize", slice_size, b[i].min))));
     }
     return bounds;
 }
@@ -94,6 +92,7 @@ template<typename T>
 class DistributedImage {
     vector<int> full_extents;
     vector<int> local_extents;
+    vector<Expr> mins;
     ImageParam param;
     Image<T> image;
     Func wrapper;
@@ -163,7 +162,7 @@ public:
      * jitting. */
     void allocate() {
         internal_assert(!image.defined());
-        local_extents = Internal::get_buffer_bounds(wrapper, full_extents);
+        local_extents = Internal::get_buffer_bounds(wrapper, full_extents, mins);
         Buffer b = Buffer(type_of<T>(), local_extents, NULL, param.name());
         param.set(b);
         image = Image<T>(b);
@@ -180,6 +179,21 @@ public:
     int height() const { return image.height(); }
     int channels() const { return image.channels(); }
 
+    /** Return the global x coordinate corresponding to the local x
+     * coordinate. */
+    int global(int x) const {
+        return global(0, x);
+    }
+
+    /** Return the global coordinate of dimension 'dim' corresponding
+     * to the local coordinate value c. */
+    int global(int dim, int c) const {
+        Expr g = simplify(mins[dim] + c);
+        const int *result = as_const_int(g);
+        internal_assert(result != NULL);
+        return *result;
+    }
+    
     /** Get a pointer to the element at the min location. */
     NO_INLINE T *data() const {
         return (T *)image.get().host_ptr();
