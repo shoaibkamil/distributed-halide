@@ -274,6 +274,7 @@ set(HEADER_FILES
   Derivative.h
   DeviceInterface.h
   DistributeLoops.h
+  DistributedImage.h
   EarlyFree.h
   Error.h
   Expr.h
@@ -413,6 +414,7 @@ add_library(Halide ${HALIDE_LIBRARY_TYPE}
   Derivative.cpp
   DeviceInterface.cpp
   DistributeLoops.cpp
+  DistributedImage.cpp
   EarlyFree.cpp
   Error.cpp
   ExprUsesVar.cpp
