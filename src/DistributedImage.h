@@ -228,6 +228,22 @@ public:
         return image(x, y, z, w);
     }
 
+    Expr operator()(Expr x) const {
+        return image(x);
+    }
+
+    Expr operator()(Expr x, Expr y) const {
+        return image(x, y);
+    }
+
+    Expr operator()(Expr x, Expr y, Expr z) const {
+        return image(x, y, z);
+    }
+
+    Expr operator()(Expr x, Expr y, Expr z, Expr w) const {
+        return image(x, y, z, w);
+    }
+
     /** Convert this image to an argument to a halide pipeline. */
     operator Argument() const {
         return (Argument)image;

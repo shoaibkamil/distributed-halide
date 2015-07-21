@@ -82,18 +82,18 @@ int main(int argc, char **argv) {
         in.placement().distribute(x);
         in.allocate();
 
-        std::cout << "Rank " << rank << " has buffer dim " << in.width() << "\n";
         for (int x = 0; x < in.width(); x++) {
             in(x) = 2 * x;
         }
 
-        // Func f;
-        // f(x) = in(x) + 1;
-        // f.distribute(x);
+        Func f;
+        f(x) = in(x) + 1;
+        f.distribute(x);
 
-        // DistributedImage<int> out;
-        // out.data().distribute(x);
-        // out = f.realize(20);
+        DistributedImage<int> out(20);
+        out.set_domain(x);
+        out.placement().distribute(x);
+        // out = f.realize_distributed();
         // for (int x = 0; x < out.width(); x++) {
         //     int gx = out.global(x);
         //     int correct = 2*gx + 1;
