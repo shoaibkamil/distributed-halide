@@ -174,6 +174,11 @@ public:
         b.set_distributed(full_extents);
         param.set(b);
         image = Image<T>(b);
+
+        Func replacement(wrapper.name());
+        replacement(wrapper.args()) = image(wrapper.args());
+        replacement.compute_root();
+        wrapper = replacement;
     }
 
     /** Return the underlying buffer. Only relevant for jitting. */
@@ -256,19 +261,19 @@ public:
     }
 
     Expr operator()(Expr x) const {
-        return image(x);
+        return wrapper(x);
     }
 
     Expr operator()(Expr x, Expr y) const {
-        return image(x, y);
+        return wrapper(x, y);
     }
 
     Expr operator()(Expr x, Expr y, Expr z) const {
-        return image(x, y, z);
+        return wrapper(x, y, z);
     }
 
     Expr operator()(Expr x, Expr y, Expr z, Expr w) const {
-        return image(x, y, z, w);
+        return wrapper(x, y, z, w);
     }
 
     /** Convert this image to an argument to a halide pipeline. */
