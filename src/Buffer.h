@@ -29,9 +29,8 @@ struct JITModule;
  * passing buffers around.
  */
 class Buffer {
-private:
+protected:
     Internal::IntrusivePtr<Internal::BufferContents> contents;
-
 public:
     Buffer() : contents(NULL) {}
 
@@ -94,6 +93,23 @@ public:
      * that corresponds to the base address of the buffer. */
     EXPORT void set_min(int m0, int m1 = 0, int m2 = 0, int m3 = 0);
 
+    /** Return true if the Buffer is distributed. */
+    EXPORT bool distributed() const;
+
+    /** Mark this Buffer as distributed with the given global sizes. */
+    EXPORT void set_distributed(const std::vector<int> &global_sizes);
+
+    /** Get the global extent of this buffer in the given dimension. */
+    EXPORT int global_extent(int dim) const;
+
+    /** Get the number of bytes between adjacent elements of the
+     * global buffer along the given dimension. */
+    EXPORT int global_stride(int dim) const;
+
+    /** Get the coordinate in the function that this buffer represents
+     * that corresponds to the base address of the global buffer. */
+    EXPORT int global_min(int dim) const;
+
     /** Get the Halide type of the contents of this buffer. */
     EXPORT Type type() const;
 
@@ -134,31 +150,6 @@ public:
 
 };
 
-class DistributedBuffer : public Buffer {
-private:
-    std::vector<int> gmin, gextent, gstride;
-public:
-    DistributedBuffer() : Buffer() {}
-
-    EXPORT DistributedBuffer(Type t, int x_size = 0, int y_size = 0, int z_size = 0, int w_size = 0,
-                             int x_size_global = 0, int y_size_global = 0, int z_size_global = 0, int w_size_global = 0,
-                             const std::string &name = "");
-
-    EXPORT DistributedBuffer(Type t, const std::vector<int32_t> &sizes,
-                             const std::vector<int32_t> &global_sizes,
-                             const std::string &name = "");
-
-    /** Get the global extent of this buffer in the given dimension. */
-    EXPORT int global_extent(int dim) const;
-
-    /** Get the number of bytes between adjacent elements of the global buffer along the given dimension. */
-    EXPORT int global_stride(int dim) const;
-
-    /** Get the coordinate in the function that this buffer represents
-     * that corresponds to the base address of the global buffer. */
-    EXPORT int global_min(int dim) const;
-};
- 
 }
 
 #endif

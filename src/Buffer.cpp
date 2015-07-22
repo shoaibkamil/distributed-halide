@@ -33,6 +33,26 @@ struct BufferContents {
     /** What is the name of the buffer? Useful for debugging symbols. */
     std::string name;
 
+    bool distributed;
+    int gmin[4], gextent[4], gstride[4];
+
+    void set_distributed(int x_size_global, int y_size_global,
+                         int z_size_global, int w_size_global) {
+        gextent[0] = x_size_global;
+        gextent[1] = y_size_global;
+        gextent[2] = z_size_global;
+        gextent[3] = w_size_global;
+        gstride[0] = 1;
+        gstride[1] = x_size_global;
+        gstride[2] = x_size_global*y_size_global;
+        gstride[3] = x_size_global*y_size_global*z_size_global;
+        gmin[0] = 0;
+        gmin[1] = 0;
+        gmin[2] = 0;
+        gmin[3] = 0;
+        distributed = true;
+    }
+
     BufferContents(Type t, int x_size, int y_size, int z_size, int w_size,
                    uint8_t* data, const std::string &n) :
         type(t), allocation(NULL), name(n.empty() ? unique_name('b') : n) {
@@ -83,12 +103,15 @@ struct BufferContents {
         buf.min[1] = 0;
         buf.min[2] = 0;
         buf.min[3] = 0;
+
+        distributed = false;
     }
 
     BufferContents(Type t, const buffer_t *b, const std::string &n) :
         type(t), allocation(NULL), name(n.empty() ? unique_name('b') : n) {
         buf = *b;
         user_assert(t.width == 1) << "Can't create of a buffer of a vector type";
+        distributed = false;
     }
 };
 
@@ -246,60 +269,35 @@ int Buffer::free_dev_buffer() {
     return halide_device_free(NULL, raw_buffer());
 }
 
-DistributedBuffer::DistributedBuffer(Type t, int x_size, int y_size, int z_size, int w_size,
-                  int x_size_global, int y_size_global, int z_size_global, int w_size_global,
-                  const std::string &name) :
-    Buffer(t, x_size, y_size, z_size, w_size, NULL, name) {
-    gmin = std::vector<int>(4, 0);
-    gextent = std::vector<int>(4, 0);
-    gstride = std::vector<int>(4, 0);
-
-    gextent[0] = x_size_global;
-    gextent[1] = y_size_global;
-    gextent[2] = z_size_global;
-    gextent[3] = w_size_global;
-
-    gstride[0] = 1;
-    gstride[1] = x_size_global;
-    gstride[2] = x_size_global*y_size_global;
-    gstride[3] = x_size_global*y_size_global*z_size_global;
+bool Buffer::distributed() const {
+    user_assert(defined()) << "Buffer is undefined\n";
+    return contents.ptr->distributed;
 }
 
-DistributedBuffer::DistributedBuffer(Type t, const std::vector<int32_t> &sizes,
-                                     const std::vector<int32_t> &global_sizes,
-                                     const std::string &name) :
-    Buffer(t, sizes, NULL, name) {
-    gmin = std::vector<int>(4, 0);
-    gextent = std::vector<int>(4, 0);
-    gstride = std::vector<int>(4, 0);
-
-    gextent[0] = global_sizes[0];
-    gextent[1] = global_sizes[1];
-    gextent[2] = global_sizes[2];
-    gextent[3] = global_sizes[3];
-
-    gstride[0] = 1;
-    gstride[1] = global_sizes[0];
-    gstride[2] = global_sizes[0]*global_sizes[1];
-    gstride[3] = global_sizes[0]*global_sizes[1]*global_sizes[2];
+void Buffer::set_distributed(const std::vector<int> &global_sizes) {
+    user_assert(defined()) << "Buffer is undefined\n";
+    contents.ptr->set_distributed(global_sizes[0], global_sizes[1], global_sizes[2], global_sizes[3]);
 }
 
-int DistributedBuffer::global_extent(int dim) const {
+int Buffer::global_extent(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    return gextent[dim];
+    user_assert(contents.ptr->distributed) << "Calling global function on non-distributed buffer.";
+    return contents.ptr->gextent[dim];
 }
 
-int DistributedBuffer::global_stride(int dim) const {
+int Buffer::global_stride(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    return gstride[dim];
+    user_assert(contents.ptr->distributed) << "Calling global function on non-distributed buffer.";
+    return contents.ptr->gstride[dim];
 }
 
-int DistributedBuffer::global_min(int dim) const {
+int Buffer::global_min(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    return gmin[dim];
+    user_assert(contents.ptr->distributed) << "Calling global function on non-distributed buffer.";
+    return contents.ptr->gmin[dim];
 }
 
 }

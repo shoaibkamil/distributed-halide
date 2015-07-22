@@ -698,6 +698,26 @@ public:
     }
 };
 
+    class SetBufferGlobalExtents : public IRMutator {
+    public:
+        using IRMutator::visit;
+
+        void visit(const Call *op) {
+            if (op->call_type == Call::Image) {
+                if (op->image.defined()) {
+                    Buffer b = (Buffer)op->image;
+                    if (b.distributed()) {
+                        debug(0) << "Distributed buffer " << op->name << " extents: \n";
+                        for (int i = 0; i < b.dimensions(); i++) {
+                            debug(0) << "  " << b.global_extent(i) << "\n";
+                        }
+                    }
+                }
+            }
+            IRMutator::visit(op);
+        }
+    };
+
 Stmt distribute_loops_only(Stmt s) {
     return DistributeLoops().mutate(s);
 }
@@ -706,9 +726,10 @@ Stmt distribute_loops(Stmt s) {
     GetPipelineInputsAndOutputs getio;
     DistributeLoops distribute;
     s.accept(&getio);
+    s = SetBufferGlobalExtents().mutate(s);
     s = distribute.mutate(s);
-    s = InjectCommunication(getio.inputs, getio.outputs,
-                            distribute.rank_required, distribute.rank_provided).mutate(s);
+    // s = InjectCommunication(getio.inputs, getio.outputs,
+    //                         distribute.rank_required, distribute.rank_provided).mutate(s);
     return s;
 }
 
