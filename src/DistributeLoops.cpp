@@ -645,7 +645,8 @@ public:
         // TODO: if number of processors doesn't divide the global
         // extent evenly, this won't work, because some processor will
         // have a different extent.
-        Expr offset = for_loop->extent * Var("Rank");
+        Expr offset = for_loop->for_type == ForType::Distributed ?
+            for_loop->extent * Var("Rank") : 0;
 
         // Convert required/provided regions of input/output buffers
         // to be in terms of processor rank variable.

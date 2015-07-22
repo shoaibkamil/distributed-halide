@@ -175,10 +175,8 @@ public:
         param.set(b);
         image = Image<T>(b);
 
-        Func replacement(wrapper.name());
-        replacement(wrapper.args()) = image(wrapper.args());
-        replacement.compute_root();
-        wrapper = replacement;
+        // Remove the explicit bounds from the wrapper function.
+        wrapper.function().schedule().bounds().clear();
     }
 
     /** Return the underlying buffer. Only relevant for jitting. */
