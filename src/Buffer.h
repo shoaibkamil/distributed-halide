@@ -5,6 +5,7 @@
  * Defines Buffer - A c++ wrapper around a buffer_t.
  */
 
+#include <vector>
 #include <stdint.h>
 
 #include "runtime/HalideRuntime.h" // For buffer_t
@@ -92,6 +93,23 @@ public:
     /** Set the coordinate in the function that this buffer represents
      * that corresponds to the base address of the buffer. */
     EXPORT void set_min(int m0, int m1 = 0, int m2 = 0, int m3 = 0);
+
+    /** Return true if the Buffer is distributed. */
+    EXPORT bool distributed() const;
+
+    /** Mark this Buffer as distributed with the given global sizes. */
+    EXPORT void set_distributed(const std::vector<int> &global_sizes);
+
+    /** Get the global extent of this buffer in the given dimension. */
+    EXPORT int global_extent(int dim) const;
+
+    /** Get the number of bytes between adjacent elements of the
+     * global buffer along the given dimension. */
+    EXPORT int global_stride(int dim) const;
+
+    /** Get the coordinate in the function that this buffer represents
+     * that corresponds to the base address of the global buffer. */
+    EXPORT int global_min(int dim) const;
 
     /** Get the Halide type of the contents of this buffer. */
     EXPORT Type type() const;

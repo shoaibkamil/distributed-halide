@@ -242,6 +242,7 @@ SOURCE_FILES = \
   Derivative.cpp \
   DeviceInterface.cpp \
   DistributeLoops.cpp \
+  DistributedImage.cpp \
   EarlyFree.cpp \
   Error.cpp \
   ExprUsesVar.cpp \
@@ -357,6 +358,7 @@ HEADER_FILES = \
   Derivative.h \
   DeviceInterface.h \
   DistributeLoops.h \
+  DistributedImage.h \
   EarlyFree.h \
   Error.h \
   Expr.h \
