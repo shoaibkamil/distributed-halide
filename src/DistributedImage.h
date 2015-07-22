@@ -18,6 +18,8 @@
 #include "Lower.h"
 #include "Simplify.h"
 #include "Schedule.h"
+#include "UniquifyVariableNames.h"
+#include "Util.h"
 #include <map>
 #include <sstream>
 
@@ -57,6 +59,7 @@ Stmt partial_lower(Func f) {
     FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
     s = bounds_inference(s, outputs, order, env, func_bounds);
     s = allocation_bounds_inference(s, env, func_bounds);
+    s = uniquify_variable_names(s);
     s = storage_folding(s);
     s = simplify(s, false);
     s = distribute_loops_only(s);
@@ -108,7 +111,11 @@ public:
         if (y) full_extents.push_back(y);
         if (z) full_extents.push_back(z);
         if (w) full_extents.push_back(w);
-        param = ImageParam(type_of<T>(), full_extents.size(), name);
+        if (name.empty()) {
+            param = ImageParam(type_of<T>(), full_extents.size());
+        } else {
+            param = ImageParam(type_of<T>(), full_extents.size(), name);
+        }
     }
     DistributedImage(int x, const std::string &name) :
         DistributedImage(x, 0, 0, 0, name) {}
@@ -163,7 +170,7 @@ public:
     void allocate() {
         internal_assert(!image.defined());
         local_extents = Internal::get_buffer_bounds(wrapper, full_extents, mins);
-        Buffer b = Buffer(type_of<T>(), local_extents, NULL, param.name());
+        DistributedBuffer b(type_of<T>(), local_extents, full_extents, param.name());
         param.set(b);
         image = Image<T>(b);
     }
@@ -248,29 +255,29 @@ public:
     }
 
     Expr operator()(Expr x) const {
-        return image(x);
+        return wrapper(x);
     }
 
     Expr operator()(Expr x, Expr y) const {
-        return image(x, y);
+        return wrapper(x, y);
     }
 
     Expr operator()(Expr x, Expr y, Expr z) const {
-        return image(x, y, z);
+        return wrapper(x, y, z);
     }
 
     Expr operator()(Expr x, Expr y, Expr z, Expr w) const {
-        return image(x, y, z, w);
+        return wrapper(x, y, z, w);
     }
 
     /** Convert this image to an argument to a halide pipeline. */
     operator Argument() const {
-        return (Argument)image;
+        return (Argument)wrapper;
     }
 
     /** Convert this image to an argument to an extern stage. */
     operator ExternFuncArgument() const {
-        return (ExternFuncArgument)image;
+        return (ExternFuncArgument)wrapper;
     }
 
     /** Treating the image as an Expr is equivalent to call it with no
@@ -287,7 +294,7 @@ public:
      * same location.
      */
     operator Expr() const {
-        return (Expr)image;
+        return (Expr)wrapper;
     }
 };
 }
