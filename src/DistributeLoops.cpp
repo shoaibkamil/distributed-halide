@@ -616,22 +616,6 @@ public:
 // For each distributed for loop, mutate its bounds to be determined
 // by processor rank.
 class DistributeLoops : public IRMutator {
-    // Return a new loop that has iterations determined by processor
-    // rank.
-    Stmt distribute_loop_iterations(const For *for_loop) const {
-        Expr r = Var("Rank");
-        Var slice_size("SliceSize");
-        Expr newmin = for_loop->min + slice_size*r,
-            newmax = newmin + slice_size,
-            oldmax = for_loop->min + for_loop->extent;
-        // Make sure we don't run over old max.
-        Expr newextent = min(newmax, oldmax) - newmin;
-        Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
-                                 for_loop->for_type, for_loop->device_api,
-                                 for_loop->body);
-        return newloop;
-    }
-
     Scope<Expr> env;
 public:
     // Maps from buffer name -> region used expressed in terms of
@@ -653,31 +637,36 @@ public:
     }
 
     void visit(const For *for_loop) {
-        if (for_loop->for_type != ForType::Distributed) {
-            IRMutator::visit(for_loop);
-            return;
-        }
-        // Split original loop into chunks of iterations for each rank.
-        Stmt newloop = distribute_loop_iterations(for_loop);
-
-        // Get required/provided regions of input/output buffers in
-        // terms of processor rank variable.
         map<string, Box> required, provided;
 
-        required = boxes_required(newloop);
-        provided = boxes_provided(newloop);
+        required = boxes_required(for_loop);
+        provided = boxes_provided(for_loop);
 
+        // TODO: if number of processors doesn't divide the global
+        // extent evenly, this won't work, because some processor will
+        // have a different extent.
+        Expr offset = for_loop->extent * Var("Rank");
+
+        // Convert required/provided regions of input/output buffers
+        // to be in terms of processor rank variable.
         for (const auto it : required) {
-            rank_required[it.first] = simplify_box(it.second, env);
+            Box b = simplify_box(it.second, env);
+            for (unsigned i = 0; i < b.size(); i++) {
+                b[i].min += offset;
+                b[i].max += offset;
+            }
+            rank_required[it.first] = b;
         }
         for (const auto it : provided) {
-            rank_provided[it.first] = simplify_box(it.second, env);
+            Box b = simplify_box(it.second, env);
+            for (unsigned i = 0; i < b.size(); i++) {
+                b[i].min += offset;
+                b[i].max += offset;
+            }
+            rank_provided[it.first] = b;
         }
 
-        stmt = LetStmt::make("SliceSize",
-                             cast(for_loop->extent.type(),
-                                  ceil(cast(Float(32), for_loop->extent) / num_processors())),
-                             LetStmt::make("Rank", rank(), newloop));
+        IRMutator::visit(for_loop);
     }
 };
 
