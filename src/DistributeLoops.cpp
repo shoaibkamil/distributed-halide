@@ -114,8 +114,11 @@ public:
 // Also provides a wrapper for Provide nodes which do not have buffer references.
 class AbstractBuffer {
 public:
+    typedef enum { Halide, Image } BufferType;
+
     AbstractBuffer() : _dimensions(-1) {}
-    AbstractBuffer(Type type, const string &name) : _type(type), _name(name), _dimensions(-1) {}
+    AbstractBuffer(Type type, BufferType btype, const string &name) :
+        _type(type), _btype(btype), _name(name), _dimensions(-1) {}
 
     int dimensions() const {
         internal_assert(_dimensions >= 0);
@@ -166,6 +169,19 @@ public:
         return _type;
     }
 
+    BufferType buffer_type() const {
+        return _btype;
+    }
+
+    bool distributed() const {
+        // Images and accessor_* functions are never distributed.
+        return _btype != Image && !starts_with(_name, "accessor_");
+    }
+
+    void set_buffer_type(BufferType t) {
+        _btype = t;
+    }
+
     Expr elem_size() const {
         return _type.bytes();
     }
@@ -188,6 +204,7 @@ public:
     }
 private:
     Type _type;
+    BufferType _btype;
     string _name;
     int _dimensions;
     vector<Expr> mins;
@@ -218,13 +235,13 @@ class FindBuffersUsingVariable : public IRVisitor {
         if (vars.names.count(name)) {
             if (call->call_type == Call::Image) {
                 if (call->image.defined()) {
-                    inputs.push_back(AbstractBuffer(call->image.type(), call->image.name()));
+                    inputs.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::Image, call->image.name()));
                 } else {
-                    inputs.push_back(AbstractBuffer(call->param.type(), call->param.name()));
+                    inputs.push_back(AbstractBuffer(call->param.type(), AbstractBuffer::Image, call->param.name()));
                 }
             } else if (call->call_type == Call::Halide) {
                 internal_assert(call->func.outputs() == 1);
-                inputs.push_back(AbstractBuffer(call->func.output_types()[0], call->func.name()));
+                inputs.push_back(AbstractBuffer(call->func.output_types()[0], AbstractBuffer::Halide, call->func.name()));
             } else {
                 internal_assert(false) << "Unhandled call type.\n";
             }
@@ -240,7 +257,7 @@ class FindBuffersUsingVariable : public IRVisitor {
         }
         if (vars.names.count(name)) {
             internal_assert(provide->values.size() == 1);
-            outputs.push_back(AbstractBuffer(provide->values[0].type(), provide->name));
+            outputs.push_back(AbstractBuffer(provide->values[0].type(), AbstractBuffer::Image, provide->name));
         }
         IRVisitor::visit(provide);
     }
@@ -506,6 +523,7 @@ Stmt recv_all_required_regions(const map<string, Box> &required,
     for (const auto it : required) {
         const AbstractBuffer &in = inputs.at(it.first);
         const Box &b = it.second;
+        if (!in.distributed()) continue;
         if (sendstmt.defined()) {
             sendstmt = Block::make(sendstmt, send_input_buffer(in, b));
         } else {
@@ -523,6 +541,7 @@ Stmt send_all_provided_regions(const map<string, Box> &provided,
     for (const auto it : provided) {
         const AbstractBuffer &out = outputs.at(it.first);
         const Box &b = it.second;
+        if (!out.distributed()) continue;
         if (recvstmt.defined()) {
             recvstmt = Block::make(recvstmt, recv_output_buffer(out, b));
         } else {
@@ -588,6 +607,7 @@ public:
         for (const auto it : required) {
             const AbstractBuffer &in = inputs.at(it.first);
             const Box &b = it.second;
+            if (!in.distributed()) continue;
             ChangeDistributedLoopBuffers change(in.name(), in.partitioned_name(), b);
             newloop = change.mutate(newloop);
         }
@@ -599,16 +619,24 @@ public:
         for (const auto it : provided) {
             const AbstractBuffer &out = outputs.at(it.first);
             const Box &b = it.second;
+            if (!out.distributed()) continue;
             ChangeDistributedLoopBuffers change(out.name(), out.partitioned_name(), b);
             newloop = change.mutate(newloop);
         }
 
-        newloop = Block::make(recvstmt, Block::make(newloop, sendstmt));
+        newloop = sendstmt.defined() ? Block::make(newloop, sendstmt) : newloop;
+        newloop = recvstmt.defined() ? Block::make(recvstmt, newloop) : newloop;
 
         // Construct allocation statements to allcate the partitioned input and output buffers.
-        Stmt allocates = allocate_partitioned_buffers(required, inputs, newloop);
-        allocates = allocate_partitioned_buffers(provided, outputs, allocates);
-        stmt = allocates;
+        Stmt allocates;
+        if (recvstmt.defined()) {
+            allocates = allocate_partitioned_buffers(required, inputs, newloop);
+        }
+        if (sendstmt.defined()) {
+            allocates = allocate_partitioned_buffers(provided, outputs,
+                                                     allocates.defined() ? allocates : newloop);
+        }
+        stmt = allocates.defined() ? allocates : newloop;
     }
 
 };
@@ -686,16 +714,31 @@ public:
         outputs.insert(out.begin(), out.end());
         IRVisitor::visit(for_loop);
     }
+
+    // For all outputs that have an input of the same name, set the
+    // output type to the input type. This is required because we're
+    // unable to tell whether a Provide node is for an Image output
+    // buffer or not, so we must correct the buffer type here
+    // accordingly.
+    void settypes() {
+        for (auto &it : outputs) {
+            auto in = inputs.find(it.first);
+            if (in != inputs.end()) {
+                it.second.set_buffer_type(in->second.buffer_type());
+            }
+        }
+    }
 };
 
 Stmt distribute_loops_only(Stmt s) {
     return DistributeLoops().mutate(s);
 }
-    
+
 Stmt distribute_loops(Stmt s) {
     GetPipelineInputsAndOutputs getio;
     DistributeLoops distribute;
     s.accept(&getio);
+    getio.settypes();
     s = distribute.mutate(s);
     s = InjectCommunication(getio.inputs, getio.outputs,
                             distribute.rank_required, distribute.rank_provided).mutate(s);
