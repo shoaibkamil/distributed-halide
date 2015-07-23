@@ -190,6 +190,10 @@ public:
     int height() const { return image.height(); }
     int channels() const { return image.channels(); }
 
+    int global_width() const { return full_extents[0]; }
+    int global_height() const { return full_extents[1]; }
+    int global_channels() const { return full_extents[2]; }
+
     /** Return the global x coordinate corresponding to the local x
      * coordinate. */
     int global(int x) const {
@@ -204,7 +208,7 @@ public:
         internal_assert(result != NULL);
         return *result;
     }
-    
+
     /** Get a pointer to the element at the min location. */
     NO_INLINE T *data() const {
         return (T *)image.get().host_ptr();

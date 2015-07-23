@@ -105,6 +105,39 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        DistributedImage<int> in(20);
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate();
+
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = 2 * in.global(x);
+        }
+
+        Expr clamped_x = clamp(x, 0, in.global_width()-1);
+        Func clamped;
+        clamped(x) = in(clamped_x);
+        Func f;
+        f(x) = clamped(x) + clamped(x+1) + 1;
+        f.distribute(x);
+
+        DistributedImage<int> out(20);
+        out.set_domain(x);
+        out.placement().distribute(x);
+        out.allocate();
+        f.realize(out.get_buffer());
+        for (int x = 0; x < out.width(); x++) {
+            int x1 = x, x2 = x == out.global_width() - 1 ? x : x+1;
+            int correct = 2*out.global(x1) + 2*out.global(x2) + 1;
+            if (out(x) != correct) {
+                mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
+                MPI_Finalize();
+                return -1;
+            }
+        }
+    }
+
     // {
     //     Image<int> in(20);
     //     for (int i = 0; i < in.width(); i++) {
