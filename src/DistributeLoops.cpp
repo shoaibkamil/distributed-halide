@@ -667,27 +667,66 @@ public:
 // For each distributed for loop, mutate its bounds to be determined
 // by processor rank.
 class DistributeLoops : public IRMutator {
+    // Return a new loop that has iterations determined by processor
+    // rank.
+    Stmt distribute_loop_iterations(const For *for_loop) const {
+        Expr r = Var("Rank");
+        Var slice_size("SliceSize");
+        Expr newmin = for_loop->min + slice_size*r,
+            newmax = newmin + slice_size,
+            oldmax = for_loop->min + for_loop->extent;
+        // Make sure we don't run over old max.
+        Expr newextent = min(newmax, oldmax) - newmin;
+        Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
+                                 for_loop->for_type, for_loop->device_api,
+                                 for_loop->body);
+        return newloop;
+    }
+public:
+    using IRMutator::visit;
+    void visit(const For *for_loop) {
+        IRMutator::visit(for_loop);
+        if (for_loop->for_type != ForType::Distributed) {
+            return;
+        }
+        // Split original loop into chunks of iterations for each rank.
+        Stmt newloop = distribute_loop_iterations(for_loop);
+        stmt = newloop;
+    }
+};
+
+// Construct a map of all input and output buffers used in a
+// pipeline. The results are a map from buffer name -> AbstractBuffer
+// with information about the buffer.
+class GetPipelineInputsAndOutputs : public IRVisitor {
     Scope<Expr> env;
 public:
     // Maps from buffer name -> region used expressed in terms of
     // processor rank.
     map<string, Box> rank_required, rank_provided;
+    map<string, AbstractBuffer> inputs, outputs;
 
-    using IRMutator::visit;
+    using IRVisitor::visit;
 
     void visit(const Let *let) {
         env.push(let->name, let->value);
-        IRMutator::visit(let);
+        IRVisitor::visit(let);
         env.pop(let->name);
     }
 
     void visit(const LetStmt *let) {
         env.push(let->name, let->value);
-        IRMutator::visit(let);
+        IRVisitor::visit(let);
         env.pop(let->name);
     }
 
     void visit(const For *for_loop) {
+        map<string, AbstractBuffer> in, out;
+        in = buffers_required(for_loop);
+        out = buffers_provided(for_loop);
+        inputs.insert(in.begin(), in.end());
+        outputs.insert(out.begin(), out.end());
+
         map<string, Box> required, provided;
 
         required = boxes_required(for_loop);
@@ -718,23 +757,6 @@ public:
             rank_provided[it.first] = b;
         }
 
-        IRMutator::visit(for_loop);
-    }
-};
-
-// Construct a map of all input and output buffers used in a
-// pipeline. The results are a map from buffer name -> AbstractBuffer
-// with information about the buffer.
-class GetPipelineInputsAndOutputs : public IRVisitor {
-public:
-    map<string, AbstractBuffer> inputs, outputs;
-    using IRVisitor::visit;
-    void visit(const For *for_loop) {
-        map<string, AbstractBuffer> in, out;
-        in = buffers_required(for_loop);
-        out = buffers_provided(for_loop);
-        inputs.insert(in.begin(), in.end());
-        outputs.insert(out.begin(), out.end());
         IRVisitor::visit(for_loop);
     }
 
@@ -759,12 +781,10 @@ Stmt distribute_loops_only(Stmt s) {
 
 Stmt distribute_loops(Stmt s) {
     GetPipelineInputsAndOutputs getio;
-    DistributeLoops distribute;
     s.accept(&getio);
     getio.settypes();
-    s = distribute.mutate(s);
     s = InjectCommunication(getio.inputs, getio.outputs,
-                            distribute.rank_required, distribute.rank_provided).mutate(s);
+                            getio.rank_required, getio.rank_provided).mutate(s);
     return s;
 }
 
