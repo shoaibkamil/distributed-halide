@@ -212,23 +212,46 @@ private:
     vector<Expr> strides;
 };
 
-// Build a set of all the variables referenced.
+// Build a set of all the variables referenced. This traverses through
+// any Let statements that are in the given environment, meaning both
+// the "let" variable and the variables used to define it in the Let
+// statement are in the resulting set.
 class GetVariablesInExpr : public IRVisitor {
     using IRVisitor::visit;
     void visit(const Variable *var) {
         names.insert(var->name);
+        if (env.contains(var->name)) {
+            Expr value = env.get(var->name);
+            value.accept(this);
+        }
         IRVisitor::visit(var);
     }
 public:
+    const Scope<Expr> &env;
     set<string> names;
+    GetVariablesInExpr(const Scope<Expr> &e) : env(e) {}
 };
 
 // Build a list of all input and output buffers using a particular
 // variable as an index.
 class FindBuffersUsingVariable : public IRVisitor {
+    Scope<Expr> env;
     using IRVisitor::visit;
+
+    void visit(const Let *let) {
+        env.push(let->name, let->value);
+        IRVisitor::visit(let);
+        env.pop(let->name);
+    }
+
+    void visit(const LetStmt *let) {
+        env.push(let->name, let->value);
+        IRVisitor::visit(let);
+        env.pop(let->name);
+    }
+
     void visit(const Call *call) {
-        GetVariablesInExpr vars;
+        GetVariablesInExpr vars(env);
         for (Expr arg : call->args) {
             arg.accept(&vars);
         }
@@ -251,7 +274,7 @@ class FindBuffersUsingVariable : public IRVisitor {
     }
 
     void visit(const Provide *provide) {
-        GetVariablesInExpr vars;
+        GetVariablesInExpr vars(env);
         for (Expr arg : provide->args) {
             arg.accept(&vars);
         }
