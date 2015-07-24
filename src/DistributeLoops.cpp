@@ -64,6 +64,40 @@ Box simplify_box(const Box &b, const Scope<Expr> &env) {
     return result;
 }
 
+Box box_to_global(const Box &b, Expr offset) {
+    Box result(b.size());
+    for (unsigned i = 0; i < b.size(); i++) {
+        result[i] = Interval(b[i].min + offset, b[i].max + offset);
+    }
+    return result;
+}
+
+class ReplaceVariable : public IRMutator {
+    string name;
+    Expr value;
+public:
+    ReplaceVariable(const string &n, Expr v) :
+        name(n), value(v) {}
+
+    using IRMutator::visit;
+    void visit(const Variable *op) {
+        IRMutator::visit(op);
+        if (op->name == name) {
+            expr = value;
+        }
+    }
+};
+
+Box replace(const Box &b, const string &name, Expr value) {
+    Box result(b.size());
+    for (unsigned i = 0; i < b.size(); i++) {
+        ReplaceVariable replace(name, value);
+        result[i] = Interval(replace.mutate(b[i].min),
+                             replace.mutate(b[i].max));
+    }
+    return result;
+}
+
 // Computes the intersection of the two given boxes. Makes a "best
 // effort" to determine if the boxes do not intersect, but if the box
 // intervals have free variables, the intersection returned may be
@@ -741,19 +775,11 @@ public:
         // Convert required/provided regions of input/output buffers
         // to be in terms of processor rank variable.
         for (const auto it : required) {
-            Box b = simplify_box(it.second, env);
-            for (unsigned i = 0; i < b.size(); i++) {
-                b[i].min += offset;
-                b[i].max += offset;
-            }
+            Box b = box_to_global(simplify_box(it.second, env), offset);
             rank_required[it.first] = b;
         }
         for (const auto it : provided) {
-            Box b = simplify_box(it.second, env);
-            for (unsigned i = 0; i < b.size(); i++) {
-                b[i].min += offset;
-                b[i].max += offset;
-            }
+            Box b = box_to_global(simplify_box(it.second, env), offset);
             rank_provided[it.first] = b;
         }
 
