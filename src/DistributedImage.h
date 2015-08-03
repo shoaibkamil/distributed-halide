@@ -170,8 +170,9 @@ public:
     void allocate() {
         internal_assert(!image.defined());
         local_extents = Internal::get_buffer_bounds(wrapper, full_extents, mins);
-        Buffer b(type_of<T>(), local_extents, NULL, param.name());
-        b.set_distributed(full_extents);
+        // Buffer b(type_of<T>(), local_extents, NULL, param.name());
+        // b.set_distributed(full_extents);
+        Buffer b(type_of<T>(), full_extents, NULL, param.name());
         param.set(b);
         image = Image<T>(b);
 
@@ -203,10 +204,21 @@ public:
     /** Return the global coordinate of dimension 'dim' corresponding
      * to the local coordinate value c. */
     int global(int dim, int c) const {
+        internal_assert(!mins.empty());
         Expr g = simplify(mins[dim] + c);
         const int *result = as_const_int(g);
         internal_assert(result != NULL);
         return *result;
+    }
+
+    /** Return true if the global x coordinate resides on this
+     * rank. */
+    bool mine(int x) const {
+        internal_assert(!mins.empty() && !local_extents.empty());
+        const int *min = as_const_int(simplify(mins[0]));
+        internal_assert(min != NULL);
+        int max = *min + local_extents[0];
+        return x >= *min && x <= max;
     }
 
     /** Get a pointer to the element at the min location. */
