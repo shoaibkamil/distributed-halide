@@ -626,6 +626,23 @@ Stmt allocate_partitioned_buffers(const map<string, Box> &regions,
     return allocates;
 }
 
+// Return a new loop that has iterations determined by processor
+// rank.
+Stmt distribute_loop_iterations(const For *for_loop, ForType newtype) {
+    Expr r = Var("Rank");
+    Var slice_size("SliceSize");
+    Expr newmin = for_loop->min + slice_size*r,
+        newmax = newmin + slice_size,
+        oldmax = for_loop->min + for_loop->extent;
+    // Make sure we don't run over old max.
+    Expr newextent = min(newmax, oldmax) - newmin;
+    // TODO: choose correct loop type here (parallel if original
+    // loop was distributed+parallel).
+    Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
+                             newtype, for_loop->device_api,
+                             for_loop->body);
+    return newloop;
+}
 }
 
 class InjectCommunication : public IRMutator {
@@ -698,27 +715,7 @@ public:
 
 };
 
-// For each distributed for loop, mutate its bounds to be determined
-// by processor rank.
-class DistributeLoops : public IRMutator {
-    // Return a new loop that has iterations determined by processor
-    // rank.
-    Stmt distribute_loop_iterations(const For *for_loop) const {
-        Expr r = Var("Rank");
-        Var slice_size("SliceSize");
-        Expr newmin = for_loop->min + slice_size*r,
-            newmax = newmin + slice_size,
-            oldmax = for_loop->min + for_loop->extent;
-        // Make sure we don't run over old max.
-        Expr newextent = min(newmax, oldmax) - newmin;
-        // TODO: choose correct loop type here (parallel if original
-        // loop was distributed+parallel).
-        Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
-                                 ForType::Serial, for_loop->device_api,
-                                 for_loop->body);
-        newloop = LetStmt::make("Rank", rank(), LetStmt::make("SliceSize", cast(Int(32), ceil(cast(Float(32), for_loop->extent) / num_processors())), newloop));
-        return newloop;
-    }
+class DistributeLoopsOnly : public IRMutator {
 public:
     using IRMutator::visit;
     void visit(const For *for_loop) {
@@ -727,7 +724,45 @@ public:
             return;
         }
         // Split original loop into chunks of iterations for each rank.
-        Stmt newloop = distribute_loop_iterations(for_loop);
+        stmt = distribute_loop_iterations(for_loop, for_loop->for_type);
+    }
+};
+    
+// For each distributed for loop, mutate its bounds to be determined
+// by processor rank.
+class DistributeLoops : public IRMutator {
+public:
+    using IRMutator::visit;
+    void visit(const For *for_loop) {
+        IRMutator::visit(for_loop);
+        if (for_loop->for_type != ForType::Distributed) {
+            return;
+        }
+        // Split original loop into chunks of iterations for each rank.
+        Stmt newloop = distribute_loop_iterations(for_loop, ForType::Serial);
+
+        // Get required regions of input buffers in terms of processor
+        // rank variable.
+        map<string, Box> required, provided;
+        required = boxes_required(newloop);
+        provided = boxes_provided(newloop);
+
+        // Update the buffer references in the loop to use "local" indices.
+        // TODO: only do this for distributed buffers.
+        for (const auto it : required) {
+            const string &name = it.first;
+            const Box &b = it.second;
+            ChangeDistributedLoopBuffers change(name, name, b);
+            newloop = change.mutate(newloop);
+        }
+        for (const auto it : provided) {
+            const string &name = it.first;
+            const Box &b = it.second;
+            ChangeDistributedLoopBuffers change(name, name, b);
+            newloop = change.mutate(newloop);
+        }
+
+        newloop = LetStmt::make("Rank", rank(), LetStmt::make("SliceSize", cast(Int(32), ceil(cast(Float(32), for_loop->extent) / num_processors())), newloop));
         stmt = newloop;
     }
 };
@@ -805,7 +840,7 @@ public:
 };
 
 Stmt distribute_loops_only(Stmt s) {
-    return DistributeLoops().mutate(s);
+    return DistributeLoopsOnly().mutate(s);
 }
 
 Stmt distribute_loops(Stmt s) {

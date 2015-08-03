@@ -185,14 +185,14 @@ public:
     }
 
     int dimensions() const { return image.dimensions(); }
-    int extent(int dim) const { return image.extent(dim); }
-    int width() const { return image.width(); }
-    int height() const { return image.height(); }
-    int channels() const { return image.channels(); }
+    int global_extent(int dim) const { return image.extent(dim); }
+    int global_width() const { return image.width(); }
+    int global_height() const { return image.height(); }
+    int global_channels() const { return image.channels(); }
 
-    int global_width() const { return full_extents[0]; }
-    int global_height() const { return full_extents[1]; }
-    int global_channels() const { return full_extents[2]; }
+    int width() const { return local_extents[0]; }
+    int height() const { return local_extents[1]; }
+    int channels() const { return local_extents[2]; }
 
     /** Return the global x coordinate corresponding to the local x
      * coordinate. */

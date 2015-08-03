@@ -82,10 +82,7 @@ int main(int argc, char **argv) {
         in.placement().distribute(x);
         in.allocate();
 
-        for (int x = 0; x < in.global_width(); x++) {
-            if (!in.mine(x)) {
-                continue;
-            }
+        for (int x = 0; x < in.width(); x++) {
             in(x) = 2 * in.global(x);
         }
 
@@ -98,14 +95,14 @@ int main(int argc, char **argv) {
         out.placement().distribute(x);
         out.allocate();
         f.realize(out.get_buffer());
-        for (int x = 0; x < out.global_width(); x++) {
-            if (!out.mine(x)) continue;
+        for (int x = 0; x < out.width(); x++) {
             int correct = 2 * out.global(x) + 1;
             if (out(x) != correct) {
                 mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
                 MPI_Finalize();
                 return -1;
             }
+            printf("Rank %d gets out(%d) = %d\n", rank, x, out(x));
         }
     }
 
