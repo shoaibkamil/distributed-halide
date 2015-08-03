@@ -34,23 +34,36 @@ struct BufferContents {
     std::string name;
 
     bool distributed;
-    int gmin[4], gextent[4], gstride[4];
+    int local_min[4], local_extent[4], local_stride[4];
 
-    void set_distributed(int x_size_global, int y_size_global,
-                         int z_size_global, int w_size_global) {
-        gextent[0] = x_size_global;
-        gextent[1] = y_size_global;
-        gextent[2] = z_size_global;
-        gextent[3] = w_size_global;
-        gstride[0] = 1;
-        gstride[1] = x_size_global;
-        gstride[2] = x_size_global*y_size_global;
-        gstride[3] = x_size_global*y_size_global*z_size_global;
-        gmin[0] = 0;
-        gmin[1] = 0;
-        gmin[2] = 0;
-        gmin[3] = 0;
+    void set_distributed(int x_size_local, int y_size_local,
+                         int z_size_local, int w_size_local) {
+        uint64_t size = 1;
+        if (x_size_local) size *= x_size_local;
+        if (y_size_local) size *= y_size_local;
+        if (z_size_local) size *= z_size_local;
+        if (w_size_local) size *= w_size_local;
+        size *= buf.elem_size;
+
+        local_extent[0] = x_size_local;
+        local_extent[1] = y_size_local;
+        local_extent[2] = z_size_local;
+        local_extent[3] = w_size_local;
+        local_stride[0] = 1;
+        local_stride[1] = x_size_local;
+        local_stride[2] = x_size_local*y_size_local;
+        local_stride[3] = x_size_local*y_size_local*z_size_local;
+        local_min[0] = 0;
+        local_min[1] = 0;
+        local_min[2] = 0;
+        local_min[3] = 0;
         distributed = true;
+
+        size = size + 32;
+        allocation = (uint8_t *)realloc(allocation, (size_t)size);
+        user_assert(allocation) << "Out of memory allocating buffer " << name << " of size " << size << "\n";
+        buf.host = allocation;
+        while ((size_t)(buf.host) & 0x1f) buf.host++;
     }
 
     BufferContents(Type t, int x_size, int y_size, int z_size, int w_size,
@@ -274,30 +287,33 @@ bool Buffer::distributed() const {
     return contents.ptr->distributed;
 }
 
-void Buffer::set_distributed(const std::vector<int> &global_sizes) {
+void Buffer::set_distributed(const std::vector<int> &local_sizes) {
     user_assert(defined()) << "Buffer is undefined\n";
-    contents.ptr->set_distributed(global_sizes[0], global_sizes[1], global_sizes[2], global_sizes[3]);
+    contents.ptr->set_distributed(size_or_zero(local_sizes, 0),
+                                  size_or_zero(local_sizes, 1),
+                                  size_or_zero(local_sizes, 2),
+                                  size_or_zero(local_sizes, 3));
 }
 
-int Buffer::global_extent(int dim) const {
+int Buffer::local_extent(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    user_assert(contents.ptr->distributed) << "Calling global function on non-distributed buffer.";
-    return contents.ptr->gextent[dim];
+    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
+    return contents.ptr->local_extent[dim];
 }
 
-int Buffer::global_stride(int dim) const {
+int Buffer::local_stride(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    user_assert(contents.ptr->distributed) << "Calling global function on non-distributed buffer.";
-    return contents.ptr->gstride[dim];
+    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
+    return contents.ptr->local_stride[dim];
 }
 
-int Buffer::global_min(int dim) const {
+int Buffer::local_min(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    user_assert(contents.ptr->distributed) << "Calling global function on non-distributed buffer.";
-    return contents.ptr->gmin[dim];
+    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
+    return contents.ptr->local_min[dim];
 }
 
 }

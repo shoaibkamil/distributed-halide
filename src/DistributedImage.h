@@ -170,9 +170,8 @@ public:
     void allocate() {
         internal_assert(!image.defined());
         local_extents = Internal::get_buffer_bounds(wrapper, full_extents, mins);
-        // Buffer b(type_of<T>(), local_extents, NULL, param.name());
-        // b.set_distributed(full_extents);
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
+        b.set_distributed(local_extents);
         param.set(b);
         image = Image<T>(b);
 

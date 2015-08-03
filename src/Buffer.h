@@ -97,19 +97,19 @@ public:
     /** Return true if the Buffer is distributed. */
     EXPORT bool distributed() const;
 
-    /** Mark this Buffer as distributed with the given global sizes. */
-    EXPORT void set_distributed(const std::vector<int> &global_sizes);
+    /** Mark this Buffer as distributed with the given local sizes. */
+    EXPORT void set_distributed(const std::vector<int> &local_sizes);
 
-    /** Get the global extent of this buffer in the given dimension. */
-    EXPORT int global_extent(int dim) const;
+    /** Get the local extent of this buffer in the given dimension. */
+    EXPORT int local_extent(int dim) const;
 
     /** Get the number of bytes between adjacent elements of the
-     * global buffer along the given dimension. */
-    EXPORT int global_stride(int dim) const;
+     * local buffer along the given dimension. */
+    EXPORT int local_stride(int dim) const;
 
     /** Get the coordinate in the function that this buffer represents
-     * that corresponds to the base address of the global buffer. */
-    EXPORT int global_min(int dim) const;
+     * that corresponds to the base address of the local buffer. */
+    EXPORT int local_min(int dim) const;
 
     /** Get the Halide type of the contents of this buffer. */
     EXPORT Type type() const;
