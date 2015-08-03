@@ -218,7 +218,7 @@ public:
         const int *min = as_const_int(simplify(mins[0]));
         internal_assert(min != NULL);
         int max = *min + local_extents[0];
-        return x >= *min && x <= max;
+        return x >= *min && x < max;
     }
 
     /** Get a pointer to the element at the min location. */

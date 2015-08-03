@@ -711,9 +711,12 @@ class DistributeLoops : public IRMutator {
             oldmax = for_loop->min + for_loop->extent;
         // Make sure we don't run over old max.
         Expr newextent = min(newmax, oldmax) - newmin;
+        // TODO: choose correct loop type here (parallel if original
+        // loop was distributed+parallel).
         Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
-                                 for_loop->for_type, for_loop->device_api,
+                                 ForType::Serial, for_loop->device_api,
                                  for_loop->body);
+        newloop = LetStmt::make("Rank", rank(), LetStmt::make("SliceSize", cast(Int(32), ceil(cast(Float(32), for_loop->extent) / num_processors())), newloop));
         return newloop;
     }
 public:
@@ -809,8 +812,10 @@ Stmt distribute_loops(Stmt s) {
     GetPipelineInputsAndOutputs getio;
     s.accept(&getio);
     getio.settypes();
-    s = InjectCommunication(getio.inputs, getio.outputs,
-                            getio.rank_required, getio.rank_provided).mutate(s);
+    s = DistributeLoops().mutate(s);
+
+    // s = InjectCommunication(getio.inputs, getio.outputs,
+    //                         getio.rank_required, getio.rank_provided).mutate(s);
     return s;
 }
 
