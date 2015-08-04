@@ -175,6 +175,7 @@ private:
 
                 internal_assert(l);
                 varies |= varying.contains(l->name);
+                varies |= l->name == buffer;
                 l->index.accept(this);
             }
             return;
@@ -333,6 +334,7 @@ class MightBeSkippable : public IRVisitor {
 
                 internal_assert(l);
                 l->index.accept(this);
+                result &= l->name != func || guarded;
             }
             return;
         }
