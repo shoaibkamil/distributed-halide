@@ -662,57 +662,8 @@ public:
             IRMutator::visit(for_loop);
             return;
         }
-        // TODO: choose correct loop type here (parallel if original
-        // loop was distributed+parallel).
-        Stmt newloop = For::make(for_loop->name, for_loop->min, for_loop->extent,
-                                 ForType::Serial, for_loop->device_api,
-                                 for_loop->body);
-
-        // Get required regions of input buffers in terms of processor
-        // rank variable.
-        map<string, Box> required, provided;
-        required = boxes_required(newloop);
-        provided = boxes_provided(newloop);
-
-        // Construct the receive statements to receive required regions for
-        // each input buffer from ranks that provide them.
-        Stmt recvstmt = recv_all_required_regions(required, inputs);
-        // Update the references in the loop to use the "partitioned" input buffers.
-        for (const auto it : required) {
-            const AbstractBuffer &in = inputs.at(it.first);
-            const Box &b = it.second;
-            if (!in.distributed()) continue;
-            ChangeDistributedLoopBuffers change(in.name(), in.partitioned_name(), b);
-            newloop = change.mutate(newloop);
-        }
-
-        // Construct send statements to send output buffer regions
-        // to ranks that require them.
-        Stmt sendstmt = send_all_provided_regions(provided, outputs);
-        // Update the references in the loop to use the "partitioned" output buffers.
-        for (const auto it : provided) {
-            const AbstractBuffer &out = outputs.at(it.first);
-            const Box &b = it.second;
-            if (!out.distributed()) continue;
-            ChangeDistributedLoopBuffers change(out.name(), out.partitioned_name(), b);
-            newloop = change.mutate(newloop);
-        }
-
-        newloop = sendstmt.defined() ? Block::make(newloop, sendstmt) : newloop;
-        newloop = recvstmt.defined() ? Block::make(recvstmt, newloop) : newloop;
-
-        // Construct allocation statements to allcate the partitioned input and output buffers.
-        Stmt allocates;
-        if (recvstmt.defined()) {
-            allocates = allocate_partitioned_buffers(required, inputs, newloop);
-        }
-        if (sendstmt.defined()) {
-            allocates = allocate_partitioned_buffers(provided, outputs,
-                                                     allocates.defined() ? allocates : newloop);
-        }
-        stmt = allocates.defined() ? allocates : newloop;
+        IRMutator::visit(for_loop);
     }
-
 };
 
 class DistributeLoopsOnly : public IRMutator {
@@ -848,9 +799,8 @@ Stmt distribute_loops(Stmt s) {
     s.accept(&getio);
     getio.settypes();
     s = DistributeLoops().mutate(s);
-
-    // s = InjectCommunication(getio.inputs, getio.outputs,
-    //                         getio.rank_required, getio.rank_provided).mutate(s);
+    s = InjectCommunication(getio.inputs, getio.outputs,
+                            getio.rank_required, getio.rank_provided).mutate(s);
     return s;
 }
 
