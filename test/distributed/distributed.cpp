@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
                 MPI_Finalize();
                 return -1;
             }
-            printf("Rank %d gets out(%d) = %d\n", rank, x, out(x));
+            //printf("Rank %d gets out(%d) = %d\n", rank, x, out(x));
         }
     }
 

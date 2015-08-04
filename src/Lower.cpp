@@ -105,6 +105,16 @@ Stmt lower(const vector<Function> &outputs, const Target &t, const vector<IRMuta
     s = add_image_checks(s, outputs, t, order, env, func_bounds);
     debug(2) << "Lowering after injecting image checks:\n" << s << '\n';
 
+    // This pass distributes loops. It should take place after image
+    // checks so that the checks are in terms of global image
+    // bounds. It should also take place before bounds inference so
+    // that inferred bounds are in terms of processor rank.
+    if (t.has_feature(Target::MPI)) {
+        debug(1) << "Converting distributed for loops to MPI calls...\n";
+        s = distribute_loops(s);
+        debug(2) << "Lowering after converting distributed for loops:\n" << s << "\n\n";
+    }
+
     // This pass injects nested definitions of variable names, so we
     // can't simplify statements from here until we fix them up. (We
     // can still simplify Exprs).
@@ -151,12 +161,6 @@ Stmt lower(const vector<Function> &outputs, const Target &t, const vector<IRMuta
         debug(1) << "Injecting image intrinsics...\n";
         s = inject_image_intrinsics(s);
         debug(2) << "Lowering after image intrinsics:\n" << s << "\n\n";
-    }
-
-    if (t.has_feature(Target::MPI)) {
-        debug(1) << "Converting distributed for loops to MPI calls...\n";
-        s = distribute_loops(s);
-        debug(2) << "Lowering after converting distributed for loops:\n" << s << "\n\n";
     }
 
     debug(1) << "Performing storage flattening...\n";
