@@ -67,7 +67,8 @@ Stmt partial_lower(Func f) {
 }
 
 vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
-                              vector<Expr> &symbolic_extents, vector<Expr> &mins) {
+                              vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
+                              vector<Expr> &mins) {
     vector<int> bounds;
     Stmt s = partial_lower(f);
     GetBoxes get;
@@ -82,6 +83,7 @@ vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
         Expr slice_size = cast(Int(32), ceil(cast(Float(32), full_extents[i]) / num_processors));
         Expr sz = b[i].max - b[i].min + 1;
         symbolic_extents.push_back(sz);
+        symbolic_mins.push_back(b[i].min);
         sz = simplify(Let::make("Rank", rank, Let::make("SliceSize", slice_size, sz)));
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL);
@@ -96,7 +98,7 @@ template<typename T>
 class DistributedImage {
     vector<int> full_extents;
     vector<int> local_extents;
-    vector<Expr> symbolic_extents;
+    vector<Expr> symbolic_extents, symbolic_mins;
     vector<Expr> mins;
     ImageParam param;
     Image<T> image;
@@ -171,9 +173,9 @@ public:
      * jitting. */
     void allocate() {
         internal_assert(!image.defined());
-        local_extents = Internal::get_buffer_bounds(wrapper, full_extents, symbolic_extents, mins);
+        local_extents = Internal::get_buffer_bounds(wrapper, full_extents, symbolic_extents, symbolic_mins, mins);
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
-        b.set_distributed(local_extents, symbolic_extents);
+        b.set_distributed(local_extents, symbolic_extents, symbolic_mins);
         param.set(b);
         image = Image<T>(b);
 

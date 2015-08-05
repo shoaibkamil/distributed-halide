@@ -99,7 +99,8 @@ public:
 
     /** Mark this Buffer as distributed with the given local sizes. */
     EXPORT void set_distributed(const std::vector<int> &local_sizes,
-                                const std::vector<Expr> &symbolic_extents);
+                                const std::vector<Expr> &symbolic_extents,
+                                const std::vector<Expr> &symbolic_mins);
 
     /** Get the local extent of this buffer in the given dimension. */
     EXPORT Expr local_extent(int dim) const;
