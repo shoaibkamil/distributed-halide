@@ -102,15 +102,15 @@ public:
                                 const std::vector<Expr> &symbolic_extents);
 
     /** Get the local extent of this buffer in the given dimension. */
-    EXPORT int local_extent(int dim) const;
+    EXPORT Expr local_extent(int dim) const;
 
     /** Get the number of bytes between adjacent elements of the
      * local buffer along the given dimension. */
-    EXPORT int local_stride(int dim) const;
+    EXPORT Expr local_stride(int dim) const;
 
     /** Get the coordinate in the function that this buffer represents
      * that corresponds to the base address of the local buffer. */
-    EXPORT int local_min(int dim) const;
+    EXPORT Expr local_min(int dim) const;
 
     /** Get the Halide type of the contents of this buffer. */
     EXPORT Type type() const;

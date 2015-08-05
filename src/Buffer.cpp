@@ -322,25 +322,25 @@ void Buffer::set_distributed(const std::vector<int> &local_sizes,
                                   size_or_zero(symbolic_extents, 3));
 }
 
-int Buffer::local_extent(int dim) const {
+Expr Buffer::local_extent(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
     user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
-    return contents.ptr->local_extent[dim];
+    return contents.ptr->symbolic_extent[dim];
 }
 
-int Buffer::local_stride(int dim) const {
+Expr Buffer::local_stride(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
     user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
-    return contents.ptr->local_stride[dim];
+    return contents.ptr->symbolic_stride[dim];
 }
 
-int Buffer::local_min(int dim) const {
+Expr Buffer::local_min(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
     user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
-    return contents.ptr->local_min[dim];
+    return contents.ptr->symbolic_min[dim];
 }
 
 }

@@ -159,8 +159,8 @@ public:
         internal_assert(buffer.defined());
         internal_assert(buffer.distributed());
         for (int i = 0; i < buffer.dimensions(); i++) {
-            int min = buffer.local_min(i);
-            int max = min + buffer.local_extent(i) + 1;
+            Expr min = buffer.local_min(i);
+            Expr max = min + buffer.local_extent(i) + 1;
             _bounds.push_back(Interval(min, max));
         }
     }
