@@ -153,6 +153,17 @@ public:
     AbstractBuffer() : _dimensions(-1) {}
     AbstractBuffer(Type type, BufferType btype, const string &name) :
         _type(type), _btype(btype), _name(name), _dimensions(-1) {}
+    AbstractBuffer(Type type, BufferType btype, const string &name, const Buffer &buffer) :
+        _type(type), _btype(btype), _name(name), _dimensions(-1) {
+        internal_assert(btype == Image);
+        internal_assert(buffer.defined());
+        internal_assert(buffer.distributed());
+        for (int i = 0; i < buffer.dimensions(); i++) {
+            int min = buffer.local_min(i);
+            int max = min + buffer.local_extent(i) + 1;
+            _bounds.push_back(Interval(min, max));
+        }
+    }
 
     int dimensions() const {
         internal_assert(_dimensions >= 0);
@@ -236,6 +247,11 @@ public:
         }
         return simplify(num_elems * elem_size());
     }
+
+    const Box &bounds() const {
+        internal_assert(!_bounds.empty()) << _name;
+        return _bounds;
+    }
 private:
     Type _type;
     BufferType _btype;
@@ -244,6 +260,7 @@ private:
     vector<Expr> mins;
     vector<Expr> extents;
     vector<Expr> strides;
+    Box _bounds;
 };
 
 // Build a set of all the variables referenced. This traverses through
@@ -292,9 +309,9 @@ class FindBuffersUsingVariable : public IRVisitor {
         if (vars.names.count(name)) {
             if (call->call_type == Call::Image) {
                 if (call->image.defined()) {
-                    inputs.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::Image, call->image.name()));
+                    inputs.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::Image, call->image.name(), (Buffer)call->image));
                 } else {
-                    inputs.push_back(AbstractBuffer(call->param.type(), AbstractBuffer::Image, call->param.name()));
+                    inputs.push_back(AbstractBuffer(call->param.type(), AbstractBuffer::Image, call->param.name(), call->param.get_buffer()));
                 }
             } else if (call->call_type == Call::Halide) {
                 internal_assert(call->func.outputs() == 1);
