@@ -675,11 +675,81 @@ public:
     using IRMutator::visit;
 
     void visit(const For *for_loop) {
-        if (for_loop->for_type != ForType::Distributed) {
-            IRMutator::visit(for_loop);
-            return;
+        // if (for_loop->for_type != ForType::Distributed) {
+        //     IRMutator::visit(for_loop);
+        //     return;
+        // }
+
+        // Get required regions of input buffers in terms of processor
+        // rank variable.
+        map<string, Box> required, provided;
+        required = boxes_required(for_loop);
+        provided = boxes_provided(for_loop);
+
+        Stmt newloop = for_loop;
+
+        // For each Image input buffer:
+        // Allocate scratch buffer big enough for what I have + ghost zone
+        // Copy my stuff into scratch
+        // Send/recv from somebody else using rank_required/provided.
+        // Replace input buffer refs with scratch
+        Stmt copy;
+        for (const auto it : required) {
+            const string &name = it.first;
+            const Box &need = it.second;
+            const string scratch_name = "scratch_" + name;
+            const AbstractBuffer &in = inputs.at(name);
+            if (in.buffer_type() != AbstractBuffer::Image) continue;
+            //const Box &have = in.bounds();
+
+            // TODO: may have to copy to destination offset other than 0
+            Expr dest = address_of(scratch_name, 0), src = address_of(in.name(), 0);
+            Expr numbytes = in.size_of(need);
+            if (copy.defined()) {
+                copy = Block::make(copy, copy_memory(dest, src, numbytes));
+            } else {
+                copy = copy_memory(dest, src, numbytes);
+            }
         }
-        IRMutator::visit(for_loop);
+        if (copy.defined()) {
+            newloop = Block::make(copy, newloop);
+        }
+
+        for (const auto it : required) {
+            const AbstractBuffer &in = inputs.at(it.first);
+            const Box &b = it.second;
+            const string scratch_name = "scratch_" + it.first;
+            if (in.buffer_type() != AbstractBuffer::Image) continue;
+            ChangeDistributedLoopBuffers change(in.name(), scratch_name, b);
+            newloop = change.mutate(newloop);
+        }
+
+        Stmt allocates = newloop;
+        for (const auto it : required) {
+            const AbstractBuffer &in = inputs.at(it.first);
+            const Box &b = it.second;
+            const string scratch_name = "scratch_" + it.first;
+            if (in.buffer_type() != AbstractBuffer::Image) continue;
+            allocates = allocate_scratch(scratch_name, in.type(), b, allocates);
+        }
+        newloop = allocates;
+
+        // Update the buffer references in the loop to use "local" indices.
+        // TODO: only do this for distributed buffers.
+        // for (const auto it : required) {
+        //     const string &name = it.first;
+        //     const Box &b = it.second;
+        //     ChangeDistributedLoopBuffers change(name, name, b);
+        //     newloop = change.mutate(newloop);
+        // }
+        for (const auto it : provided) {
+            const string &name = it.first;
+            const Box &b = it.second;
+            ChangeDistributedLoopBuffers change(name, name, b);
+            newloop = change.mutate(newloop);
+        }
+
+        stmt = newloop;
     }
 };
 
@@ -695,7 +765,7 @@ public:
         stmt = distribute_loop_iterations(for_loop, for_loop->for_type);
     }
 };
-    
+
 // For each distributed for loop, mutate its bounds to be determined
 // by processor rank.
 class DistributeLoops : public IRMutator {
@@ -708,27 +778,6 @@ public:
         }
         // Split original loop into chunks of iterations for each rank.
         Stmt newloop = distribute_loop_iterations(for_loop, ForType::Serial);
-
-        // Get required regions of input buffers in terms of processor
-        // rank variable.
-        map<string, Box> required, provided;
-        required = boxes_required(newloop);
-        provided = boxes_provided(newloop);
-
-        // Update the buffer references in the loop to use "local" indices.
-        // TODO: only do this for distributed buffers.
-        for (const auto it : required) {
-            const string &name = it.first;
-            const Box &b = it.second;
-            ChangeDistributedLoopBuffers change(name, name, b);
-            newloop = change.mutate(newloop);
-        }
-        for (const auto it : provided) {
-            const string &name = it.first;
-            const Box &b = it.second;
-            ChangeDistributedLoopBuffers change(name, name, b);
-            newloop = change.mutate(newloop);
-        }
 
         newloop = LetStmt::make("Rank", rank(), LetStmt::make("SliceSize", cast(Int(32), ceil(cast(Float(32), for_loop->extent) / num_processors())), newloop));
         stmt = newloop;
