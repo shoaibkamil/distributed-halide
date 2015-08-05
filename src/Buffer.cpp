@@ -1,6 +1,7 @@
 #include "Buffer.h"
 #include "Debug.h"
 #include "Error.h"
+#include "IROperator.h"
 #include "JITModule.h"
 #include "runtime/HalideRuntime.h"
 
@@ -35,9 +36,12 @@ struct BufferContents {
 
     bool distributed;
     int local_min[4], local_extent[4], local_stride[4];
+    Expr symbolic_min[4], symbolic_extent[4], symbolic_stride[4];
 
     void set_distributed(int x_size_local, int y_size_local,
-                         int z_size_local, int w_size_local) {
+                         int z_size_local, int w_size_local,
+                         Expr x_size_symbolic, Expr y_size_symbolic,
+                         Expr z_size_symbolic, Expr w_size_symbolic) {
         uint64_t size = 1;
         if (x_size_local) size *= x_size_local;
         if (y_size_local) size *= y_size_local;
@@ -57,6 +61,20 @@ struct BufferContents {
         local_min[1] = 0;
         local_min[2] = 0;
         local_min[3] = 0;
+
+        symbolic_extent[0] = x_size_symbolic;
+        symbolic_extent[1] = y_size_symbolic;
+        symbolic_extent[2] = z_size_symbolic;
+        symbolic_extent[3] = w_size_symbolic;
+        symbolic_stride[0] = 1;
+        symbolic_stride[1] = x_size_symbolic;
+        symbolic_stride[2] = x_size_symbolic*y_size_symbolic;
+        symbolic_stride[3] = x_size_symbolic*y_size_symbolic*z_size_symbolic;
+        symbolic_min[0] = 0;
+        symbolic_min[1] = 0;
+        symbolic_min[2] = 0;
+        symbolic_min[3] = 0;
+
         distributed = true;
 
         size = size + 32;
@@ -146,6 +164,10 @@ EXPORT void destroy<BufferContents>(const BufferContents *p) {
 
 namespace {
 int32_t size_or_zero(const std::vector<int32_t> &sizes, size_t index) {
+    return (index < sizes.size()) ? sizes[index] : 0;
+}
+
+Expr size_or_zero(const std::vector<Expr> &sizes, size_t index) {
     return (index < sizes.size()) ? sizes[index] : 0;
 }
 
@@ -287,12 +309,17 @@ bool Buffer::distributed() const {
     return contents.ptr->distributed;
 }
 
-void Buffer::set_distributed(const std::vector<int> &local_sizes) {
+void Buffer::set_distributed(const std::vector<int> &local_sizes,
+                             const std::vector<Expr> &symbolic_extents) {
     user_assert(defined()) << "Buffer is undefined\n";
     contents.ptr->set_distributed(size_or_zero(local_sizes, 0),
                                   size_or_zero(local_sizes, 1),
                                   size_or_zero(local_sizes, 2),
-                                  size_or_zero(local_sizes, 3));
+                                  size_or_zero(local_sizes, 3),
+                                  size_or_zero(symbolic_extents, 0),
+                                  size_or_zero(symbolic_extents, 1),
+                                  size_or_zero(symbolic_extents, 2),
+                                  size_or_zero(symbolic_extents, 3));
 }
 
 int Buffer::local_extent(int dim) const {
