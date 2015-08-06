@@ -17,6 +17,8 @@ namespace Internal {
 Stmt distribute_loops(Stmt);
 Stmt distribute_loops_only(Stmt s);
 
+void distribute_loops_test();
+
 }
 }
 

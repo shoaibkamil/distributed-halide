@@ -26,6 +26,8 @@ int main(int argc, char **argv) {
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    Internal::distribute_loops_test();
+
     // {
     //     // Cropping test. Really this should go into DistributeLoops.cpp.
     //     Image<int> in(10, 10);

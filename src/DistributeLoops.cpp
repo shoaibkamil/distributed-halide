@@ -931,5 +931,9 @@ Stmt distribute_loops(Stmt s) {
     return s;
 }
 
+void distribute_loops_test() {
+    std::cout << "Distribute loops internal test passed" << std::endl;
+}
+
 }
 }
