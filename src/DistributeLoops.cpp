@@ -659,6 +659,43 @@ Stmt copy_on_node_data(const map<string, Box> &required,
     return copy;
 }
 
+// Generate communication code to send/recv the intersection of the
+// 'have' and 'need' regions of 'buf'.
+Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, const Box &have, const Box &need) {
+    Scope<Expr> env;
+    env.push("Rank", rank());
+    Box have_concrete = simplify_box(have, env);
+    Box need_concrete = simplify_box(need, env);
+    BoxIntersection I;
+
+    switch (cmd) {
+    case Send:
+        I = BoxIntersection(have_concrete, need);
+        break;
+    case Recv:
+        I = BoxIntersection(have, need_concrete);
+        break;
+    }
+    internal_assert(I.box().size() == 1);
+
+    Expr addr;
+    Expr numbytes = buf.size_of(I.box());
+    Expr cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
+    Stmt commstmt;
+
+    switch (cmd) {
+    case Send:
+        addr = address_of(buf.name(), (I.box()[0].min - have_concrete[0].min) * buf.elem_size());
+        commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("Rank"))));
+        break;
+    case Recv:
+        addr = address_of(buf.extended_name(), (I.box()[0].min - have_concrete[0].min) * buf.elem_size());
+        commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("Rank"))));
+        break;
+    }
+    return For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, commstmt);
+}
+
 // For each required region, generate communication code between ranks
 // that own data needed by other ranks.
 Stmt exchange_data(const map<string, Box> &required,
@@ -671,38 +708,16 @@ Stmt exchange_data(const map<string, Box> &required,
         if (in.buffer_type() != AbstractBuffer::Image) continue;
         const Box &have = in.bounds();
 
-        internal_assert(need.size() == 1);
-
-        Scope<Expr> env;
-        env.push("Rank", rank());
-        Box have_concrete = simplify_box(have, env);
-        Box need_concrete = simplify_box(need, env);
-
-        BoxIntersection I(have_concrete, need);
-
-        Expr srcaddr = address_of(in.name(), (I.box()[0].min - have_concrete[0].min) * in.elem_size());
-        Expr numbytes = in.size_of(I.box());
-
-        //Expr cond = And::make(NE::make(Var("Rank"), rank()), Not::make(I.empty()));
-        Expr cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
-        Stmt sendstmt = IfThenElse::make(cond, Evaluate::make(send(srcaddr, numbytes, Var("Rank"))));
         if (sendloop.defined()) {
-            sendloop = Block::make(sendloop, For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, sendstmt));
+            sendloop = Block::make(sendloop, communicate_intersection(Send, in, have, need));
         } else {
-            sendloop = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, sendstmt);
+            sendloop = communicate_intersection(Send, in, have, need);
         }
 
-        BoxIntersection II(have, need_concrete);
-
-        Expr destaddr = address_of(in.extended_name(), (I.box()[0].min - have_concrete[0].min) * in.elem_size());
-        numbytes = in.size_of(II.box());
-
-        cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
-        Stmt recvstmt = IfThenElse::make(cond, Evaluate::make(recv(destaddr, numbytes, Var("Rank"))));
         if (recvloop.defined()) {
-            recvloop = Block::make(recvloop, For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, recvstmt));
+            recvloop = Block::make(recvloop, communicate_intersection(Recv, in, have, need));
         } else {
-            recvloop = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, recvstmt);
+            recvloop = communicate_intersection(Recv, in, have, need);
         }
     }
     return Block::make(sendloop, recvloop);
