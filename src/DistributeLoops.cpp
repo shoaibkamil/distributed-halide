@@ -481,7 +481,8 @@ public:
 typedef enum { Pack, Unpack } PackCmd;
 // Construct a statement to pack/unpack the given box of the given buffer
 // to/from the contiguous scratch region of memory with the given name.
-Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &buffer, const Box &b) {
+Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &buffer, const Box &b,
+                 const Box &offset) {
     internal_assert(b.size() > 0);
     vector<Var> dims;
     for (unsigned i = 0; i < b.size(); i++) {
@@ -495,7 +496,7 @@ Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &
     for (unsigned i = 1; i < b.size(); i++) {
         Expr extent = b[i].max - b[i].min + 1;
         Expr dim = dims[i];
-        bufferoffset += (dim + b[i].min) * buffer.stride(i) * buffer.elem_size();
+        bufferoffset += (dim + b[i].min - offset[i].min) * buffer.stride(i) * buffer.elem_size();
         scratchoffset += dim * scratchstride * buffer.elem_size();
         scratchstride *= extent;
     }
@@ -504,15 +505,17 @@ Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &
     // ensure this nesting is in the correct row/column major
     // order.
     Expr rowsize = simplify(b[0].max - b[0].min + 1) * buffer.elem_size();
-    Expr bufferaddr = address_of(buffer.name(), bufferoffset);
+    Expr bufferaddr;
     Expr scratchaddr = address_of(scratch_name, scratchoffset);
 
     Stmt copyloop;
     switch (cmd) {
     case Pack:
+        bufferaddr = address_of(buffer.name(), bufferoffset);
         copyloop = copy_memory(scratchaddr, bufferaddr, rowsize);
         break;
     case Unpack:
+        bufferaddr = address_of(buffer.extended_name(), bufferoffset);
         copyloop = copy_memory(bufferaddr, scratchaddr, rowsize);
         break;
     }
@@ -557,10 +560,10 @@ Stmt communicate_buffer(CommunicateCmd cmd, const AbstractBuffer &buffer, const 
             othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
             copy = copy_memory(partition_address, scratch_address, numbytes);
         } else {
-            Stmt pack = pack_region(Pack, scratch_name, buffer, b);
+            Stmt pack = pack_region(Pack, scratch_name, buffer, b, b);
             commstmt = Block::make(pack, Evaluate::make(send(scratch_address, numbytes, Var("Rank"))));
             othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
-            copy = pack_region(Pack, buffer.partitioned_name(), buffer, b);
+            copy = pack_region(Pack, buffer.partitioned_name(), buffer, b, b);
         }
         break;
     case Recv:
@@ -570,10 +573,10 @@ Stmt communicate_buffer(CommunicateCmd cmd, const AbstractBuffer &buffer, const 
             othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
             copy = copy_memory(scratch_address, partition_address, numbytes);
         } else {
-            Stmt unpack = pack_region(Unpack, scratch_name, buffer, b);
+            Stmt unpack = pack_region(Unpack, scratch_name, buffer, b, b);
             commstmt = Block::make(Evaluate::make(recv(scratch_address, numbytes, Var("Rank"))), unpack);
             othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
-            copy = pack_region(Unpack, buffer.partitioned_name(), buffer, b);
+            copy = pack_region(Unpack, buffer.partitioned_name(), buffer, b, b);
         }
         break;
     }
@@ -648,7 +651,11 @@ Stmt copy_on_node_data(const map<string, Box> &required,
         const Box &have = in.bounds();
 
         // TODO: may have to copy to destination offset other than 0
-        internal_assert(have.size() == 1);
+        // TODO: may have to copy multidim buffers by contiguous
+        // section, as the destination buffer may have a different
+        // shape (strides).
+
+        //internal_assert(have.size() == 1);
         Expr dest = address_of(in.extended_name(), 0), src = address_of(in.name(), 0);
         Expr numbytes = in.size_of(have);
         if (copy.defined()) {
@@ -677,24 +684,40 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         I = BoxIntersection(have, need_concrete);
         break;
     }
-    internal_assert(I.box().size() == 1);
 
     Expr addr;
     Expr numbytes = buf.size_of(I.box());
     Expr cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
     Stmt commstmt;
 
+    const string scratch_name = buf.name() + "_commscratch";
+
     switch (cmd) {
     case Send:
-        addr = address_of(buf.name(), (I.box()[0].min - have_concrete[0].min) * buf.elem_size());
-        commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("Rank"))));
+        if (I.box().size() == 1) {
+            Expr offset = I.box()[0].min - have_concrete[0].min;
+            addr = address_of(buf.name(), offset * buf.elem_size());
+            commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("Rank"))));
+        } else {
+            Stmt pack = pack_region(Pack, scratch_name, buf, I.box(), have_concrete);
+            addr = address_of(scratch_name, 0);
+            commstmt = IfThenElse::make(cond, Block::make(pack, Evaluate::make(send(addr, numbytes, Var("Rank")))));
+        }
         break;
     case Recv:
-        addr = address_of(buf.extended_name(), (I.box()[0].min - have_concrete[0].min) * buf.elem_size());
-        commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("Rank"))));
+        if (I.box().size() == 1) {
+            Expr offset = I.box()[0].min - have_concrete[0].min;
+            addr = address_of(buf.extended_name(), offset * buf.elem_size());
+            commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("Rank"))));
+        } else {
+            Stmt unpack = pack_region(Unpack, scratch_name, buf, I.box(), have_concrete);
+            addr = address_of(scratch_name, 0);
+            commstmt = IfThenElse::make(cond, Block::make(Evaluate::make(recv(addr, numbytes, Var("Rank"))), unpack));
+        }
         break;
     }
-    return For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, commstmt);
+    commstmt = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, commstmt);
+    return allocate_scratch(scratch_name, buf.type(), I.box(), commstmt);
 }
 
 // For each required region, generate communication code between ranks

@@ -168,13 +168,13 @@ int main(int argc, char **argv) {
         out.placement().distribute(y);
         out.allocate();
         f.realize(out.get_buffer());
-        for (int y = 0; y < in.height(); y++) {
+        for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
                 const int max = out.global_height() - 1;
-                const int clamp = out.global(y+1) >= max ? out.local(1, max) : y+1;
+                const int clamp = out.global(1, y+1) >= max ? out.local(1, max) : y+1;
                 const int correct = out.global(0, x) + out.global(1, y) + out.global(0, x) + out.global(1, clamp) + 1;
                 if (out(x, y) != correct) {
-                    mpi_printf("out(%d,%d) = %d instead of %d\n", x, y, out(x, y), correct);
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
                     MPI_Finalize();
                     return -1;
                 }
