@@ -774,6 +774,7 @@ Stmt distribute_loop_iterations(const For *for_loop, ForType newtype) {
     Expr newextent = min(newmax, oldmax) - newmin;
     // TODO: choose correct loop type here (parallel if original
     // loop was distributed+parallel).
+    internal_assert(for_loop->for_type != ForType::Parallel) << "Unimplemented.";
     Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
                              newtype, for_loop->device_api,
                              for_loop->body);
@@ -784,12 +785,9 @@ Stmt distribute_loop_iterations(const For *for_loop, ForType newtype) {
 class InjectCommunication : public IRMutator {
 public:
     const map<string, AbstractBuffer> &inputs, &outputs;
-    const map<string, Box> &rank_required, &rank_provided;
     InjectCommunication(const map<string, AbstractBuffer> &in,
-                        const map<string, AbstractBuffer> &out,
-                        const map<string, Box> &rreq,
-                        const map<string, Box> &rprov) :
-        inputs(in), outputs(out), rank_required(rreq), rank_provided(rprov) {}
+                        const map<string, AbstractBuffer> &out) :
+        inputs(in), outputs(out) {}
 
     using IRMutator::visit;
 
@@ -865,26 +863,10 @@ public:
 // pipeline. The results are a map from buffer name -> AbstractBuffer
 // with information about the buffer.
 class GetPipelineInputsAndOutputs : public IRVisitor {
-    Scope<Expr> env;
 public:
-    // Maps from buffer name -> region used expressed in terms of
-    // processor rank.
-    map<string, Box> rank_required, rank_provided;
     map<string, AbstractBuffer> inputs, outputs;
 
     using IRVisitor::visit;
-
-    void visit(const Let *let) {
-        env.push(let->name, let->value);
-        IRVisitor::visit(let);
-        env.pop(let->name);
-    }
-
-    void visit(const LetStmt *let) {
-        env.push(let->name, let->value);
-        IRVisitor::visit(let);
-        env.pop(let->name);
-    }
 
     void visit(const For *for_loop) {
         map<string, AbstractBuffer> in, out;
@@ -892,28 +874,6 @@ public:
         out = buffers_provided(for_loop);
         inputs.insert(in.begin(), in.end());
         outputs.insert(out.begin(), out.end());
-
-        map<string, Box> required, provided;
-
-        required = boxes_required(for_loop);
-        provided = boxes_provided(for_loop);
-
-        // TODO: if number of processors doesn't divide the global
-        // extent evenly, this won't work, because some processor will
-        // have a different extent.
-        Expr offset = for_loop->for_type == ForType::Distributed ?
-            for_loop->extent * Var("Rank") : 0;
-
-        // Convert required/provided regions of input/output buffers
-        // to be in terms of processor rank variable.
-        for (const auto it : required) {
-            Box b = box_to_global(simplify_box(it.second, env), offset);
-            rank_required[it.first] = b;
-        }
-        for (const auto it : provided) {
-            Box b = box_to_global(simplify_box(it.second, env), offset);
-            rank_provided[it.first] = b;
-        }
 
         IRVisitor::visit(for_loop);
     }
@@ -942,8 +902,7 @@ Stmt distribute_loops(Stmt s) {
     s.accept(&getio);
     getio.settypes();
     s = DistributeLoops().mutate(s);
-    s = InjectCommunication(getio.inputs, getio.outputs,
-                            getio.rank_required, getio.rank_provided).mutate(s);
+    s = InjectCommunication(getio.inputs, getio.outputs).mutate(s);
     return s;
 }
 
