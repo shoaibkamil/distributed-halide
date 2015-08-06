@@ -714,6 +714,73 @@ public:
             newloop = Block::make(copy, newloop);
         }
 
+        // Send/recv required data.
+        Stmt sendloop, recvloop;
+        for (const auto it : required) {
+            const string &name = it.first;
+            const Box &need = it.second;
+            const string scratch_name = "scratch_" + name;
+            const AbstractBuffer &in = inputs.at(name);
+            if (in.buffer_type() != AbstractBuffer::Image) continue;
+            const Box &have = in.bounds();
+
+            internal_assert(need.size() == 1);
+
+            // {
+            //     Scope<Expr> testenv;
+            //     testenv.push("Rank", 0);
+            //     testenv.push("SliceSize", 10);
+            //     testenv.push("f.s0.x.loop_min", 0);
+            //     testenv.push("f.s0.x.loop_extent", 20);
+            //     Box havec = simplify_box(have, testenv);
+            //     Box needc = simplify_box(need, testenv);
+            //     debug(0) << "Testing: " << it.first << "\n";
+            //     debug(0) << "  Have: " << box2str(havec) << "\n";
+            //     debug(0) << "  Need: " << box2str(needc) << "\n";
+
+            //     BoxIntersection TI(havec, need);
+            //     testenv.ref("Rank") = 1;
+            //     Box intc = simplify_box(TI.box(), testenv);
+            //     debug(0) << "Intersect with rank 1: " << box2str(intc) << "\n";
+            //     debug(0) << "Size of intersection: " << in.size_of(intc) << " bytes\n";
+            // }
+
+            Scope<Expr> env;
+            env.push("Rank", rank());
+            Box have_concrete = simplify_box(have, env);
+            Box need_concrete = simplify_box(need, env);
+
+            BoxIntersection I(have_concrete, need);
+
+            Expr srcaddr = address_of(in.name(), (I.box()[0].min - have_concrete[0].min) * in.elem_size());
+            Expr numbytes = in.size_of(I.box());
+
+            //Expr cond = And::make(NE::make(Var("Rank"), rank()), Not::make(I.empty()));
+            Expr cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
+            Stmt sendstmt = IfThenElse::make(cond, Evaluate::make(send(srcaddr, numbytes, Var("Rank"))));
+            if (sendloop.defined()) {
+                sendloop = Block::make(sendloop, For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, sendstmt));
+            } else {
+                sendloop = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, sendstmt);
+            }
+
+            BoxIntersection II(have, need_concrete);
+
+            Expr destaddr = address_of(scratch_name, (I.box()[0].min - have_concrete[0].min) * in.elem_size());
+            numbytes = in.size_of(II.box());
+
+            cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
+            Stmt recvstmt = IfThenElse::make(cond, Evaluate::make(recv(destaddr, numbytes, Var("Rank"))));
+            if (recvloop.defined()) {
+                recvloop = Block::make(recvloop, For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, recvstmt));
+            } else {
+                recvloop = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, recvstmt);
+            }
+        }
+        if (sendloop.defined()) {
+            newloop = Block::make(sendloop, Block::make(recvloop, newloop));
+        }
+
         for (const auto it : required) {
             const AbstractBuffer &in = inputs.at(it.first);
             const Box &b = it.second;
@@ -733,14 +800,9 @@ public:
         }
         newloop = allocates;
 
-        // Update the buffer references in the loop to use "local" indices.
-        // TODO: only do this for distributed buffers.
-        // for (const auto it : required) {
-        //     const string &name = it.first;
-        //     const Box &b = it.second;
-        //     ChangeDistributedLoopBuffers change(name, name, b);
-        //     newloop = change.mutate(newloop);
-        // }
+        // Update the output buffer references in the loop to use
+        // "local" indices. TODO: only do this for distributed
+        // buffers.
         for (const auto it : provided) {
             const string &name = it.first;
             const Box &b = it.second;
