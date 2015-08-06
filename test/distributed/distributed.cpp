@@ -130,14 +130,13 @@ int main(int argc, char **argv) {
         f.realize(out.get_buffer());
         for (int x = 0; x < out.width(); x++) {
             const int xa = x;
-            const int xb = x == out.global_width() - 1 ? x : x+1;
+            const int xb = out.global(x) == out.global_width() - 1 ? x : x+1;
             const int correct = 2 * out.global(xa) + 2 * out.global(xb) + 1;
             if (out(x) != correct) {
                 mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
                 MPI_Finalize();
                 return -1;
             }
-            //printf("Rank %d gets out(%d) = %d\n", rank, x, out(x));
         }
     }
 
@@ -319,7 +318,7 @@ int main(int argc, char **argv) {
     //     }
     // }
 
-    mpi_printf("Success!\n");
+    printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();
     return 0;
