@@ -11,6 +11,9 @@ extern double ceil(double d);
 typedef int MPI_Comm;
 #define MPI_COMM_WORLD ((MPI_Comm)0x44000000)
 
+typedef int MPI_Request;
+#define MPI_REQUEST_NULL   ((MPI_Request)0x2c000000)
+
 typedef int MPI_Datatype;
 #define MPI_CHAR           ((MPI_Datatype)0x4c000101)
 #define MPI_SIGNED_CHAR    ((MPI_Datatype)0x4c000118)
@@ -43,9 +46,12 @@ extern int MPI_Comm_rank(MPI_Comm, int *);
 extern int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
 extern int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
                     MPI_Comm comm);
+extern int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+                     MPI_Comm comm, MPI_Request *request);
 extern int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                     MPI_Comm comm, MPI_Status *status);
 MPI_Comm HALIDE_MPI_COMM;
+MPI_Request HALIDE_MPI_REQ;
 
 WEAK int halide_do_task(void *user_context, halide_task f, int idx,
                         uint8_t *closure);
@@ -143,17 +149,31 @@ WEAK int halide_do_distr_send(const void *buf, int count, int dest) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
+    int rank = 0;
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
+
     int tag = 0;
-    return MPI_Send(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM);
+    printf("[rank %d] Issuing send buf %p, count %d, dest %d\n",
+           rank, buf, count, dest);
+    printf("[rank %d] Sending %u\n", rank, *(unsigned *)buf);
+    return MPI_Isend(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM, &HALIDE_MPI_REQ);
+    //return MPI_Send(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM);
 }
 
 WEAK int halide_do_distr_recv(void *buf, int count, int source) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
+    int rank = 0;
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
+
     int tag = 0;
     MPI_Status status;
-    return MPI_Recv(buf, count, MPI_UNSIGNED_CHAR, source, tag, HALIDE_MPI_COMM, &status);
+    printf("[rank %d] Issuing recv buf %p, count %d, source %d\n",
+           rank, buf, count, source);
+    int retval = MPI_Recv(buf, count, MPI_UNSIGNED_CHAR, source, tag, HALIDE_MPI_COMM, &status);
+    printf("[rank %d] Received %u\n", rank, *(unsigned *)buf);
+    return retval;
 }
 
 } // extern "C"
