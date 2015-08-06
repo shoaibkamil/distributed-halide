@@ -16,6 +16,12 @@
 #include "Simplify.h"
 #include "Var.h"
 #include "Image.h"
+// Includes for distribute_loops_test:
+#include "DistributedImage.h"
+#include "Func.h"
+#include "FindCalls.h"
+#include "RealizationOrder.h"
+#include "ScheduleFunctions.h"
 
 namespace Halide {
 namespace Internal {
@@ -726,25 +732,6 @@ public:
 
             internal_assert(need.size() == 1);
 
-            // {
-            //     Scope<Expr> testenv;
-            //     testenv.push("Rank", 0);
-            //     testenv.push("SliceSize", 10);
-            //     testenv.push("f.s0.x.loop_min", 0);
-            //     testenv.push("f.s0.x.loop_extent", 20);
-            //     Box havec = simplify_box(have, testenv);
-            //     Box needc = simplify_box(need, testenv);
-            //     debug(0) << "Testing: " << it.first << "\n";
-            //     debug(0) << "  Have: " << box2str(havec) << "\n";
-            //     debug(0) << "  Need: " << box2str(needc) << "\n";
-
-            //     BoxIntersection TI(havec, need);
-            //     testenv.ref("Rank") = 1;
-            //     Box intc = simplify_box(TI.box(), testenv);
-            //     debug(0) << "Intersect with rank 1: " << box2str(intc) << "\n";
-            //     debug(0) << "Size of intersection: " << in.size_of(intc) << " bytes\n";
-            // }
-
             Scope<Expr> env;
             env.push("Rank", rank());
             Box have_concrete = simplify_box(have, env);
@@ -931,7 +918,140 @@ Stmt distribute_loops(Stmt s) {
     return s;
 }
 
+// -------------------------------------------------- Testing specific code:
+
+namespace {
+class GetBoxes : public IRVisitor {
+public:
+    using IRVisitor::visit;
+    virtual void visit(const For *op) {
+        map<string, Box> r = boxes_required(op), p = boxes_provided(op);
+        required.insert(r.begin(), r.end());
+        provided.insert(p.begin(), p.end());
+        IRVisitor::visit(op);
+    }
+
+    map<string, Box> required, provided;
+};
+
+// Lower the given function enough to get bounds information on
+// input buffers with respect to rank and number of MPI
+// processors.
+Stmt partial_lower(Func f) {
+    Target t = get_target_from_environment();
+    map<string, Function> env;
+    vector<Function> outputs(1, f.function());
+    for (Function f : outputs) {
+        map<string, Function> more_funcs = find_transitive_calls(f);
+        env.insert(more_funcs.begin(), more_funcs.end());
+    }
+    vector<string> order = realization_order(outputs, env);
+    Stmt s = schedule_functions(outputs, order, env, !t.has_feature(Target::NoAsserts));
+    s = distribute_loops_only(s);
+    return s;
+}
+
+map<string, Box> func_boxes_provided(Func f) {
+    Stmt s = partial_lower(f);
+    GetBoxes get;
+    s.accept(&get);
+    return get.provided;
+}
+
+map<string, Box> func_boxes_required(Func f) {
+    Stmt s = partial_lower(f);
+    GetBoxes get;
+    s.accept(&get);
+    return get.required;
+}
+
+map<string, AbstractBuffer> func_input_buffers(Func f) {
+    Stmt s = partial_lower(f);
+    GetPipelineInputsAndOutputs getio;
+    s.accept(&getio);
+    getio.settypes();
+    return getio.inputs;
+}
+
+int expr2int(Expr e) {
+    const int *result = as_const_int(e);
+    internal_assert(result != NULL);
+    return *result;
+}
+
+bool operator==(const Interval &a, const Interval &b) {
+    int amin = expr2int(a.min), amax = expr2int(a.max);
+    int bmin = expr2int(b.min), bmax = expr2int(b.max);
+    return amin == bmin && amax == bmax;
+}
+
+}
+
 void distribute_loops_test() {
+    const int w = 20;
+    const int numprocs = 2;
+    const int slice_size = w/numprocs;
+    Func f("f"), clamped("clamped");
+    Var x("x");
+    DistributedImage<int> in(w, "in");
+    in.set_domain(x);
+    in.placement().distribute(x);
+    in.allocate();
+    clamped(x) = in(clamp(x, 0, w-1));
+
+    {
+        f(x) = clamped(x) + clamped(x+1);
+        f.compute_root().distribute(x);
+
+        map<string, Box> boxes_provided = func_boxes_provided(f),
+            boxes_required = func_boxes_required(f);
+        map<string, AbstractBuffer> inputs = func_input_buffers(f);
+
+        const AbstractBuffer &buf = inputs.at(in.name());
+        const Box &have = buf.bounds();
+        const Box &need = boxes_required.at(in.name());
+
+        Scope<Expr> testenv;
+        testenv.push("Rank", 0);
+        testenv.push("SliceSize", slice_size);
+        testenv.push("f.s0.x.loop_min", 0);
+        testenv.push("f.s0.x.loop_extent", w);
+        {
+            testenv.ref("Rank") = 0;
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(0, 9));
+            internal_assert(need_concrete[0] == Interval(0, 10));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(10, 19));
+            internal_assert(need_concrete[0] == Interval(10, 19));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            Box have_concrete = simplify_box(have, testenv);
+            BoxIntersection TI(have_concrete, need);
+            testenv.ref("Rank") = 0;
+            // What rank 1 has and rank 0 needs (index 10):
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(10, 10));
+            internal_assert(expr2int(buf.size_of(intersection)) == 4);
+        }
+        {
+            testenv.ref("Rank") = 0;
+            Box have_concrete = simplify_box(have, testenv);
+            BoxIntersection TI(have_concrete, need);
+            testenv.ref("Rank") = 1;
+            // What rank 0 has and rank 1 needs (nothing):
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(10, 9));
+            internal_assert(expr2int(buf.size_of(intersection)) == 0);
+        }
+    }
+
     std::cout << "Distribute loops internal test passed" << std::endl;
 }
 
