@@ -241,6 +241,10 @@ public:
         return _name;
     }
 
+    string extended_name() const {
+        return _name + "_extended";
+    }
+
     string partitioned_name() const {
         return _name + "_partitioned";
     }
@@ -631,6 +635,115 @@ Stmt send_all_provided_regions(const map<string, Box> &provided,
     return recvstmt;
 }
 
+// For each required region, copy the on-node portion into an
+// extended buffer (big enough for required region including
+// ghost zone).
+Stmt copy_on_node_data(const map<string, Box> &required,
+                       const map<string, AbstractBuffer> &inputs) {
+    Stmt copy;
+    for (const auto it : required) {
+        const string &name = it.first;
+        const AbstractBuffer &in = inputs.at(name);
+        if (in.buffer_type() != AbstractBuffer::Image) continue;
+        const Box &have = in.bounds();
+
+        // TODO: may have to copy to destination offset other than 0
+        Expr dest = address_of(in.extended_name(), 0), src = address_of(in.name(), 0);
+        Expr numbytes = in.size_of(have);
+        if (copy.defined()) {
+            copy = Block::make(copy, copy_memory(dest, src, numbytes));
+        } else {
+            copy = copy_memory(dest, src, numbytes);
+        }
+    }
+    return copy;
+}
+
+// For each required region, generate communication code between ranks
+// that own data needed by other ranks.
+Stmt exchange_data(const map<string, Box> &required,
+                   const map<string, AbstractBuffer> &inputs) {
+    Stmt sendloop, recvloop;
+    for (const auto it : required) {
+        const string &name = it.first;
+        const Box &need = it.second;
+        const AbstractBuffer &in = inputs.at(name);
+        if (in.buffer_type() != AbstractBuffer::Image) continue;
+        const Box &have = in.bounds();
+
+        internal_assert(need.size() == 1);
+
+        Scope<Expr> env;
+        env.push("Rank", rank());
+        Box have_concrete = simplify_box(have, env);
+        Box need_concrete = simplify_box(need, env);
+
+        BoxIntersection I(have_concrete, need);
+
+        Expr srcaddr = address_of(in.name(), (I.box()[0].min - have_concrete[0].min) * in.elem_size());
+        Expr numbytes = in.size_of(I.box());
+
+        //Expr cond = And::make(NE::make(Var("Rank"), rank()), Not::make(I.empty()));
+        Expr cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
+        Stmt sendstmt = IfThenElse::make(cond, Evaluate::make(send(srcaddr, numbytes, Var("Rank"))));
+        if (sendloop.defined()) {
+            sendloop = Block::make(sendloop, For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, sendstmt));
+        } else {
+            sendloop = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, sendstmt);
+        }
+
+        BoxIntersection II(have, need_concrete);
+
+        Expr destaddr = address_of(in.extended_name(), (I.box()[0].min - have_concrete[0].min) * in.elem_size());
+        numbytes = in.size_of(II.box());
+
+        cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
+        Stmt recvstmt = IfThenElse::make(cond, Evaluate::make(recv(destaddr, numbytes, Var("Rank"))));
+        if (recvloop.defined()) {
+            recvloop = Block::make(recvloop, For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, recvstmt));
+        } else {
+            recvloop = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, recvstmt);
+        }
+    }
+    return Block::make(sendloop, recvloop);
+}
+
+// Change all uses of the original input buffers to use the extended
+// buffers, and modify output buffer indices to be "local" indices
+// (instead of global).
+Stmt update_io_buffers(Stmt loop, const map<string, Box> &required,
+                       const map<string, AbstractBuffer> &inputs,
+                       const map<string, Box> &provided) {
+    for (const auto it : required) {
+        const AbstractBuffer &in = inputs.at(it.first);
+        const Box &b = it.second;
+        if (in.buffer_type() != AbstractBuffer::Image) continue;
+        ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b);
+        loop = change.mutate(loop);
+    }
+
+    for (const auto it : provided) {
+        const string &name = it.first;
+        const Box &b = it.second;
+        ChangeDistributedLoopBuffers change(name, name, b);
+        loop = change.mutate(loop);
+    }
+    return loop;
+}
+
+// Allocate extended buffers for the given body.
+Stmt allocate_extended_buffers(Stmt body, const map<string, Box> &required,
+                               const map<string, AbstractBuffer> &inputs) {
+    Stmt allocates = body;
+    for (const auto it : required) {
+        const AbstractBuffer &in = inputs.at(it.first);
+        const Box &b = it.second;
+        if (in.buffer_type() != AbstractBuffer::Image) continue;
+        allocates = allocate_scratch(in.extended_name(), in.type(), b, allocates);
+    }
+    return allocates;
+}
+
 // Allocate "partitioned" input and output buffers with the proper
 // sizes for each rank. The allocations are valid throughout
 // 'body'.
@@ -699,103 +812,19 @@ public:
         // Copy my stuff into scratch
         // Send/recv from somebody else using rank_required/provided.
         // Replace input buffer refs with scratch
-        Stmt copy;
-        for (const auto it : required) {
-            const string &name = it.first;
-            const string scratch_name = "scratch_" + name;
-            const AbstractBuffer &in = inputs.at(name);
-            if (in.buffer_type() != AbstractBuffer::Image) continue;
-            const Box &have = in.bounds();
 
-            // TODO: may have to copy to destination offset other than 0
-            Expr dest = address_of(scratch_name, 0), src = address_of(in.name(), 0);
-            Expr numbytes = in.size_of(have);
-            if (copy.defined()) {
-                copy = Block::make(copy, copy_memory(dest, src, numbytes));
-            } else {
-                copy = copy_memory(dest, src, numbytes);
-            }
-        }
+        Stmt copy = copy_on_node_data(required, inputs);
         if (copy.defined()) {
             newloop = Block::make(copy, newloop);
         }
 
-        // Send/recv required data.
-        Stmt sendloop, recvloop;
-        for (const auto it : required) {
-            const string &name = it.first;
-            const Box &need = it.second;
-            const string scratch_name = "scratch_" + name;
-            const AbstractBuffer &in = inputs.at(name);
-            if (in.buffer_type() != AbstractBuffer::Image) continue;
-            const Box &have = in.bounds();
-
-            internal_assert(need.size() == 1);
-
-            Scope<Expr> env;
-            env.push("Rank", rank());
-            Box have_concrete = simplify_box(have, env);
-            Box need_concrete = simplify_box(need, env);
-
-            BoxIntersection I(have_concrete, need);
-
-            Expr srcaddr = address_of(in.name(), (I.box()[0].min - have_concrete[0].min) * in.elem_size());
-            Expr numbytes = in.size_of(I.box());
-
-            //Expr cond = And::make(NE::make(Var("Rank"), rank()), Not::make(I.empty()));
-            Expr cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
-            Stmt sendstmt = IfThenElse::make(cond, Evaluate::make(send(srcaddr, numbytes, Var("Rank"))));
-            if (sendloop.defined()) {
-                sendloop = Block::make(sendloop, For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, sendstmt));
-            } else {
-                sendloop = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, sendstmt);
-            }
-
-            BoxIntersection II(have, need_concrete);
-
-            Expr destaddr = address_of(scratch_name, (I.box()[0].min - have_concrete[0].min) * in.elem_size());
-            numbytes = in.size_of(II.box());
-
-            cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
-            Stmt recvstmt = IfThenElse::make(cond, Evaluate::make(recv(destaddr, numbytes, Var("Rank"))));
-            if (recvloop.defined()) {
-                recvloop = Block::make(recvloop, For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, recvstmt));
-            } else {
-                recvloop = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, recvstmt);
-            }
-        }
-        if (sendloop.defined()) {
-            newloop = Block::make(sendloop, Block::make(recvloop, newloop));
+        Stmt border_exchange = exchange_data(required, inputs);
+        if (border_exchange.defined()) {
+            newloop = Block::make(border_exchange, newloop);
         }
 
-        for (const auto it : required) {
-            const AbstractBuffer &in = inputs.at(it.first);
-            const Box &b = it.second;
-            const string scratch_name = "scratch_" + it.first;
-            if (in.buffer_type() != AbstractBuffer::Image) continue;
-            ChangeDistributedLoopBuffers change(in.name(), scratch_name, b);
-            newloop = change.mutate(newloop);
-        }
-
-        Stmt allocates = newloop;
-        for (const auto it : required) {
-            const AbstractBuffer &in = inputs.at(it.first);
-            const Box &b = it.second;
-            const string scratch_name = "scratch_" + it.first;
-            if (in.buffer_type() != AbstractBuffer::Image) continue;
-            allocates = allocate_scratch(scratch_name, in.type(), b, allocates);
-        }
-        newloop = allocates;
-
-        // Update the output buffer references in the loop to use
-        // "local" indices. TODO: only do this for distributed
-        // buffers.
-        for (const auto it : provided) {
-            const string &name = it.first;
-            const Box &b = it.second;
-            ChangeDistributedLoopBuffers change(name, name, b);
-            newloop = change.mutate(newloop);
-        }
+        newloop = update_io_buffers(newloop, required, inputs, provided);
+        newloop = allocate_extended_buffers(newloop, required, inputs);
 
         stmt = newloop;
     }
