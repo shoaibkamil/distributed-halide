@@ -648,6 +648,7 @@ Stmt copy_on_node_data(const map<string, Box> &required,
         const Box &have = in.bounds();
 
         // TODO: may have to copy to destination offset other than 0
+        internal_assert(have.size() == 1);
         Expr dest = address_of(in.extended_name(), 0), src = address_of(in.name(), 0);
         Expr numbytes = in.size_of(have);
         if (copy.defined()) {

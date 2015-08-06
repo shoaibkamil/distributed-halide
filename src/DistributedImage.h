@@ -163,11 +163,27 @@ public:
         return global(0, x);
     }
 
+    /** Return the local x coordinate corresponding to the global x
+     * coordinate. */
+    int local(int x) const {
+        return local(0, x);
+    }
+
     /** Return the global coordinate of dimension 'dim' corresponding
      * to the local coordinate value c. */
     int global(int dim, int c) const {
         internal_assert(!mins.empty());
         Expr g = simplify(mins[dim] + c);
+        const int *result = as_const_int(g);
+        internal_assert(result != NULL);
+        return *result;
+    }
+
+    /** Return the local coordinate of dimension 'dim' corresponding
+     * to the global coordinate value c. */
+    int local(int dim, int c) const {
+        internal_assert(!mins.empty());
+        Expr g = simplify(c - mins[dim]);
         const int *result = as_const_int(g);
         internal_assert(result != NULL);
         return *result;
