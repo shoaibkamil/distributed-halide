@@ -131,11 +131,11 @@ public:
         if (known_empty) {
             return const_true();
         } else {
-            // If any dimension's min is greater than (or equal to) its max, the
+            // If any dimension's min is greater than its max, the
             // intersection is empty.
-            Expr e = GE::make(_box[0].min, _box[0].max);
+            Expr e = GT::make(_box[0].min, _box[0].max);
             for (unsigned i = 1; i < _box.size(); i++) {
-                e = Or::make(e, GE::make(_box[i].min, _box[i].max));
+                e = Or::make(e, GT::make(_box[i].min, _box[i].max));
             }
             return simplify(e);
         }
@@ -160,7 +160,7 @@ public:
         internal_assert(buffer.distributed());
         for (int i = 0; i < buffer.dimensions(); i++) {
             Expr min = buffer.local_min(i);
-            Expr max = min + buffer.local_extent(i) + 1;
+            Expr max = min + buffer.local_extent(i) - 1;
             _bounds.push_back(Interval(min, max));
         }
     }
@@ -696,15 +696,14 @@ public:
         Stmt copy;
         for (const auto it : required) {
             const string &name = it.first;
-            const Box &need = it.second;
             const string scratch_name = "scratch_" + name;
             const AbstractBuffer &in = inputs.at(name);
             if (in.buffer_type() != AbstractBuffer::Image) continue;
-            //const Box &have = in.bounds();
+            const Box &have = in.bounds();
 
             // TODO: may have to copy to destination offset other than 0
             Expr dest = address_of(scratch_name, 0), src = address_of(in.name(), 0);
-            Expr numbytes = in.size_of(need);
+            Expr numbytes = in.size_of(have);
             if (copy.defined()) {
                 copy = Block::make(copy, copy_memory(dest, src, numbytes));
             } else {
