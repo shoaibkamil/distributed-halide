@@ -278,29 +278,29 @@ public:
     }
 
     Expr operator()(Expr x) const {
-        return wrapper(x);
+        return image(x);
     }
 
     Expr operator()(Expr x, Expr y) const {
-        return wrapper(x, y);
+        return image(x, y);
     }
 
     Expr operator()(Expr x, Expr y, Expr z) const {
-        return wrapper(x, y, z);
+        return image(x, y, z);
     }
 
     Expr operator()(Expr x, Expr y, Expr z, Expr w) const {
-        return wrapper(x, y, z, w);
+        return image(x, y, z, w);
     }
 
     /** Convert this image to an argument to a halide pipeline. */
     operator Argument() const {
-        return (Argument)wrapper;
+        return (Argument)image;
     }
 
     /** Convert this image to an argument to an extern stage. */
     operator ExternFuncArgument() const {
-        return (ExternFuncArgument)wrapper;
+        return (ExternFuncArgument)image;
     }
 
     /** Treating the image as an Expr is equivalent to call it with no
@@ -317,7 +317,7 @@ public:
      * same location.
      */
     operator Expr() const {
-        return (Expr)wrapper;
+        return (Expr)image;
     }
 };
 }
