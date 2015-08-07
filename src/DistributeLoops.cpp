@@ -679,23 +679,23 @@ Stmt copy_on_node_data(const map<string, Box> &required,
 // 'have' and 'need' regions of 'buf'.
 Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, const Box &have, const Box &need) {
     Scope<Expr> env;
-    env.push("Rank", rank());
-    Box have_concrete = simplify_box(have, env);
-    Box need_concrete = simplify_box(need, env);
+    env.push("Rank", Var("r"));
+    Box have_parameterized = simplify_box(have, env);
+    Box need_parameterized = simplify_box(need, env);
     BoxIntersection I;
 
     switch (cmd) {
     case Send:
-        I = BoxIntersection(have_concrete, need);
+        I = BoxIntersection(have, need_parameterized);
         break;
     case Recv:
-        I = BoxIntersection(have, need_concrete);
+        I = BoxIntersection(have_parameterized, need);
         break;
     }
 
     Expr addr;
     Expr numbytes = buf.size_of(I.box());
-    Expr cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
+    Expr cond = And::make(NE::make(Var("Rank"), Var("r")), GT::make(numbytes, 0));
     Stmt commstmt;
     const string scratch_name = buf.name() + "_commscratch";
 
@@ -704,8 +704,8 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     // min global coordinate from the intersection bounds (which are
     // also global) to get a local coordinate starting from 0.
     vector<Expr> offset;
-    for (unsigned i = 0; i < have_concrete.size(); i++) {
-        offset.push_back(have_concrete[i].min);
+    for (unsigned i = 0; i < have.size(); i++) {
+        offset.push_back(have[i].min);
     }
     Box localI = offset_box(I.box(), offset);
 
@@ -713,26 +713,30 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     case Send:
         if (localI.size() == 1) {
             addr = address_of(buf.name(), localI[0].min * buf.elem_size());
-            commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("Rank"))));
+            commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("r"))));
         } else {
             Stmt pack = pack_region(Pack, scratch_name, buf, localI);
             addr = address_of(scratch_name, 0);
-            commstmt = IfThenElse::make(cond, Block::make(pack, Evaluate::make(send(addr, numbytes, Var("Rank")))));
+            commstmt = IfThenElse::make(cond, Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r")))));
         }
         break;
     case Recv:
         if (I.box().size() == 1) {
             addr = address_of(buf.extended_name(), localI[0].min * buf.elem_size());
-            commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("Rank"))));
+            commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("r"))));
         } else {
             Stmt unpack = pack_region(Unpack, scratch_name, buf, localI);
             addr = address_of(scratch_name, 0);
-            commstmt = IfThenElse::make(cond, Block::make(Evaluate::make(recv(addr, numbytes, Var("Rank"))), unpack));
+            commstmt = IfThenElse::make(cond, Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack));
         }
         break;
     }
-    commstmt = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, commstmt);
-    return allocate_scratch(scratch_name, buf.type(), localI, commstmt);
+    // TODO: we have to allocate the communication buffer inside the
+    // loop because the size of the intersection depends on "r". Can
+    // we do something smarter?
+    commstmt = allocate_scratch(scratch_name, buf.type(), localI, commstmt);
+    commstmt = For::make("r", 0, num_processors(), ForType::Serial, DeviceAPI::Host, commstmt);
+    return commstmt;
 }
 
 // For each required region, generate communication code between ranks
@@ -913,7 +917,7 @@ public:
         // Split original loop into chunks of iterations for each rank.
         Stmt newloop = distribute_loop_iterations(for_loop, ForType::Serial);
 
-        newloop = LetStmt::make("Rank", rank(), LetStmt::make("SliceSize", cast(Int(32), ceil(cast(Float(32), for_loop->extent) / num_processors())), newloop));
+        newloop = LetStmt::make("SliceSize", cast(Int(32), ceil(cast(Float(32), for_loop->extent) / num_processors())), newloop);
         stmt = newloop;
     }
 };
@@ -962,6 +966,7 @@ Stmt distribute_loops(Stmt s) {
     getio.settypes();
     s = DistributeLoops().mutate(s);
     s = InjectCommunication(getio.inputs, getio.outputs).mutate(s);
+    s = LetStmt::make("Rank", rank(), s);
     return s;
 }
 
