@@ -759,7 +759,12 @@ Stmt exchange_data(const map<string, Box> &required,
             recvloop = communicate_intersection(Recv, in, have, need);
         }
     }
-    return Block::make(sendloop, recvloop);
+    internal_assert(sendloop.defined() == recvloop.defined());
+    if (!sendloop.defined()) {
+        return Stmt();
+    } else {
+        return Block::make(sendloop, recvloop);
+    }
 }
 
 // Change all uses of the original input buffers to use the extended
