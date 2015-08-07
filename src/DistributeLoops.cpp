@@ -70,6 +70,15 @@ Box simplify_box(const Box &b, const Scope<Expr> &env) {
     return result;
 }
 
+Box offset_box(const Box &b, const vector<Expr> &offset) {
+    internal_assert(b.size() == offset.size());
+    Box result(b.size());
+    for (unsigned i = 0; i < b.size(); i++) {
+        result[i] = Interval(b[i].min - offset[i], b[i].max - offset[i]);
+    }
+    return result;
+}
+
 Box box_to_global(const Box &b, Expr offset) {
     Box result(b.size());
     for (unsigned i = 0; i < b.size(); i++) {
@@ -481,8 +490,7 @@ public:
 typedef enum { Pack, Unpack } PackCmd;
 // Construct a statement to pack/unpack the given box of the given buffer
 // to/from the contiguous scratch region of memory with the given name.
-Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &buffer, const Box &b,
-                 const Box &offset) {
+Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &buffer, const Box &b) {
     internal_assert(b.size() > 0);
     vector<Var> dims;
     for (unsigned i = 0; i < b.size(); i++) {
@@ -496,7 +504,7 @@ Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &
     for (unsigned i = 1; i < b.size(); i++) {
         Expr extent = b[i].max - b[i].min + 1;
         Expr dim = dims[i];
-        bufferoffset += (dim + b[i].min - offset[i].min) * buffer.stride(i) * buffer.elem_size();
+        bufferoffset += (dim + b[i].min) * buffer.stride(i) * buffer.elem_size();
         scratchoffset += dim * scratchstride * buffer.elem_size();
         scratchstride *= extent;
     }
@@ -560,10 +568,10 @@ Stmt communicate_buffer(CommunicateCmd cmd, const AbstractBuffer &buffer, const 
             othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
             copy = copy_memory(partition_address, scratch_address, numbytes);
         } else {
-            Stmt pack = pack_region(Pack, scratch_name, buffer, b, b);
+            Stmt pack = pack_region(Pack, scratch_name, buffer, b);
             commstmt = Block::make(pack, Evaluate::make(send(scratch_address, numbytes, Var("Rank"))));
             othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
-            copy = pack_region(Pack, buffer.partitioned_name(), buffer, b, b);
+            copy = pack_region(Pack, buffer.partitioned_name(), buffer, b);
         }
         break;
     case Recv:
@@ -573,10 +581,10 @@ Stmt communicate_buffer(CommunicateCmd cmd, const AbstractBuffer &buffer, const 
             othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
             copy = copy_memory(scratch_address, partition_address, numbytes);
         } else {
-            Stmt unpack = pack_region(Unpack, scratch_name, buffer, b, b);
+            Stmt unpack = pack_region(Unpack, scratch_name, buffer, b);
             commstmt = Block::make(Evaluate::make(recv(scratch_address, numbytes, Var("Rank"))), unpack);
             othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
-            copy = pack_region(Unpack, buffer.partitioned_name(), buffer, b, b);
+            copy = pack_region(Unpack, buffer.partitioned_name(), buffer, b);
         }
         break;
     }
@@ -689,35 +697,42 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     Expr numbytes = buf.size_of(I.box());
     Expr cond = And::make(NE::make(Var("Rank"), rank()), GT::make(numbytes, 0));
     Stmt commstmt;
-
     const string scratch_name = buf.name() + "_commscratch";
+
+    // Convert the intersection box to "local" coordinates (the
+    // extended buffer counts from 0). This just means subtracting the
+    // min global coordinate from the intersection bounds (which are
+    // also global) to get a local coordinate starting from 0.
+    vector<Expr> offset;
+    for (unsigned i = 0; i < have_concrete.size(); i++) {
+        offset.push_back(have_concrete[i].min);
+    }
+    Box localI = offset_box(I.box(), offset);
 
     switch (cmd) {
     case Send:
-        if (I.box().size() == 1) {
-            Expr offset = I.box()[0].min - have_concrete[0].min;
-            addr = address_of(buf.name(), offset * buf.elem_size());
+        if (localI.size() == 1) {
+            addr = address_of(buf.name(), localI[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("Rank"))));
         } else {
-            Stmt pack = pack_region(Pack, scratch_name, buf, I.box(), have_concrete);
+            Stmt pack = pack_region(Pack, scratch_name, buf, localI);
             addr = address_of(scratch_name, 0);
             commstmt = IfThenElse::make(cond, Block::make(pack, Evaluate::make(send(addr, numbytes, Var("Rank")))));
         }
         break;
     case Recv:
         if (I.box().size() == 1) {
-            Expr offset = I.box()[0].min - have_concrete[0].min;
-            addr = address_of(buf.extended_name(), offset * buf.elem_size());
+            addr = address_of(buf.extended_name(), localI[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("Rank"))));
         } else {
-            Stmt unpack = pack_region(Unpack, scratch_name, buf, I.box(), have_concrete);
+            Stmt unpack = pack_region(Unpack, scratch_name, buf, localI);
             addr = address_of(scratch_name, 0);
             commstmt = IfThenElse::make(cond, Block::make(Evaluate::make(recv(addr, numbytes, Var("Rank"))), unpack));
         }
         break;
     }
     commstmt = For::make("Rank", 0, num_processors(), ForType::Serial, DeviceAPI::Host, commstmt);
-    return allocate_scratch(scratch_name, buf.type(), I.box(), commstmt);
+    return allocate_scratch(scratch_name, buf.type(), localI, commstmt);
 }
 
 // For each required region, generate communication code between ranks
