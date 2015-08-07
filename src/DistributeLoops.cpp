@@ -694,7 +694,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     }
 
     Expr addr;
-    Expr numbytes = buf.size_of(I.box());
+    Expr numbytes = Var("msgsize");
     Expr cond = And::make(NE::make(Var("Rank"), Var("r")), GT::make(numbytes, 0));
     Stmt commstmt;
     const string scratch_name = buf.name() + "_commscratch";
@@ -731,6 +731,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         }
         break;
     }
+    commstmt = LetStmt::make("msgsize", buf.size_of(I.box()), commstmt);
     // TODO: we have to allocate the communication buffer inside the
     // loop because the size of the intersection depends on "r". Can
     // we do something smarter?
