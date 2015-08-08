@@ -848,6 +848,8 @@ Stmt distribute_loop_iterations(const For *for_loop, ForType newtype) {
 
 class InjectCommunication : public IRMutator {
 public:
+    Scope<Expr> env;
+
     const map<string, AbstractBuffer> &inputs, &outputs;
     InjectCommunication(const map<string, AbstractBuffer> &in,
                         const map<string, AbstractBuffer> &out) :
@@ -855,17 +857,39 @@ public:
 
     using IRMutator::visit;
 
+    void visit(const LetStmt *let) {
+        env.push(let->name, let->value);
+        IRMutator::visit(let);
+        env.pop(let->name);
+    }
+
+    void visit(const Let *let) {
+        env.push(let->name, let->value);
+        IRMutator::visit(let);
+        env.pop(let->name);
+    }
+
     void visit(const For *for_loop) {
         // if (for_loop->for_type != ForType::Distributed) {
         //     IRMutator::visit(for_loop);
         //     return;
         // }
 
-        // Get required regions of input buffers in terms of processor
-        // rank variable.
         map<string, Box> required, provided;
         required = boxes_required(for_loop);
         provided = boxes_provided(for_loop);
+
+        // Boxes are initially in terms of loop_min/max/extent. We
+        // need them in terms of processor rank, which we can
+        // accomplish by simplifying them with the current environment
+        // (which has the loop_* let statements).
+        for (auto it : required) {
+            required[it.first] = simplify_box(it.second, env);
+        }
+
+        for (auto it : provided) {
+            provided[it.first] = simplify_box(it.second, env);
+        }
 
         Stmt newloop = for_loop;
 
@@ -909,18 +933,85 @@ public:
 // by processor rank.
 class DistributeLoops : public IRMutator {
 public:
+    set<string> slice_size_inserted;
+    const map<string, Expr> &distributed_bounds;
+    DistributeLoops(const map<string, Expr> &bounds) : distributed_bounds(bounds) {}
+
     using IRMutator::visit;
+    void visit(const LetStmt *let) {
+        if (distributed_bounds.find(let->name) != distributed_bounds.end()) {
+            string loop_var = remove_suffix(let->name);
+            Expr oldmin = distributed_bounds.at(loop_var + ".loop_min"),
+                oldmax = distributed_bounds.at(loop_var + ".loop_max"),
+                oldextent = distributed_bounds.at(loop_var + ".loop_extent");
+            Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / num_processors()));
+            Expr newmin = oldmin + Var("SliceSize") * Var("Rank"),
+                newmax = newmin + Var("SliceSize") - 1;
+            // Make sure we don't run over old max.
+            Expr newextent = min(newmax, oldmax) - newmin + 1;
+            bool insert_sz = !slice_size_inserted.count(loop_var);
+            slice_size_inserted.insert(loop_var);
+            if (ends_with(let->name, ".loop_min")) {
+                stmt = LetStmt::make(let->name, newmin, mutate(let->body));
+            } else if (ends_with(let->name, ".loop_max")) {
+                stmt = LetStmt::make(let->name, newmax, mutate(let->body));
+            } else if (ends_with(let->name, ".loop_extent")) {
+                stmt = LetStmt::make(let->name, newextent, mutate(let->body));
+            } else {
+                internal_assert(false) << let->name;
+            }
+            if (insert_sz) {
+                stmt = LetStmt::make("SliceSize", slice_size, stmt);
+            }
+        } else {
+            IRMutator::visit(let);
+        }
+    }
+
     void visit(const For *for_loop) {
         IRMutator::visit(for_loop);
-        if (for_loop->for_type != ForType::Distributed) {
-            return;
+        if (for_loop->for_type == ForType::Distributed) {
+            stmt = For::make(for_loop->name, for_loop->min, for_loop->extent,
+                             ForType::Serial, for_loop->device_api,
+                             for_loop->body);
         }
-        // Split original loop into chunks of iterations for each rank.
-        Stmt newloop = distribute_loop_iterations(for_loop, ForType::Serial);
-
-        newloop = LetStmt::make("SliceSize", cast(Int(32), ceil(cast(Float(32), for_loop->extent) / num_processors())), newloop);
-        stmt = newloop;
     }
+private:
+    // Removes last token of the string, delimited by '.'
+    string remove_suffix(const string &str) const {
+        size_t lastdot = str.find_last_of(".");
+        if (lastdot != std::string::npos) {
+            return str.substr(0, lastdot);
+        } else {
+            return str;
+        }
+    }
+};
+
+class FindDistributedLoops : public IRVisitor {
+public:
+    map<string, Expr> distributed_bounds;
+
+    using IRVisitor::visit;
+
+    void visit(const LetStmt *let) {
+        env.push(let->name, let->value);
+        IRVisitor::visit(let);
+        env.pop(let->name);
+    }
+
+    void visit(const For *for_loop) {
+        if (for_loop->for_type == ForType::Distributed) {
+            for (auto it = env.begin(), ite = env.end(); it != ite; ++it) {
+                if (starts_with(it.name(), for_loop->name)) {
+                    distributed_bounds[it.name()] = it.value();
+                }
+            }
+        }
+        IRVisitor::visit(for_loop);
+    }
+private:
+    Scope<Expr> env;
 };
 
 // Construct a map of all input and output buffers used in a
@@ -938,7 +1029,6 @@ public:
         out = buffers_provided(for_loop);
         inputs.insert(in.begin(), in.end());
         outputs.insert(out.begin(), out.end());
-
         IRVisitor::visit(for_loop);
     }
 
@@ -965,7 +1055,9 @@ Stmt distribute_loops(Stmt s) {
     GetPipelineInputsAndOutputs getio;
     s.accept(&getio);
     getio.settypes();
-    s = DistributeLoops().mutate(s);
+    FindDistributedLoops find;
+    s.accept(&find);
+    s = DistributeLoops(find.distributed_bounds).mutate(s);
     s = InjectCommunication(getio.inputs, getio.outputs).mutate(s);
     s = LetStmt::make("Rank", rank(), s);
     return s;
@@ -976,11 +1068,29 @@ Stmt distribute_loops(Stmt s) {
 namespace {
 class GetBoxes : public IRVisitor {
 public:
+    Scope<Expr> env;
     using IRVisitor::visit;
+
+    void visit(const LetStmt *let) {
+        env.push(let->name, let->value);
+        IRVisitor::visit(let);
+        env.pop(let->name);
+    }
+
+    void visit(const Let *let) {
+        env.push(let->name, let->value);
+        IRVisitor::visit(let);
+        env.pop(let->name);
+    }
+
     virtual void visit(const For *op) {
         map<string, Box> r = boxes_required(op), p = boxes_provided(op);
-        required.insert(r.begin(), r.end());
-        provided.insert(p.begin(), p.end());
+        for (auto it : r) {
+            required[it.first] = simplify_box(it.second, env);
+        }
+        for (auto it : p) {
+            provided[it.first] = simplify_box(it.second, env);
+        }
         IRVisitor::visit(op);
     }
 
@@ -1000,7 +1110,10 @@ Stmt partial_lower(Func f) {
     }
     vector<string> order = realization_order(outputs, env);
     Stmt s = schedule_functions(outputs, order, env, !t.has_feature(Target::NoAsserts));
-    s = distribute_loops_only(s);
+
+    FindDistributedLoops find;
+    s.accept(&find);
+    s = DistributeLoops(find.distributed_bounds).mutate(s);
     return s;
 }
 
@@ -1044,7 +1157,7 @@ void distribute_loops_test() {
     const int w = 20;
     const int numprocs = 2;
     const int slice_size = w/numprocs;
-    Func f("f"), clamped("clamped");
+    Func clamped("clamped");
     Var x("x");
     DistributedImage<int> in(w, "in");
     in.set_domain(x);
@@ -1053,6 +1166,7 @@ void distribute_loops_test() {
     clamped(x) = in(clamp(x, 0, w-1));
 
     {
+        Func f("f");
         f(x) = clamped(x) + clamped(x+1);
         f.compute_root().distribute(x);
 
@@ -1067,8 +1181,8 @@ void distribute_loops_test() {
         Scope<Expr> testenv;
         testenv.push("Rank", 0);
         testenv.push("SliceSize", slice_size);
-        testenv.push("f.s0.x.loop_min", 0);
-        testenv.push("f.s0.x.loop_extent", w);
+        testenv.push(f.name() + ".s0.x.min", 0);
+        testenv.push(f.name() + ".s0.x.max", w-1);
         {
             testenv.ref("Rank") = 0;
             Box have_concrete = simplify_box(have, testenv);
@@ -1098,6 +1212,64 @@ void distribute_loops_test() {
             Box have_concrete = simplify_box(have, testenv);
             BoxIntersection TI(have_concrete, need);
             testenv.ref("Rank") = 1;
+            // What rank 0 has and rank 1 needs (nothing):
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(10, 9));
+            internal_assert(expr2int(buf.size_of(intersection)) == 0);
+        }
+    }
+
+    {
+        Func f("f");
+        f(x) = in(x) + 1;
+        f.compute_root().distribute(x);
+
+        map<string, Box> boxes_provided = func_boxes_provided(f),
+            boxes_required = func_boxes_required(f);
+        map<string, AbstractBuffer> inputs = func_input_buffers(f);
+
+        const AbstractBuffer &buf = inputs.at(in.name());
+        const Box &b = buf.bounds();
+        const Box &req = boxes_required.at(in.name());
+
+        Scope<Expr> testenv;
+        testenv.push("Rank", Var("r"));
+        testenv.push("SliceSize", slice_size);
+        testenv.push(f.name() + ".s0.x.min", 0);
+        testenv.push(f.name() + ".s0.x.max", w-1);
+
+        Box need = simplify_box(req, testenv);
+        testenv.ref("Rank") = Var("Rank");
+        Box have = simplify_box(b, testenv);
+        {
+            testenv.ref("Rank") = 0;
+            testenv.push("r", 0);
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(0, 9));
+            internal_assert(need_concrete[0] == Interval(0, 9));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            testenv.ref("r") = 1;
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(10, 19));
+            internal_assert(need_concrete[0] == Interval(10, 19));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            testenv.ref("r") = 0;
+            BoxIntersection TI(have, need);
+            // What rank 1 has and rank 0 needs (nothing):
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(10, 9));
+            internal_assert(expr2int(buf.size_of(intersection)) == 0);
+        }
+        {
+            BoxIntersection TI(have, need);
+            testenv.ref("Rank") = 0;
+            testenv.ref("r") = 1;
             // What rank 0 has and rank 1 needs (nothing):
             Box intersection = simplify_box(TI.box(), testenv);
             internal_assert(intersection[0] == Interval(10, 9));
