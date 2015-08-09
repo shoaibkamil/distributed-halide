@@ -271,8 +271,8 @@ public:
     GetVariablesInExpr(const Scope<Expr> &e) : env(e) {}
 };
 
-// Build a list of all input and output buffers using a particular
-// variable as an index.
+// Build a list of all input buffers using a particular variable as an
+// index.
 class FindBuffersUsingVariable : public IRVisitor {
     Scope<Expr> env;
     using IRVisitor::visit;
@@ -311,21 +311,9 @@ class FindBuffersUsingVariable : public IRVisitor {
         }
         IRVisitor::visit(call);
     }
-
-    void visit(const Provide *provide) {
-        GetVariablesInExpr vars(env);
-        for (Expr arg : provide->args) {
-            arg.accept(&vars);
-        }
-        if (vars.names.count(name)) {
-            internal_assert(provide->values.size() == 1);
-            outputs.push_back(AbstractBuffer(provide->values[0].type(), AbstractBuffer::Image, provide->name));
-        }
-        IRVisitor::visit(provide);
-    }
 public:
     string name;
-    vector<AbstractBuffer> inputs, outputs;
+    vector<AbstractBuffer> inputs;
     FindBuffersUsingVariable(string n) : name(n) {}
 };
 
@@ -339,31 +327,6 @@ map<string, AbstractBuffer> buffers_required(const For *for_loop) {
     map<string, Box> required = boxes_required(for_loop);
     for (AbstractBuffer buf : buffers) {
         Box b = required[buf.name()];
-        Expr stride = 1;
-        buf.set_dimensions(b.size());
-        for (unsigned i = 0; i < b.size(); i++) {
-            Expr extent = b[i].max - b[i].min + 1;
-            buf.set_min(i, b[i].min);
-            buf.set_extent(i, extent);
-            buf.set_stride(i, stride);
-            stride *= extent;
-        }
-        result[buf.name()] = buf;
-    }
-
-    return result;
-}
-
-// Return a list of the output buffers used in the given for loop.
-map<string, AbstractBuffer> buffers_provided(const For *for_loop) {
-    FindBuffersUsingVariable find(for_loop->name);
-    for_loop->body.accept(&find);
-    vector<AbstractBuffer> buffers(find.outputs.begin(), find.outputs.end());
-    map<string, AbstractBuffer> result;
-
-    map<string, Box> provided = boxes_provided(for_loop);
-    for (AbstractBuffer buf : buffers) {
-        Box b = provided[buf.name()];
         Expr stride = 1;
         buf.set_dimensions(b.size());
         for (unsigned i = 0; i < b.size(); i++) {
@@ -713,10 +676,8 @@ class InjectCommunication : public IRMutator {
 public:
     Scope<Expr> env;
 
-    const map<string, AbstractBuffer> &inputs, &outputs;
-    InjectCommunication(const map<string, AbstractBuffer> &in,
-                        const map<string, AbstractBuffer> &out) :
-        inputs(in), outputs(out) {}
+    const map<string, AbstractBuffer> &inputs;
+    InjectCommunication(const map<string, AbstractBuffer> &in) : inputs(in) {}
 
     using IRMutator::visit;
 
@@ -877,36 +838,20 @@ private:
     Scope<Expr> env;
 };
 
-// Construct a map of all input and output buffers used in a
-// pipeline. The results are a map from buffer name -> AbstractBuffer
-// with information about the buffer.
-class GetPipelineInputsAndOutputs : public IRVisitor {
+// Construct a map of all input buffers used in a pipeline. The
+// results are a map from buffer name -> AbstractBuffer with
+// information about the buffer.
+class GetPipelineInputs : public IRVisitor {
 public:
-    map<string, AbstractBuffer> inputs, outputs;
+    map<string, AbstractBuffer> inputs;
 
     using IRVisitor::visit;
 
     void visit(const For *for_loop) {
-        map<string, AbstractBuffer> in, out;
+        map<string, AbstractBuffer> in;
         in = buffers_required(for_loop);
-        out = buffers_provided(for_loop);
         inputs.insert(in.begin(), in.end());
-        outputs.insert(out.begin(), out.end());
         IRVisitor::visit(for_loop);
-    }
-
-    // For all outputs that have an input of the same name, set the
-    // output type to the input type. This is required because we're
-    // unable to tell whether a Provide node is for an Image output
-    // buffer or not, so we must correct the buffer type here
-    // accordingly.
-    void settypes() {
-        for (auto &it : outputs) {
-            auto in = inputs.find(it.first);
-            if (in != inputs.end()) {
-                it.second.set_buffer_type(in->second.buffer_type());
-            }
-        }
     }
 };
 
@@ -915,13 +860,12 @@ Stmt distribute_loops_only(Stmt s) {
 }
 
 Stmt distribute_loops(Stmt s) {
-    GetPipelineInputsAndOutputs getio;
+    GetPipelineInputs getio;
     s.accept(&getio);
-    getio.settypes();
     FindDistributedLoops find;
     s.accept(&find);
     s = DistributeLoops(find.distributed_bounds).mutate(s);
-    s = InjectCommunication(getio.inputs, getio.outputs).mutate(s);
+    s = InjectCommunication(getio.inputs).mutate(s);
     s = LetStmt::make("Rank", rank(), s);
     return s;
 }
@@ -996,9 +940,8 @@ map<string, Box> func_boxes_required(Func f) {
 
 map<string, AbstractBuffer> func_input_buffers(Func f) {
     Stmt s = partial_lower(f);
-    GetPipelineInputsAndOutputs getio;
+    GetPipelineInputs getio;
     s.accept(&getio);
-    getio.settypes();
     return getio.inputs;
 }
 
