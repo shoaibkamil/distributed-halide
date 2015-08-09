@@ -118,6 +118,37 @@ int main(int argc, char **argv) {
             in(x) = 2 * in.global(x);
         }
 
+        Func f, g;
+        f(x) = in(x) + 1;
+        g(x) = f(x) + 1;
+        f.compute_root().distribute(x);
+        g.distribute(x);
+
+        DistributedImage<int> out(20);
+        out.set_domain(x);
+        out.placement().distribute(x);
+        out.allocate();
+        g.realize(out.get_buffer());
+        for (int x = 0; x < out.width(); x++) {
+            int correct = 2 * out.global(x) + 2;
+            if (out(x) != correct) {
+                printf("[rank %d] out(%d) = %d instead of %d\n", rank, x, out(x), correct);
+                MPI_Finalize();
+                return -1;
+            }
+        }
+    }
+
+    {
+        DistributedImage<int> in(20);
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate();
+
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = 2 * in.global(x);
+        }
+
         Expr clamped_x = clamp(x, 0, in.global_width()-1);
         Func clamped;
         clamped(x) = in(clamped_x);

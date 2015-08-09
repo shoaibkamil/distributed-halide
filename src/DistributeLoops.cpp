@@ -781,9 +781,17 @@ Stmt update_io_buffers(Stmt loop, const map<string, Box> &required,
     for (const auto it : required) {
         const AbstractBuffer &in = inputs.at(it.first);
         const Box &b = it.second;
-        if (in.buffer_type() != AbstractBuffer::Image) continue;
-        ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b);
-        loop = change.mutate(loop);
+        // TODO: We should be using the extended name not just for
+        // images, but for any distributed buffer that requires
+        // communication. I.e. this does not handle distributed
+        // stencil pipelines.
+        if (in.buffer_type() == AbstractBuffer::Image) {
+            ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b);
+            loop = change.mutate(loop);
+        } else {
+            ChangeDistributedLoopBuffers change(in.name(), in.name(), b);
+            loop = change.mutate(loop);
+        }
     }
 
     for (const auto it : provided) {
