@@ -175,6 +175,44 @@ int main(int argc, char **argv) {
     }
 
     {
+        DistributedImage<int> in(20);
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate();
+
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = 2 * in.global(x);
+        }
+
+        Expr clamped_x = clamp(x, 0, in.global_width()-1);
+        Func clamped;
+        clamped(x) = in(clamped_x);
+        Func f, g;
+        f(x) = clamped(x) + clamped(x+1) + 1;
+        g(x) = f(x) + f(x+1) + 1;
+        f.compute_root().distribute(x);
+        g.distribute(x);
+
+        DistributedImage<int> out(20);
+        out.set_domain(x);
+        out.placement().distribute(x);
+        out.allocate();
+        g.realize(out.get_buffer());
+        for (int x = 0; x < out.width(); x++) {
+            const int xmax = out.global_width() - 1;
+            const int xp1 = out.global(x+1) >= xmax ? out.local(xmax) : x+1,
+                xp2 = out.global(x+2) >= xmax ? out.local(xmax) : x+2;
+            const int correct = (2 * out.global(x) + 2 * out.global(xp1) + 1) +
+                (2 * out.global(xp1) + 2 * out.global(xp2) + 1) + 1;
+            if (out(x) != correct) {
+                mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
+                MPI_Finalize();
+                return -1;
+            }
+        }
+    }
+
+    {
         DistributedImage<int> in(10, 20);
         in.set_domain(x, y);
         in.placement().distribute(y);
