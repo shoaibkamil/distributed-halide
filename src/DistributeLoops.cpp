@@ -59,14 +59,6 @@ Box offset_box(const Box &b, const vector<Expr> &offset) {
     return result;
 }
 
-Box box_to_global(const Box &b, Expr offset) {
-    Box result(b.size());
-    for (unsigned i = 0; i < b.size(); i++) {
-        result[i] = Interval(b[i].min + offset, b[i].max + offset);
-    }
-    return result;
-}
-
 class ReplaceVariable : public IRMutator {
     string name;
     Expr value;
@@ -219,11 +211,6 @@ public:
         return _btype;
     }
 
-    bool distributed() const {
-        // Images and accessor_* functions are never distributed.
-        return _btype != Image && !starts_with(_name, "accessor_");
-    }
-
     void set_buffer_type(BufferType t) {
         _btype = t;
     }
@@ -238,10 +225,6 @@ public:
 
     string extended_name() const {
         return _name + "_extended";
-    }
-
-    string partitioned_name() const {
-        return _name + "_partitioned";
     }
 
     Expr size_of(const Box &b) const {
@@ -535,103 +518,6 @@ Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) {
     return Allocate::make(name, type, extents, const_true(), body);
 }
 
-typedef enum { Send, Recv } CommunicateCmd;
-// Construct a statement to send/recv the required region of 'buffer'
-// (specified by box 'b') between rank 0 and each processor.
-Stmt communicate_buffer(CommunicateCmd cmd, const AbstractBuffer &buffer, const Box &b) {
-    internal_assert(b.size() > 0);
-    const string scratch_name = buffer.name() + "_commscratch";
-    Stmt copy, commstmt, othercommstmt;
-    Expr numbytes = buffer.size_of(b);
-    Expr scratch_address = address_of(scratch_name, 0);
-    Expr partition_address = address_of(buffer.partitioned_name(), 0);
-
-    switch (cmd) {
-    case Send:
-        if (b.size() == 1) {
-            scratch_address = address_of(buffer, b[0].min);
-            commstmt = Evaluate::make(send(scratch_address, numbytes, Var("Rank")));
-            othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
-            copy = copy_memory(partition_address, scratch_address, numbytes);
-        } else {
-            Stmt pack = pack_region(Pack, scratch_name, buffer, b);
-            commstmt = Block::make(pack, Evaluate::make(send(scratch_address, numbytes, Var("Rank"))));
-            othercommstmt = Evaluate::make(recv(partition_address, numbytes, 0));
-            copy = pack_region(Pack, buffer.partitioned_name(), buffer, b);
-        }
-        break;
-    case Recv:
-        if (b.size() == 1) {
-            scratch_address = address_of(buffer, b[0].min);
-            commstmt = Evaluate::make(recv(scratch_address, numbytes, Var("Rank")));
-            othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
-            copy = copy_memory(scratch_address, partition_address, numbytes);
-        } else {
-            Stmt unpack = pack_region(Unpack, scratch_name, buffer, b);
-            commstmt = Block::make(Evaluate::make(recv(scratch_address, numbytes, Var("Rank"))), unpack);
-            othercommstmt = Evaluate::make(send(partition_address, numbytes, 0));
-            copy = pack_region(Unpack, buffer.partitioned_name(), buffer, b);
-        }
-        break;
-    }
-    Stmt commloop = For::make("Rank", 1, num_processors()-1, ForType::Serial, DeviceAPI::Host, commstmt);
-    commloop = Block::make(copy, commloop);
-    // Rank 0 sends/recvs; all other ranks issue the complement.
-    Stmt body = IfThenElse::make(EQ::make(rank(), 0), commloop, othercommstmt);
-
-    // Allocate scratch
-    return allocate_scratch(scratch_name, buffer.type(), b, body);
-}
-
-// Construct a statement to send the required region of 'buffer'
-// (specified by box 'b') from rank 0 to each processor.
-Stmt send_input_buffer(const AbstractBuffer &buffer, const Box &b) {
-    return communicate_buffer(Send, buffer, b);
-}
-
-// Construct a statement to receive the region of 'buffer'
-// (specified by box 'b') provided by each processor back to rank
-// 0.
-Stmt recv_output_buffer(const AbstractBuffer &buffer, const Box &b) {
-    return communicate_buffer(Recv, buffer, b);
-}
-
-// Construct a receive loop which receives the required region of each
-// input buffer from the rank that provides it.
-Stmt recv_all_required_regions(const map<string, Box> &required,
-                               const map<string, AbstractBuffer> &inputs) {
-    Stmt sendstmt;
-    for (const auto it : required) {
-        const AbstractBuffer &in = inputs.at(it.first);
-        const Box &b = it.second;
-        if (!in.distributed()) continue;
-        if (sendstmt.defined()) {
-            sendstmt = Block::make(sendstmt, send_input_buffer(in, b));
-        } else {
-            sendstmt = send_input_buffer(in, b);
-        }
-    }
-    return sendstmt;
-}
-
-// Construct a send loop which sends the provided region of each
-// output buffer to each rank that requires it.
-Stmt send_all_provided_regions(const map<string, Box> &provided,
-                               const map<string, AbstractBuffer> &outputs) {
-    Stmt recvstmt;
-    for (const auto it : provided) {
-        const AbstractBuffer &out = outputs.at(it.first);
-        const Box &b = it.second;
-        if (!out.distributed()) continue;
-        if (recvstmt.defined()) {
-            recvstmt = Block::make(recvstmt, recv_output_buffer(out, b));
-        } else {
-            recvstmt = recv_output_buffer(out, b);
-        }
-    }
-    return recvstmt;
-}
-
 // For each required region, copy the on-node portion into an
 // extended buffer (big enough for required region including
 // ghost zone).
@@ -661,6 +547,7 @@ Stmt copy_on_node_data(const map<string, Box> &required,
     return copy;
 }
 
+typedef enum { Send, Recv } CommunicateCmd;
 // Generate communication code to send/recv the intersection of the
 // 'have' and 'need' regions of 'buf'.
 Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, const Box &have, const Box &need) {
@@ -798,24 +685,6 @@ Stmt allocate_extended_buffers(Stmt body, const map<string, Box> &required,
         const Box &b = it.second;
         if (in.buffer_type() != AbstractBuffer::Image) continue;
         allocates = allocate_scratch(in.extended_name(), in.type(), b, allocates);
-    }
-    return allocates;
-}
-
-// Allocate "partitioned" input and output buffers with the proper
-// sizes for each rank. The allocations are valid throughout
-// 'body'.
-Stmt allocate_partitioned_buffers(const map<string, Box> &regions,
-                                  const map<string, AbstractBuffer> &buffers, Stmt body) {
-    Stmt allocates;
-    for (const auto it : regions) {
-        const AbstractBuffer &buf = buffers.at(it.first);
-        const Box &b = it.second;
-        if (allocates.defined()) {
-            allocates = allocate_scratch(buf.partitioned_name(), buf.type(), b, allocates);
-        } else {
-            allocates = allocate_scratch(buf.partitioned_name(), buf.type(), b, body);
-        }
     }
     return allocates;
 }
