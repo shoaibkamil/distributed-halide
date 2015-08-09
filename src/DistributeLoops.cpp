@@ -38,8 +38,8 @@ string box2str(const Box &b) {
     mins << "(";
     maxs << "(";
     for (unsigned i = 0; i < b.size(); i++) {
-        mins << simplify(b[i].min);
-        maxs << simplify(b[i].max);
+        mins << b[i].min;
+        maxs << b[i].max;
         if (i < b.size() - 1) {
             mins << ", ";
             maxs << ", ";
@@ -48,26 +48,6 @@ string box2str(const Box &b) {
     mins << ")";
     maxs << ")";
     return mins.str() + " to " + maxs.str();
-}
-
-// Simplify the given box, using the given environment of variable
-// to value.
-Box simplify_box(const Box &b, const Scope<Expr> &env) {
-    Box result(b.size());
-    for (unsigned i = 0; i < b.size(); i++) {
-        Expr min, max;
-        for (auto it = env.cbegin(), ite = env.cend(); it != ite; ++it) {
-            if (min.defined()) {
-                min = Let::make(it.name(), it.value(), min);
-                max = Let::make(it.name(), it.value(), max);
-            } else {
-                min = Let::make(it.name(), it.value(), b[i].min);
-                max = Let::make(it.name(), it.value(), b[i].max);
-            }
-        }
-        result[i] = Interval(simplify(min), simplify(max));
-    }
-    return result;
 }
 
 Box offset_box(const Box &b, const vector<Expr> &offset) {
@@ -103,12 +83,18 @@ public:
     }
 };
 
-Box replace(const Box &b, const string &name, Expr value) {
+// Simplify the given box, using the given environment of variable
+// to value.
+Box simplify_box(const Box &b, const Scope<Expr> &env) {
     Box result(b.size());
     for (unsigned i = 0; i < b.size(); i++) {
-        ReplaceVariable replace(name, value);
-        result[i] = Interval(replace.mutate(b[i].min),
-                             replace.mutate(b[i].max));
+        Expr min = b[i].min, max = b[i].max;
+        for (auto it = env.cbegin(), ite = env.cend(); it != ite; ++it) {
+            ReplaceVariable replace(it.name(), it.value());
+            min = replace.mutate(min);
+            max = replace.mutate(max);
+        }
+        result[i] = Interval(min, max);
     }
     return result;
 }
@@ -132,9 +118,9 @@ public:
         unsigned size = a.size();
         _box = Box(size);
         for (unsigned i = 0; i < size; i++) {
-            if (is_positive_const(simplify(b[i].min - a[i].max))) known_empty = true;
-            Expr dim_min = simplify(max(a[i].min, b[i].min));
-            Expr dim_max = simplify(min(a[i].max, b[i].max));
+            if (is_positive_const(b[i].min - a[i].max)) known_empty = true;
+            Expr dim_min = max(a[i].min, b[i].min);
+            Expr dim_max = min(a[i].max, b[i].max);
             _box[i] = Interval(dim_min, dim_max);
         }
     }
@@ -152,7 +138,7 @@ public:
             for (unsigned i = 1; i < _box.size(); i++) {
                 e = Or::make(e, GT::make(_box[i].min, _box[i].max));
             }
-            return simplify(e);
+            return e;
         }
     }
 
@@ -264,7 +250,7 @@ public:
         for (unsigned i = 0; i < b.size(); i++) {
             num_elems *= b[i].max - b[i].min + 1;
         }
-        return simplify(num_elems * elem_size());
+        return num_elems * elem_size();
     }
 
     const Box &bounds() const {
@@ -464,7 +450,7 @@ public:
         if (call->name == name) {
             vector<Expr> newargs;
             for (unsigned i = 0; i < box.size(); i++) {
-                newargs.push_back(simplify(call->args[i] - box[i].min));
+                newargs.push_back(call->args[i] - box[i].min);
             }
             expr = Call::make(call->type, newname, newargs, call->call_type,
                               call->func, call->value_index, call->image,
@@ -478,7 +464,7 @@ public:
         if (provide->name == name) {
             vector<Expr> newargs;
             for (unsigned i = 0; i < box.size(); i++) {
-                newargs.push_back(simplify(provide->args[i] - box[i].min));
+                newargs.push_back(provide->args[i] - box[i].min);
             }
             stmt = Provide::make(newname, provide->values, newargs);
         } else {
@@ -512,7 +498,7 @@ Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &
     // Construct loop nest to copy each contiguous row.  TODO:
     // ensure this nesting is in the correct row/column major
     // order.
-    Expr rowsize = simplify(b[0].max - b[0].min + 1) * buffer.elem_size();
+    Expr rowsize = (b[0].max - b[0].min + 1) * buffer.elem_size();
     Expr bufferaddr;
     Expr scratchaddr = address_of(scratch_name, scratchoffset);
 
@@ -540,7 +526,7 @@ Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) {
     vector<Expr> extents;
     Expr stride = 1;
     for (unsigned i = 0; i < b.size(); i++) {
-        Expr extent = simplify(b[i].max - b[i].min + 1);
+        Expr extent = b[i].max - b[i].min + 1;
         body = LetStmt::make(name + ".min." + std::to_string(i), 0, body);
         body = LetStmt::make(name + ".stride." + std::to_string(i), stride, body);
         extents.push_back(extent);
@@ -847,7 +833,7 @@ Stmt distribute_loop_iterations(const For *for_loop, ForType newtype) {
     // TODO: choose correct loop type here (parallel if original
     // loop was distributed+parallel).
     internal_assert(for_loop->for_type != ForType::Parallel) << "Unimplemented.";
-    Stmt newloop = For::make(for_loop->name, simplify(newmin), simplify(newextent),
+    Stmt newloop = For::make(for_loop->name, newmin, newextent,
                              newtype, for_loop->device_api,
                              for_loop->body);
     return newloop;
@@ -1148,7 +1134,7 @@ map<string, AbstractBuffer> func_input_buffers(Func f) {
 }
 
 int expr2int(Expr e) {
-    const int *result = as_const_int(e);
+    const int *result = as_const_int(simplify(e));
     internal_assert(result != NULL);
     return *result;
 }
