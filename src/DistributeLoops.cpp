@@ -580,7 +580,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     // loop because the size of the intersection depends on "r". Can
     // we do something smarter?
     commstmt = allocate_scratch(scratch_name, buf.type(), localI, commstmt);
-    commstmt = For::make("r", 0, num_processors(), ForType::Serial, DeviceAPI::Host, commstmt);
+    commstmt = For::make("r", 0, Var("NumProcessors"), ForType::Serial, DeviceAPI::Host, commstmt);
     return commstmt;
 }
 
@@ -734,7 +734,7 @@ public:
             Expr oldmin = distributed_bounds.at(loop_var + ".loop_min"),
                 oldmax = distributed_bounds.at(loop_var + ".loop_max"),
                 oldextent = distributed_bounds.at(loop_var + ".loop_extent");
-            Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / num_processors()));
+            Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / Var("NumProcessors")));
             Expr newmin = oldmin + Var("SliceSize") * Var("Rank"),
                 newmax = newmin + Var("SliceSize") - 1;
             // Make sure we don't run over old max.
@@ -874,6 +874,7 @@ Stmt distribute_loops(Stmt s) {
     s.accept(&setb);
     s = InjectCommunication(getio.inputs).mutate(s);
     s = LetStmt::make("Rank", rank(), s);
+    s = LetStmt::make("NumProcessors", num_processors(), s);
     return s;
 }
 
