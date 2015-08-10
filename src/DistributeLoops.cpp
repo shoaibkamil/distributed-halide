@@ -151,9 +151,13 @@ public:
         internal_assert(btype == Image);
         internal_assert(buffer.defined());
         internal_assert(buffer.distributed());
+        Expr stride = 1;
         for (int i = 0; i < buffer.dimensions(); i++) {
             Expr min = buffer.local_min(i);
             Expr max = min + buffer.local_extent(i) - 1;
+            Expr extent = max - min + 1;
+            strides.push_back(stride);
+            stride *= extent;
             _bounds.push_back(Interval(min, max));
         }
     }
@@ -240,6 +244,19 @@ public:
         internal_assert(!_bounds.empty()) << _name;
         return _bounds;
     }
+
+    void set_bounds(const Box &b) {
+        internal_assert(_bounds.empty());
+        set_dimensions(b.size());
+        _bounds = Box(b.size());
+        Expr stride = 1;
+        for (unsigned i = 0; i < b.size(); i++) {
+            Expr extent = b[i].max - b[i].min + 1;
+            strides.push_back(stride);
+            stride *= extent;
+            _bounds[i] = Interval(b[i].min, b[i].max);
+        }
+    }
 private:
     Type _type;
     BufferType _btype;
@@ -324,17 +341,9 @@ map<string, AbstractBuffer> buffers_required(const For *for_loop) {
     vector<AbstractBuffer> buffers(find.inputs.begin(), find.inputs.end());
     map<string, AbstractBuffer> result;
 
-    map<string, Box> required = boxes_required(for_loop);
     for (AbstractBuffer buf : buffers) {
-        Box b = required[buf.name()];
-        Expr stride = 1;
-        buf.set_dimensions(b.size());
-        for (unsigned i = 0; i < b.size(); i++) {
-            Expr extent = b[i].max - b[i].min + 1;
-            buf.set_min(i, b[i].min);
-            buf.set_extent(i, extent);
-            buf.set_stride(i, stride);
-            stride *= extent;
+        if (buf.buffer_type() == AbstractBuffer::Image) {
+            internal_assert(!buf.bounds().empty());
         }
         result[buf.name()] = buf;
     }
@@ -490,7 +499,6 @@ Stmt copy_on_node_data(const map<string, Box> &required,
     for (const auto it : required) {
         const string &name = it.first;
         const AbstractBuffer &in = inputs.at(name);
-        if (in.buffer_type() != AbstractBuffer::Image) continue;
         const Box &have = in.bounds();
 
         // TODO: may have to copy to destination offset other than 0
@@ -585,7 +593,6 @@ Stmt exchange_data(const map<string, Box> &required,
         const string &name = it.first;
         const Box &need = it.second;
         const AbstractBuffer &in = inputs.at(name);
-        if (in.buffer_type() != AbstractBuffer::Image) continue;
         const Box &have = in.bounds();
 
         if (sendloop.defined()) {
@@ -617,17 +624,8 @@ Stmt update_io_buffers(Stmt loop, const map<string, Box> &required,
     for (const auto it : required) {
         const AbstractBuffer &in = inputs.at(it.first);
         const Box &b = it.second;
-        // TODO: We should be using the extended name not just for
-        // images, but for any distributed buffer that requires
-        // communication. I.e. this does not handle distributed
-        // stencil pipelines.
-        if (in.buffer_type() == AbstractBuffer::Image) {
-            ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b);
-            loop = change.mutate(loop);
-        } else {
-            ChangeDistributedLoopBuffers change(in.name(), in.name(), b);
-            loop = change.mutate(loop);
-        }
+        ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b);
+        loop = change.mutate(loop);
     }
 
     for (const auto it : provided) {
@@ -646,7 +644,6 @@ Stmt allocate_extended_buffers(Stmt body, const map<string, Box> &required,
     for (const auto it : required) {
         const AbstractBuffer &in = inputs.at(it.first);
         const Box &b = it.second;
-        if (in.buffer_type() != AbstractBuffer::Image) continue;
         allocates = allocate_scratch(in.extended_name(), in.type(), b, allocates);
     }
     return allocates;
@@ -855,16 +852,55 @@ public:
     }
 };
 
+// Set the bounds for all non-Image input buffers based on the region
+// provided by their producing loops. This should take place *after*
+// loops have been distributed, otherwise the bounds set will be
+// global values.
+class SetInputBufferBounds : public IRVisitor {
+public:
+    Scope<Expr> env;
+    map<string, AbstractBuffer> &inputs;
+    SetInputBufferBounds(map<string, AbstractBuffer> &in) : inputs(in) {}
+
+    using IRVisitor::visit;
+
+    void visit(const LetStmt *let) {
+        env.push(let->name, let->value);
+        IRVisitor::visit(let);
+        env.pop(let->name);
+    }
+
+    void visit(const Let *let) {
+        env.push(let->name, let->value);
+        IRVisitor::visit(let);
+        env.pop(let->name);
+    }
+
+    void visit(const For *for_loop) {
+        map<string, Box> provided = boxes_provided(for_loop);
+        for (auto it : provided) {
+            if (inputs.find(it.first) != inputs.end()) {
+                AbstractBuffer &buf = inputs.at(it.first);
+                internal_assert(buf.buffer_type() != AbstractBuffer::Image);
+                buf.set_bounds(simplify_box(it.second, env));
+            }
+        }
+        IRVisitor::visit(for_loop);
+    }
+};
+
 Stmt distribute_loops_only(Stmt s) {
     return DistributeLoopsOnly().mutate(s);
 }
 
 Stmt distribute_loops(Stmt s) {
-    GetPipelineInputs getio;
-    s.accept(&getio);
     FindDistributedLoops find;
     s.accept(&find);
     s = DistributeLoops(find.distributed_bounds).mutate(s);
+    GetPipelineInputs getio;
+    s.accept(&getio);
+    SetInputBufferBounds setb(getio.inputs);
+    s.accept(&setb);
     s = InjectCommunication(getio.inputs).mutate(s);
     s = LetStmt::make("Rank", rank(), s);
     return s;
