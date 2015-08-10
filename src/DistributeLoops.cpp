@@ -649,24 +649,6 @@ Stmt allocate_extended_buffers(Stmt body, const map<string, Box> &required,
     return allocates;
 }
 
-// Return a new loop that has iterations determined by processor
-// rank.
-Stmt distribute_loop_iterations(const For *for_loop, ForType newtype) {
-    Expr r = Var("Rank");
-    Var slice_size("SliceSize");
-    Expr newmin = for_loop->min + slice_size*r,
-        newmax = newmin + slice_size,
-        oldmax = for_loop->min + for_loop->extent;
-    // Make sure we don't run over old max.
-    Expr newextent = min(newmax, oldmax) - newmin;
-    // TODO: choose correct loop type here (parallel if original
-    // loop was distributed+parallel).
-    internal_assert(for_loop->for_type != ForType::Parallel) << "Unimplemented.";
-    Stmt newloop = For::make(for_loop->name, newmin, newextent,
-                             newtype, for_loop->device_api,
-                             for_loop->body);
-    return newloop;
-}
 }
 
 class InjectCommunication : public IRMutator {
@@ -734,19 +716,6 @@ public:
         newloop = allocate_extended_buffers(newloop, required, inputs);
 
         stmt = newloop;
-    }
-};
-
-class DistributeLoopsOnly : public IRMutator {
-public:
-    using IRMutator::visit;
-    void visit(const For *for_loop) {
-        IRMutator::visit(for_loop);
-        if (for_loop->for_type != ForType::Distributed) {
-            return;
-        }
-        // Split original loop into chunks of iterations for each rank.
-        stmt = distribute_loop_iterations(for_loop, for_loop->for_type);
     }
 };
 
@@ -890,7 +859,9 @@ public:
 };
 
 Stmt distribute_loops_only(Stmt s) {
-    return DistributeLoopsOnly().mutate(s);
+    FindDistributedLoops find;
+    s.accept(&find);
+    return DistributeLoops(find.distributed_bounds).mutate(s);
 }
 
 Stmt distribute_loops(Stmt s) {
@@ -927,6 +898,7 @@ public:
     }
 
     virtual void visit(const For *op) {
+        IRVisitor::visit(op);
         map<string, Box> r = boxes_required(op), p = boxes_provided(op);
         for (auto it : r) {
             required[it.first] = simplify_box(it.second, env);
@@ -934,7 +906,6 @@ public:
         for (auto it : p) {
             provided[it.first] = simplify_box(it.second, env);
         }
-        IRVisitor::visit(op);
     }
 
     map<string, Box> required, provided;

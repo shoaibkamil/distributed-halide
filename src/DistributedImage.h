@@ -31,18 +31,6 @@ namespace Halide {
 
 namespace Internal {
 
-class GetBoxes : public IRVisitor {
-public:
-    using IRVisitor::visit;
-    virtual void visit(const For *op) {
-        map<string, Box> b = boxes_required(op);
-        boxes.insert(b.begin(), b.end());
-        IRVisitor::visit(op);
-    }
-
-    map<string, Box> boxes;
-};
-
 // Lower the given function enough to get bounds information on
 // input buffers with respect to rank and number of MPI
 // processors.
@@ -175,7 +163,7 @@ public:
         internal_assert(!mins.empty());
         Expr g = simplify(mins[dim] + c);
         const int *result = as_const_int(g);
-        internal_assert(result != NULL);
+        internal_assert(result != NULL) << g;
         return *result;
     }
 
