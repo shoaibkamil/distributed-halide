@@ -995,6 +995,7 @@ void distribute_loops_test() {
         Scope<Expr> testenv;
         testenv.push("Rank", 0);
         testenv.push("SliceSize", slice_size);
+        testenv.push("NumProcessors", numprocs);
         testenv.push(f.name() + ".s0.x.min", 0);
         testenv.push(f.name() + ".s0.x.max", w-1);
         {
@@ -1049,6 +1050,7 @@ void distribute_loops_test() {
         Scope<Expr> testenv;
         testenv.push("Rank", Var("r"));
         testenv.push("SliceSize", slice_size);
+        testenv.push("NumProcessors", numprocs);
         testenv.push(f.name() + ".s0.x.min", 0);
         testenv.push(f.name() + ".s0.x.max", w-1);
 

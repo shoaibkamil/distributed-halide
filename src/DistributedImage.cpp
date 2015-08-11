@@ -10,18 +10,16 @@ namespace Internal {
 
 namespace {
 
-class ReplaceVariable : public IRMutator {
-    string name;
-    Expr value;
+class ReplaceVariables : public IRMutator {
+    const Scope<Expr> &replacements;
 public:
-    ReplaceVariable(const string &n, Expr v) :
-        name(n), value(v) {}
+    ReplaceVariables(const Scope<Expr> &r) : replacements(r) {}
 
     using IRMutator::visit;
     void visit(const Variable *op) {
         IRMutator::visit(op);
-        if (op->name == name) {
-            expr = value;
+        if (replacements.contains(op->name)) {
+            expr = mutate(replacements.get(op->name));
         }
     }
 };
@@ -30,13 +28,10 @@ public:
 // to value.
 Box simplify_box(const Box &b, const Scope<Expr> &env) {
     Box result(b.size());
+    ReplaceVariables replace(env);
     for (unsigned i = 0; i < b.size(); i++) {
-        Expr min = b[i].min, max = b[i].max;
-        for (auto it = env.cbegin(), ite = env.cend(); it != ite; ++it) {
-            ReplaceVariable replace(it.name(), it.value());
-            min = replace.mutate(min);
-            max = replace.mutate(max);
-        }
+        Expr min = replace.mutate(b[i].min),
+            max = replace.mutate(b[i].max);
         result[i] = Interval(simplify(min), simplify(max));
     }
     return result;
@@ -101,15 +96,14 @@ vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
     MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
     const Box &b = get.boxes.begin()->second;
     for (int i = 0; i < (int)b.size(); i++) {
-        Expr slice_size = cast(Int(32), ceil(cast(Float(32), full_extents[i]) / num_processors));
         Expr sz = b[i].max - b[i].min + 1;
         symbolic_extents.push_back(sz);
         symbolic_mins.push_back(b[i].min);
-        sz = simplify(Let::make("Rank", rank, Let::make("SliceSize", slice_size, sz)));
+        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL) << sz;
         bounds.push_back(*dim);
-        mins.push_back(simplify(Let::make("Rank", rank, Let::make("SliceSize", slice_size, b[i].min))));
+        mins.push_back(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min))));
     }
     return bounds;
 }
