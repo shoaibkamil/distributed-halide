@@ -495,20 +495,30 @@ Stmt copy_on_node_data(const map<string, Box> &required,
         const string &name = it.first;
         const AbstractBuffer &in = inputs.at(name);
         const Box &have = in.bounds();
+        const Box &need = it.second;
 
-        // TODO: may have to copy to destination offset other than 0
-        // TODO: may have to copy multidim buffers by contiguous
-        // section, as the destination buffer may have a different
-        // shape (strides).
+        BoxIntersection I(have, need);
+        vector<Expr> offset_have, offset_need;
+        for (unsigned i = 0; i < have.size(); i++) {
+            offset_have.push_back(have[i].min);
+            offset_need.push_back(need[i].min);
+        }
+        Box dest_box = offset_box(I.box(), offset_need);
+        Box src_box = offset_box(I.box(), offset_have);
+        Expr destoff = dest_box[0].min, srcoff = src_box[0].min;
+        Expr destoffbytes = destoff * in.elem_size(), srcoffbytes = srcoff * in.elem_size();
+        Expr dest = address_of(in.extended_name(), destoffbytes), src = address_of(in.name(), srcoffbytes);
+        Expr numbytes = in.size_of(dest_box);
 
-        //internal_assert(have.size() == 1);
-        Expr dest = address_of(in.extended_name(), 0), src = address_of(in.name(), 0);
-        Expr numbytes = in.size_of(have);
         if (copy.defined()) {
             copy = Block::make(copy, copy_memory(dest, src, numbytes));
         } else {
             copy = copy_memory(dest, src, numbytes);
         }
+        // if (copy.defined()) {
+        //     copy = Block::make(copy, pack_region(Unpack, in.name(), in, dest_box));
+        // } else {
+        //     copy = pack_region(Unpack, in.name(), in, dest_box);
     }
     return copy;
 }
