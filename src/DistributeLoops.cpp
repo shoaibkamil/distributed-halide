@@ -59,18 +59,22 @@ Box offset_box(const Box &b, const vector<Expr> &offset) {
     return result;
 }
 
-class ReplaceVariable : public IRMutator {
-    string name;
-    Expr value;
+class ReplaceVariables : public IRMutator {
+    const Scope<Expr> &replacements;
+    set<string> visited;
 public:
-    ReplaceVariable(const string &n, Expr v) :
-        name(n), value(v) {}
+    ReplaceVariables(const Scope<Expr> &r) : replacements(r) {}
 
     using IRMutator::visit;
     void visit(const Variable *op) {
         IRMutator::visit(op);
-        if (op->name == name) {
-            expr = value;
+        if (replacements.contains(op->name)) {
+            if (visited.count(op->name)) {
+                expr = replacements.get(op->name);
+            } else {
+                visited.insert(op->name);
+                expr = mutate(replacements.get(op->name));
+            }
         }
     }
 };
@@ -79,13 +83,10 @@ public:
 // to value.
 Box simplify_box(const Box &b, const Scope<Expr> &env) {
     Box result(b.size());
+    ReplaceVariables replace(env);
     for (unsigned i = 0; i < b.size(); i++) {
-        Expr min = b[i].min, max = b[i].max;
-        for (auto it = env.cbegin(), ite = env.cend(); it != ite; ++it) {
-            ReplaceVariable replace(it.name(), it.value());
-            min = replace.mutate(min);
-            max = replace.mutate(max);
-        }
+        Expr min = replace.mutate(b[i].min),
+            max = replace.mutate(b[i].max);
         result[i] = Interval(min, max);
     }
     return result;
@@ -955,7 +956,7 @@ map<string, AbstractBuffer> func_input_buffers(Func f) {
 
 int expr2int(Expr e) {
     const int *result = as_const_int(simplify(e));
-    internal_assert(result != NULL);
+    internal_assert(result != NULL) << e;
     return *result;
 }
 
