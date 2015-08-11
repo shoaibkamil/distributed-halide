@@ -542,39 +542,42 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     // extended buffer counts from 0). This just means subtracting the
     // min global coordinate from the intersection bounds (which are
     // also global) to get a local coordinate starting from 0.
-    vector<Expr> offset;
+    vector<Expr> offset_have, offset_need;
+    internal_assert(have.size() == need.size());
     for (unsigned i = 0; i < have.size(); i++) {
-        offset.push_back(have[i].min);
+        offset_have.push_back(have[i].min);
+        offset_need.push_back(need[i].min);
     }
-    Box localI = offset_box(I.box(), offset);
+    Box local_have = offset_box(I.box(), offset_have),
+        local_need = offset_box(I.box(), offset_need);
 
     switch (cmd) {
     case Send:
-        if (localI.size() == 1) {
-            addr = address_of(buf.name(), localI[0].min * buf.elem_size());
+        if (local_have.size() == 1) {
+            addr = address_of(buf.name(), local_have[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("r"))));
         } else {
-            Stmt pack = pack_region(Pack, scratch_name, buf, localI);
+            Stmt pack = pack_region(Pack, scratch_name, buf, local_have);
             addr = address_of(scratch_name, 0);
             commstmt = IfThenElse::make(cond, Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r")))));
         }
         break;
     case Recv:
-        if (I.box().size() == 1) {
-            addr = address_of(buf.extended_name(), localI[0].min * buf.elem_size());
+        if (local_need.size() == 1) {
+            addr = address_of(buf.extended_name(), local_need[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("r"))));
         } else {
-            Stmt unpack = pack_region(Unpack, scratch_name, buf, localI);
+            Stmt unpack = pack_region(Unpack, scratch_name, buf, local_need);
             addr = address_of(scratch_name, 0);
             commstmt = IfThenElse::make(cond, Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack));
         }
         break;
     }
-    commstmt = LetStmt::make("msgsize", buf.size_of(I.box()), commstmt);
     // TODO: we have to allocate the communication buffer inside the
     // loop because the size of the intersection depends on "r". Can
     // we do something smarter?
-    commstmt = allocate_scratch(scratch_name, buf.type(), localI, commstmt);
+    commstmt = LetStmt::make("msgsize", buf.size_of(I.box()), commstmt);
+    commstmt = allocate_scratch(scratch_name, buf.type(), I.box(), commstmt);
     commstmt = For::make("r", 0, Var("NumProcessors"), ForType::Serial, DeviceAPI::Host, commstmt);
     return commstmt;
 }
@@ -1151,6 +1154,23 @@ void distribute_loops_test() {
             Box intersection = simplify_box(TI.box(), testenv);
             internal_assert(intersection[0] == Interval(10, 10));
             internal_assert(expr2int(buf.size_of(intersection)) == 4);
+
+            // Local intersection for rank 0 is index 10:
+            vector<Expr> offset;
+            for (unsigned i = 0; i < have.size(); i++) {
+                offset.push_back(have[i].min);
+            }
+            Box offsetI = offset_box(intersection, offset);
+            Box localI = simplify_box(offsetI, testenv);
+            internal_assert(localI[0] == Interval(10, 10));
+
+            // Local intersection for rank 1 is index 0:
+            for (unsigned i = 0; i < need.size(); i++) {
+                offset[i] = need[i].min;
+            }
+            offsetI = offset_box(intersection, offset);
+            localI = simplify_box(offsetI, testenv);
+            internal_assert(localI[0] == Interval(0, 0));
         }
     }
 
