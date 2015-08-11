@@ -84,7 +84,7 @@ Stmt partial_lower(Func f) {
 
 vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
                               vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
-                              vector<Expr> &mins) {
+                              vector<int> &mins) {
     vector<int> bounds;
     Stmt s = partial_lower(f);
     GetBoxes get;
@@ -103,7 +103,9 @@ vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL) << sz;
         bounds.push_back(*dim);
-        mins.push_back(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min))));
+        const int *min = as_const_int(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min))));
+        internal_assert(min != NULL);
+        mins.push_back(*min);
     }
     return bounds;
 }

@@ -37,7 +37,7 @@ namespace Internal {
 Stmt partial_lower(Func f);
 vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
                               vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
-                              vector<Expr> &mins);
+                              vector<int> &mins);
 
 }
 
@@ -46,7 +46,7 @@ class DistributedImage {
     vector<int> full_extents;
     vector<int> local_extents;
     vector<Expr> symbolic_extents, symbolic_mins;
-    vector<Expr> mins;
+    vector<int> mins;
     ImageParam param;
     Image<T> image;
     Func wrapper;
@@ -161,30 +161,21 @@ public:
      * to the local coordinate value c. */
     int global(int dim, int c) const {
         internal_assert(!mins.empty());
-        Expr g = simplify(mins[dim] + c);
-        const int *result = as_const_int(g);
-        internal_assert(result != NULL) << g;
-        return *result;
+        return mins[dim] + c;
     }
 
     /** Return the local coordinate of dimension 'dim' corresponding
      * to the global coordinate value c. */
     int local(int dim, int c) const {
         internal_assert(!mins.empty());
-        Expr g = simplify(c - mins[dim]);
-        const int *result = as_const_int(g);
-        internal_assert(result != NULL);
-        return *result;
+        return c - mins[dim];
     }
 
     /** Return true if the global x coordinate resides on this
      * rank. */
     bool mine(int x) const {
         internal_assert(!mins.empty() && !local_extents.empty());
-        const int *min = as_const_int(simplify(mins[0]));
-        internal_assert(min != NULL);
-        int max = *min + local_extents[0];
-        return x >= *min && x < max;
+        return x >= mins[0] && x < (mins[0] + local_extents[0]);
     }
 
     /** Get a pointer to the element at the min location. */
