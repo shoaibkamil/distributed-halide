@@ -61,7 +61,6 @@ Box offset_box(const Box &b, const vector<Expr> &offset) {
 
 class ReplaceVariables : public IRMutator {
     const Scope<Expr> &replacements;
-    set<string> visited;
 public:
     ReplaceVariables(const Scope<Expr> &r) : replacements(r) {}
 
@@ -69,12 +68,7 @@ public:
     void visit(const Variable *op) {
         IRMutator::visit(op);
         if (replacements.contains(op->name)) {
-            if (visited.count(op->name)) {
-                expr = replacements.get(op->name);
-            } else {
-                visited.insert(op->name);
-                expr = mutate(replacements.get(op->name));
-            }
+            expr = mutate(replacements.get(op->name));
         }
     }
 };
@@ -736,8 +730,8 @@ public:
                 oldmax = distributed_bounds.at(loop_var + ".loop_max"),
                 oldextent = distributed_bounds.at(loop_var + ".loop_extent");
             Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / Var("NumProcessors")));
-            Expr newmin = oldmin + Var("SliceSize") * Var("Rank"),
-                newmax = newmin + Var("SliceSize") - 1;
+            Expr newmin = oldmin + Var(loop_var + ".SliceSize") * Var("Rank"),
+                newmax = newmin + Var(loop_var + ".SliceSize") - 1;
             // Make sure we don't run over old max.
             Expr newextent = min(newmax, oldmax) - newmin + 1;
             bool insert_sz = !slice_size_inserted.count(loop_var);
@@ -752,7 +746,7 @@ public:
                 internal_assert(false) << let->name;
             }
             if (insert_sz) {
-                stmt = LetStmt::make("SliceSize", slice_size, stmt);
+                stmt = LetStmt::make(loop_var + ".SliceSize", slice_size, stmt);
             }
         } else {
             IRMutator::visit(let);
@@ -995,10 +989,11 @@ void distribute_loops_test() {
 
         Scope<Expr> testenv;
         testenv.push("Rank", 0);
-        testenv.push("SliceSize", slice_size);
         testenv.push("NumProcessors", numprocs);
+        testenv.push(f.name() + ".s0.x.SliceSize", slice_size);
         testenv.push(f.name() + ".s0.x.min", 0);
         testenv.push(f.name() + ".s0.x.max", w-1);
+
         {
             testenv.ref("Rank") = 0;
             Box have_concrete = simplify_box(have, testenv);
@@ -1039,7 +1034,6 @@ void distribute_loops_test() {
         Func f("f");
         f(x) = in(x) + 1;
         f.compute_root().distribute(x);
-
         map<string, Box> boxes_provided = func_boxes_provided(f),
             boxes_required = func_boxes_required(f);
         map<string, AbstractBuffer> inputs = func_input_buffers(f);
@@ -1050,14 +1044,16 @@ void distribute_loops_test() {
 
         Scope<Expr> testenv;
         testenv.push("Rank", Var("r"));
-        testenv.push("SliceSize", slice_size);
         testenv.push("NumProcessors", numprocs);
+        testenv.push(f.name() + ".s0.x.SliceSize", slice_size);
         testenv.push(f.name() + ".s0.x.min", 0);
         testenv.push(f.name() + ".s0.x.max", w-1);
 
         Box need = simplify_box(req, testenv);
-        testenv.ref("Rank") = Var("Rank");
+        testenv.pop("Rank");
         Box have = simplify_box(b, testenv);
+        testenv.push("Rank", 0);
+
         {
             testenv.ref("Rank") = 0;
             testenv.push("r", 0);
