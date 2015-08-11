@@ -1172,6 +1172,69 @@ void distribute_loops_test() {
             localI = simplify_box(offsetI, testenv);
             internal_assert(localI[0] == Interval(0, 0));
         }
+
+        // Now test have/need of the input buffer to function f.
+        testenv.pop("r");
+        testenv.ref("Rank") = Var("r");
+        need = simplify_box(boxes_required.at(in.name()), testenv);
+        testenv.pop("Rank");
+        have = simplify_box(inputs.at(in.name()).bounds(), testenv);
+        testenv.push("Rank", 0);
+
+        {
+            testenv.ref("Rank") = 0;
+            testenv.push("r", 0);
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(0, 9));
+            internal_assert(need_concrete[0] == Interval(0, 11));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            testenv.ref("r") = 1;
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(10, 19));
+            // Note the overlap: this means both rank 0 and rank 1
+            // need index 11 of the input.
+            internal_assert(need_concrete[0] == Interval(11, 19));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            testenv.ref("r") = 0;
+            BoxIntersection TI(have, need);
+            // What rank 1 has and rank 0 needs (index 10 and 11).
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(10, 11));
+            internal_assert(expr2int(buf.size_of(intersection)) == 8);
+
+            // Local intersection for rank 1 is index 0 and 1:
+            vector<Expr> offset;
+            for (unsigned i = 0; i < have.size(); i++) {
+                offset.push_back(have[i].min);
+            }
+            Box offsetI = offset_box(intersection, offset);
+            Box localI = simplify_box(offsetI, testenv);
+            internal_assert(localI[0] == Interval(0, 1));
+
+            // Local intersection for rank 0 is index 10 and 11:
+            for (unsigned i = 0; i < need.size(); i++) {
+                offset[i] = need[i].min;
+            }
+            offsetI = offset_box(intersection, offset);
+            localI = simplify_box(offsetI, testenv);
+            internal_assert(localI[0] == Interval(10, 11));
+        }
+        {
+            BoxIntersection TI(have, need);
+            testenv.ref("Rank") = 0;
+            testenv.ref("r") = 1;
+            // What rank 0 has and rank 1 needs (nothing):
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(11, 9));
+            // -4 size is ok: we test for size > 0 to determine empty intersections.
+            internal_assert(expr2int(buf.size_of(intersection)) == -4);
+        }
     }
 
     std::cout << "Distribute loops internal test passed" << std::endl;
