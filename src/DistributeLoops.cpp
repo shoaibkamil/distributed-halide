@@ -945,6 +945,8 @@ map<string, AbstractBuffer> func_input_buffers(Func f) {
     Stmt s = partial_lower(f);
     GetPipelineInputs getio;
     s.accept(&getio);
+    SetInputBufferBounds setb(getio.inputs);
+    s.accept(&setb);
     return getio.inputs;
 }
 
@@ -965,7 +967,6 @@ bool operator==(const Interval &a, const Interval &b) {
 void distribute_loops_test() {
     const int w = 20;
     const int numprocs = 2;
-    const int slice_size = w/numprocs;
     Func clamped("clamped");
     Var x("x");
     DistributedImage<int> in(w, "in");
@@ -990,7 +991,6 @@ void distribute_loops_test() {
         Scope<Expr> testenv;
         testenv.push("Rank", 0);
         testenv.push("NumProcessors", numprocs);
-        testenv.push(f.name() + ".s0.x.SliceSize", slice_size);
         testenv.push(f.name() + ".s0.x.min", 0);
         testenv.push(f.name() + ".s0.x.max", w-1);
 
@@ -1045,7 +1045,6 @@ void distribute_loops_test() {
         Scope<Expr> testenv;
         testenv.push("Rank", Var("r"));
         testenv.push("NumProcessors", numprocs);
-        testenv.push(f.name() + ".s0.x.SliceSize", slice_size);
         testenv.push(f.name() + ".s0.x.min", 0);
         testenv.push(f.name() + ".s0.x.max", w-1);
 
@@ -1087,6 +1086,71 @@ void distribute_loops_test() {
             Box intersection = simplify_box(TI.box(), testenv);
             internal_assert(intersection[0] == Interval(10, 9));
             internal_assert(expr2int(buf.size_of(intersection)) == 0);
+        }
+    }
+
+    {
+        Func f("f"), g("g");
+        f(x) = clamped(x) + clamped(x+1);
+        g(x) = f(x) + f(x+1);
+        f.compute_root().distribute(x);
+        g.compute_root().distribute(x);
+
+        map<string, Box> boxes_provided = func_boxes_provided(g),
+            boxes_required = func_boxes_required(g);
+        map<string, AbstractBuffer> inputs = func_input_buffers(g);
+
+        const AbstractBuffer &buf = inputs.at(f.name());
+        const Box &b = buf.bounds();
+        const Box &req = boxes_required.at(f.name());
+
+
+        Scope<Expr> testenv;
+        testenv.push("Rank", Var("r"));
+        testenv.push("NumProcessors", numprocs);
+        testenv.push(g.name() + ".s0.x.min", 0);
+        testenv.push(g.name() + ".s0.x.max", w-1);
+        testenv.push(f.name() + ".s0.x.min", Var(g.name() + ".s0.x.min"));
+        testenv.push(f.name() + ".s0.x.max", Var(g.name() + ".s0.x.max") + 1);
+
+        Box need = simplify_box(req, testenv);
+        testenv.pop("Rank");
+        Box have = simplify_box(b, testenv);
+        testenv.push("Rank", 0);
+
+        {
+            testenv.ref("Rank") = 0;
+            testenv.push("r", 0);
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(0, 10));
+            internal_assert(need_concrete[0] == Interval(0, 10));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            testenv.ref("r") = 1;
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(11, 20));
+            internal_assert(need_concrete[0] == Interval(10, 20));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            testenv.ref("r") = 0;
+            BoxIntersection TI(have, need);
+            // What rank 1 has and rank 0 needs (nothing):
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(11, 10));
+            internal_assert(expr2int(buf.size_of(intersection)) == 0);
+        }
+        {
+            BoxIntersection TI(have, need);
+            testenv.ref("Rank") = 0;
+            testenv.ref("r") = 1;
+            // What rank 0 has and rank 1 needs (index 10):
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(10, 10));
+            internal_assert(expr2int(buf.size_of(intersection)) == 4);
         }
     }
 
