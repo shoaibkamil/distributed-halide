@@ -396,45 +396,42 @@ public:
 typedef enum { Pack, Unpack } PackCmd;
 // Construct a statement to pack/unpack the given box of the given buffer
 // to/from the contiguous scratch region of memory with the given name.
-Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &buffer, const Box &b, Box bufshape=Box()) {
+Stmt pack_region(PackCmd cmd, Type t, const string &scratch_name, const string &buffer_name, const Box &buffer_shape, const Box &b) {
     internal_assert(b.size() > 0);
     vector<Var> dims;
     for (unsigned i = 0; i < b.size(); i++) {
-        dims.push_back(Var(buffer.name() + "_dim" + std::to_string(i)));
-    }
-    if (bufshape.empty()) {
-        bufshape = buffer.bounds();
+        dims.push_back(Var(buffer_name + "_dim" + std::to_string(i)));
     }
 
     // Construct src/dest pointer expressions as expressions in
     // terms of the box dimension variables.
-    Expr bufferoffset = b[0].min * buffer.elem_size(), scratchoffset = 0;
+    Expr bufferoffset = b[0].min * t.bytes(), scratchoffset = 0;
     Expr scratchstride = b[0].max - b[0].min + 1,
-        bufferstride = bufshape[0].max - bufshape[0].min + 1;
+        bufferstride = buffer_shape[0].max - buffer_shape[0].min + 1;
     for (unsigned i = 1; i < b.size(); i++) {
         Expr extent = b[i].max - b[i].min + 1;
         Expr dim = dims[i];
-        bufferoffset += (dim + b[i].min) * bufferstride * buffer.elem_size();
-        scratchoffset += dim * scratchstride * buffer.elem_size();
+        bufferoffset += (dim + b[i].min) * bufferstride * t.bytes();
+        scratchoffset += dim * scratchstride * t.bytes();
         scratchstride *= extent;
-        bufferstride *= bufshape[i].max - bufshape[i].min + 1;
+        bufferstride *= buffer_shape[i].max - buffer_shape[i].min + 1;
     }
 
     // Construct loop nest to copy each contiguous row.  TODO:
     // ensure this nesting is in the correct row/column major
     // order.
-    Expr rowsize = (b[0].max - b[0].min + 1) * buffer.elem_size();
+    Expr rowsize = (b[0].max - b[0].min + 1) * t.bytes();
     Expr bufferaddr;
     Expr scratchaddr = address_of(scratch_name, scratchoffset);
 
     Stmt copyloop;
     switch (cmd) {
     case Pack:
-        bufferaddr = address_of(buffer.name(), bufferoffset);
+        bufferaddr = address_of(buffer_name, bufferoffset);
         copyloop = copy_memory(scratchaddr, bufferaddr, rowsize);
         break;
     case Unpack:
-        bufferaddr = address_of(buffer.extended_name(), bufferoffset);
+        bufferaddr = address_of(buffer_name, bufferoffset);
         copyloop = copy_memory(bufferaddr, scratchaddr, rowsize);
         break;
     }
@@ -584,7 +581,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
             addr = address_of(buf.name(), local_have[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("r"))));
         } else {
-            Stmt pack = pack_region(Pack, scratch_name, buf, local_have);
+            Stmt pack = pack_region(Pack, buf.type(), scratch_name, buf.name(), buf.bounds(), local_have);
             addr = address_of(scratch_name, 0);
             commstmt = IfThenElse::make(cond, Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r")))));
         }
@@ -594,7 +591,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
             addr = address_of(buf.extended_name(), local_need[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("r"))));
         } else {
-            Stmt unpack = pack_region(Unpack, scratch_name, buf, local_need, need);
+            Stmt unpack = pack_region(Unpack, buf.type(), scratch_name, buf.extended_name(), need, local_need);
             addr = address_of(scratch_name, 0);
             commstmt = IfThenElse::make(cond, Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack));
         }
