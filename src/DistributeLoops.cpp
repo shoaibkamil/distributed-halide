@@ -834,6 +834,7 @@ public:
 // loops have been distributed, otherwise the bounds set will be
 // global values.
 class SetInputBufferBounds : public IRVisitor {
+    set<string> done;
 public:
     Scope<Expr> env;
     map<string, AbstractBuffer> &inputs;
@@ -859,7 +860,10 @@ public:
             if (inputs.find(it.first) != inputs.end()) {
                 AbstractBuffer &buf = inputs.at(it.first);
                 internal_assert(buf.buffer_type() != AbstractBuffer::Image);
-                buf.set_bounds(simplify_box(it.second, env));
+                if (!done.count(buf.name())) {
+                    buf.set_bounds(simplify_box(it.second, env));
+                    done.insert(buf.name());
+                }
             }
         }
         IRVisitor::visit(for_loop);
