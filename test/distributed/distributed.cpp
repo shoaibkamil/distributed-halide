@@ -370,39 +370,46 @@ int main(int argc, char **argv) {
     //     }
     // }
 
-    // {
-    //     Image<int> in(10, 20, 30);
+    {
+        DistributedImage<int> in(10, 20, 30);
+        in.set_domain(x, y, z);
+        in.placement().distribute(z);
+        in.allocate();
 
-    //     for (int z = 0; z < in.channels(); z++) {
-    //         for (int y = 0; y < in.height(); y++) {
-    //             for (int x = 0; x < in.width(); x++) {
-    //                 in(x, y, z) = x + y + z;
-    //             }
-    //         }
-    //     }
+        for (int z = 0; z < in.channels(); z++) {
+            for (int y = 0; y < in.height(); y++) {
+                for (int x = 0; x < in.width(); x++) {
+                    int gx = in.global(0, x), gy = in.global(1, y), gz = in.global(2, z);
+                    in(x, y, z) = gx + gy + gz;
+                }
+            }
+        }
 
-    //     Func f, g;
-    //     f(x, y, z) = 2 * in(x, y, z);
-    //     g(x, y, z) = 2 * f(x, y, z);
-    //     f.compute_root();
-    //     g.distribute(z);
+        Func f, g;
+        f(x, y, z) = 2 * in(x, y, z);
+        g(x, y, z) = 2 * f(x, y, z);
+        f.compute_root().distribute(z);
+        g.distribute(z);
 
-    //     Image<int> out = g.realize(10, 20, 30);
-    //     if (rank == 0) {
-    //         for (int z = 0; z < out.channels(); z++) {
-    //             for (int y = 0; y < out.height(); y++) {
-    //                 for (int x = 0; x < out.width(); x++) {
-    //                     int correct = 4*(x+y+z);
-    //                     if (out(x,y,z) != correct) {
-    //                         mpi_printf("out(%d,%d,%d) = %d instead of %d\n", x, y, z, out(x,y,z), correct);
-    //                         MPI_Finalize();
-    //                         return -1;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+        DistributedImage<int> out(10, 20, 30);
+        out.set_domain(x, y, z);
+        out.placement().distribute(z);
+        out.allocate();
+        g.realize(out.get_buffer());
+        for (int z = 0; z < out.channels(); z++) {
+            for (int y = 0; y < out.height(); y++) {
+                for (int x = 0; x < out.width(); x++) {
+                    int gx = out.global(0, x), gy = out.global(1, y), gz = out.global(2, z);
+                    int correct = 4*(gx+gy+gz);
+                    if (out(x,y,z) != correct) {
+                        mpi_printf("out(%d,%d,%d) = %d instead of %d\n", x, y, z, out(x,y,z), correct);
+                        MPI_Finalize();
+                        return -1;
+                    }
+                }
+            }
+        }
+    }
 
     {
         DistributedImage<int> in(10, 20);
