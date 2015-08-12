@@ -426,23 +426,28 @@ public:
 typedef enum { Pack, Unpack } PackCmd;
 // Construct a statement to pack/unpack the given box of the given buffer
 // to/from the contiguous scratch region of memory with the given name.
-Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &buffer, const Box &b) {
+Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &buffer, const Box &b, Box bufshape=Box()) {
     internal_assert(b.size() > 0);
     vector<Var> dims;
     for (unsigned i = 0; i < b.size(); i++) {
         dims.push_back(Var(buffer.name() + "_dim" + std::to_string(i)));
     }
+    if (bufshape.empty()) {
+        bufshape = buffer.bounds();
+    }
 
     // Construct src/dest pointer expressions as expressions in
     // terms of the box dimension variables.
-    Expr bufferoffset = 0, scratchoffset = 0;
-    Expr scratchstride = b[0].max - b[0].min + 1;
+    Expr bufferoffset = b[0].min * buffer.elem_size(), scratchoffset = 0;
+    Expr scratchstride = b[0].max - b[0].min + 1,
+        bufferstride = bufshape[0].max - bufshape[0].min + 1;
     for (unsigned i = 1; i < b.size(); i++) {
         Expr extent = b[i].max - b[i].min + 1;
         Expr dim = dims[i];
-        bufferoffset += (dim + b[i].min) * buffer.stride(i) * buffer.elem_size();
+        bufferoffset += (dim + b[i].min) * bufferstride * buffer.elem_size();
         scratchoffset += dim * scratchstride * buffer.elem_size();
         scratchstride *= extent;
+        bufferstride *= bufshape[i].max - bufshape[i].min + 1;
     }
 
     // Construct loop nest to copy each contiguous row.  TODO:
@@ -463,8 +468,47 @@ Stmt pack_region(PackCmd cmd, const string &scratch_name, const AbstractBuffer &
         copyloop = copy_memory(bufferaddr, scratchaddr, rowsize);
         break;
     }
-    for (int i = b.size() - 1; i >= 1; i--) {
+    //for (int i = b.size() - 1; i >= 1; i--) {
+    for (int i = 1; i < (int)b.size(); i++) {
         copyloop = For::make(dims[i].name(), 0, b[i].max - b[i].min + 1,
+                             ForType::Serial, DeviceAPI::Host, copyloop);
+    }
+    return copyloop;
+}
+
+Stmt copy_box(Type t, const string &src_buffer, const Box &src_shape, const Box &src_box,
+              const string &dest_buffer, const Box &dest_shape, const Box &dest_box) {
+    internal_assert(src_box.size() == dest_box.size());
+    vector<Var> dims;
+    for (unsigned i = 0; i < src_box.size(); i++) {
+        dims.push_back(Var(src_buffer + "_dim" + std::to_string(i)));
+    }
+
+    // Construct src/dest pointer expressions as expressions in
+    // terms of the box dimension variables.
+    Expr destoffset = dest_box[0].min * t.bytes(),
+        srcoffset = src_box[0].min * t.bytes();
+    Expr srcstride = src_shape[0].max - src_shape[0].min + 1,
+        deststride = dest_shape[0].max - dest_shape[0].min + 1;
+    for (unsigned i = 1; i < dest_box.size(); i++) {
+        Expr dim = dims[i];
+        destoffset += (dim + dest_box[i].min) * deststride * t.bytes();
+        deststride *= dest_shape[i].max - dest_shape[i].min + 1;
+        srcoffset += (dim + src_box[i].min) * srcstride * t.bytes();
+        srcstride *= src_shape[i].max - src_shape[i].min + 1;
+    }
+
+    // Construct loop nest to copy each contiguous row.  TODO:
+    // ensure this nesting is in the correct row/column major
+    // order.
+    Expr rowsize = (dest_box[0].max - dest_box[0].min + 1) * t.bytes();
+    Expr destaddr = address_of(dest_buffer, destoffset);
+    Expr srcaddr = address_of(src_buffer, srcoffset);
+
+    Stmt copyloop = copy_memory(destaddr, srcaddr, rowsize);
+    // for (int i = dest_box.size() - 1; i >= 1; i--) {
+    for (int i = 1; i < (int)dest_box.size(); i++) {
+        copyloop = For::make(dims[i].name(), 0, dest_box[i].max - dest_box[i].min + 1,
                              ForType::Serial, DeviceAPI::Host, copyloop);
     }
     return copyloop;
@@ -505,20 +549,23 @@ Stmt copy_on_node_data(const map<string, Box> &required,
         }
         Box dest_box = offset_box(I.box(), offset_need);
         Box src_box = offset_box(I.box(), offset_have);
-        Expr destoff = dest_box[0].min, srcoff = src_box[0].min;
-        Expr destoffbytes = destoff * in.elem_size(), srcoffbytes = srcoff * in.elem_size();
-        Expr dest = address_of(in.extended_name(), destoffbytes), src = address_of(in.name(), srcoffbytes);
-        Expr numbytes = in.size_of(dest_box);
+        
+        Stmt s;
+        if (I.box().size() == 1) {
+            Expr destoff = dest_box[0].min, srcoff = src_box[0].min;
+            Expr destoffbytes = destoff * in.elem_size(), srcoffbytes = srcoff * in.elem_size();
+            Expr dest = address_of(in.extended_name(), destoffbytes), src = address_of(in.name(), srcoffbytes);
+            Expr numbytes = in.size_of(dest_box);
+            s = copy_memory(dest, src, numbytes);
+        } else {
+            s = copy_box(in.type(), in.name(), have, src_box, in.extended_name(), need, dest_box);
+        }
 
         if (copy.defined()) {
-            copy = Block::make(copy, copy_memory(dest, src, numbytes));
+            copy = Block::make(copy, s);
         } else {
-            copy = copy_memory(dest, src, numbytes);
+            copy = s;
         }
-        // if (copy.defined()) {
-        //     copy = Block::make(copy, pack_region(Unpack, in.name(), in, dest_box));
-        // } else {
-        //     copy = pack_region(Unpack, in.name(), in, dest_box);
     }
     return copy;
 }
@@ -577,7 +624,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
             addr = address_of(buf.extended_name(), local_need[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("r"))));
         } else {
-            Stmt unpack = pack_region(Unpack, scratch_name, buf, local_need);
+            Stmt unpack = pack_region(Unpack, scratch_name, buf, local_need, need);
             addr = address_of(scratch_name, 0);
             commstmt = IfThenElse::make(cond, Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack));
         }
