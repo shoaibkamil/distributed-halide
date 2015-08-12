@@ -146,13 +146,9 @@ public:
         internal_assert(btype == Image);
         internal_assert(buffer.defined());
         internal_assert(buffer.distributed());
-        Expr stride = 1;
         for (int i = 0; i < buffer.dimensions(); i++) {
             Expr min = buffer.local_min(i);
             Expr max = min + buffer.local_extent(i) - 1;
-            Expr extent = max - min + 1;
-            strides.push_back(stride);
-            stride *= extent;
             _bounds.push_back(Interval(min, max));
         }
     }
@@ -188,18 +184,6 @@ public:
             mins.resize(dim+1);
         }
         mins[dim] = min;
-    }
-
-    Expr stride(int dim) const {
-        internal_assert(dim >= 0 && dim < (int)strides.size());
-        return strides[dim];
-    }
-
-    void set_stride(int dim, Expr stride) {
-        if (dim >= (int)strides.size()) {
-            strides.resize(dim+1);
-        }
-        strides[dim] = stride;
     }
 
     Type type() const {
@@ -244,11 +228,7 @@ public:
         internal_assert(_bounds.empty());
         set_dimensions(b.size());
         _bounds = Box(b.size());
-        Expr stride = 1;
         for (unsigned i = 0; i < b.size(); i++) {
-            Expr extent = b[i].max - b[i].min + 1;
-            strides.push_back(stride);
-            stride *= extent;
             _bounds[i] = Interval(b[i].min, b[i].max);
         }
     }
@@ -259,7 +239,6 @@ private:
     int _dimensions;
     vector<Expr> mins;
     vector<Expr> extents;
-    vector<Expr> strides;
     Box _bounds;
 };
 
@@ -371,15 +350,6 @@ Expr recv(Expr address, Expr count, Expr rank) {
 Expr address_of(const string &buffer, Expr index) {
     Expr first_elem = Load::make(UInt(8), buffer, index, Buffer(), Parameter());
     return Call::make(Handle(), Call::address_of, {first_elem}, Call::Intrinsic);
-}
-
-// Return the (symbolic) address of the given buffer at the given
-// element index.
-Expr address_of(const AbstractBuffer &buffer, Expr index) {
-    // A load of UInt(8) will take an index in bytes; we are given
-    // an index in elements.
-    index *= buffer.elem_size();
-    return address_of(buffer.name(), index);
 }
 
 // Construct a statement to copy 'size' bytes from src to dest.
@@ -549,7 +519,7 @@ Stmt copy_on_node_data(const map<string, Box> &required,
         }
         Box dest_box = offset_box(I.box(), offset_need);
         Box src_box = offset_box(I.box(), offset_have);
-        
+
         Stmt s;
         if (I.box().size() == 1) {
             Expr destoff = dest_box[0].min, srcoff = src_box[0].min;
