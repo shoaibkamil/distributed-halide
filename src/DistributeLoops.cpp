@@ -764,8 +764,12 @@ public:
             Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / Var("NumProcessors")));
             Expr newmin = oldmin + Var(loop_var + ".SliceSize") * Var("Rank"),
                 newmax = newmin + Var(loop_var + ".SliceSize") - 1;
-            // Make sure we don't run over old max.
-            Expr newextent = min(newmax, oldmax) - newmin + 1;
+            // We don't cap the new extent to make sure it doesn't run
+            // over. That is because allocation bounds inference will
+            // allocate a buffer big enough for the entire slice,
+            // meaning the accesses will not be out of bounds, just
+            // full of garbage.
+            Expr newextent = newmax - newmin + 1;
             bool insert_sz = !slice_size_inserted.count(loop_var);
             slice_size_inserted.insert(loop_var);
             if (ends_with(let->name, ".loop_min")) {
