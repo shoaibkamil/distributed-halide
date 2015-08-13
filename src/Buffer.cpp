@@ -59,6 +59,16 @@ struct BufferContents {
         local_stride[1] = x_size_local;
         local_stride[2] = x_size_local*y_size_local;
         local_stride[3] = x_size_local*y_size_local*z_size_local;
+
+        // TODO: This is a bit of a hack. The proper way to do this
+        // would be to make StorageFlattening aware of distributed
+        // buffers so that it can use local strides instead of global
+        // strides. For now, this does the trick.
+        buf.stride[0] = local_stride[0];
+        buf.stride[1] = local_stride[1];
+        buf.stride[2] = local_stride[2];
+        buf.stride[3] = local_stride[3];
+
         local_min[0] = 0;
         local_min[1] = 0;
         local_min[2] = 0;

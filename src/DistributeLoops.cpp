@@ -525,7 +525,12 @@ Stmt copy_on_node_data(const map<string, Box> &required,
             Expr numbytes = in.size_of(dest_box);
             s = copy_memory(dest, src, numbytes);
         } else {
-            s = copy_box(in.type(), in.name(), have, src_box, in.extended_name(), need, dest_box);
+            // s = copy_box(in.type(), in.name(), have, src_box, in.extended_name(), need, dest_box);
+            string scratch_name = "scratch";
+            Stmt pack = pack_region(Pack, in.type(), scratch_name, in.name(), have, src_box);
+            Stmt unpack = pack_region(Unpack, in.type(), scratch_name, in.extended_name(), need, dest_box);
+            s = Block::make(pack, unpack);
+            s = allocate_scratch(scratch_name, in.type(), I.box(), s);
         }
 
         if (copy.defined()) {
