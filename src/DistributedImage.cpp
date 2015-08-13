@@ -66,7 +66,7 @@ public:
 };
 }
 
-Stmt partial_lower(Func f) {
+Stmt partial_lower(Func f, bool cap_extents) {
     Target t = get_target_from_environment();
     map<string, Function> env;
     vector<Function> outputs(1, f.function());
@@ -77,14 +77,14 @@ Stmt partial_lower(Func f) {
     vector<string> order = realization_order(outputs, env);
     Stmt s = schedule_functions(outputs, order, env, !t.has_feature(Target::NoAsserts));
     FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
-    s = distribute_loops_only(s);
+    s = distribute_loops_only(s, cap_extents);
     s = bounds_inference(s, outputs, order, env, func_bounds);
     return s;
 }
 
 vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
                               vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
-                              vector<int> &mins) {
+                              vector<int> &mins, vector<int> &capped_local_extents) {
     vector<int> bounds;
     Stmt s = partial_lower(f);
     GetBoxes get;
@@ -107,6 +107,20 @@ vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
         internal_assert(min != NULL);
         mins.push_back(*min);
     }
+
+    s = partial_lower(f, true);
+    GetBoxes get_capped;
+    s.accept(&get_capped);
+    internal_assert(get_capped.boxes.size() == 1);
+    const Box &b_capped = get_capped.boxes.begin()->second;
+    for (int i = 0; i < (int)b_capped.size(); i++) {
+        Expr sz = b_capped[i].max - b_capped[i].min + 1;
+        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
+        const int *dim = as_const_int(sz);
+        internal_assert(dim != NULL) << sz;
+        capped_local_extents.push_back(*dim);
+    }
+
     return bounds;
 }
 }

@@ -15,7 +15,7 @@ namespace Internal {
  * according to their MPI rank.
  */
 Stmt distribute_loops(Stmt);
-Stmt distribute_loops_only(Stmt s);
+Stmt distribute_loops_only(Stmt s, bool cap_extents);
 
 void distribute_loops_test();
 

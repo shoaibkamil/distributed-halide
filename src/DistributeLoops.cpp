@@ -752,7 +752,8 @@ class DistributeLoops : public IRMutator {
 public:
     set<string> slice_size_inserted;
     const map<string, Expr> &distributed_bounds;
-    DistributeLoops(const map<string, Expr> &bounds) : distributed_bounds(bounds) {}
+    bool cap_extents;
+    DistributeLoops(const map<string, Expr> &bounds, bool cap=false) : distributed_bounds(bounds), cap_extents(cap) {}
 
     using IRMutator::visit;
     void visit(const LetStmt *let) {
@@ -764,12 +765,14 @@ public:
             Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / Var("NumProcessors")));
             Expr newmin = oldmin + Var(loop_var + ".SliceSize") * Var("Rank"),
                 newmax = newmin + Var(loop_var + ".SliceSize") - 1;
-            // We don't cap the new extent to make sure it doesn't run
-            // over. That is because allocation bounds inference will
-            // allocate a buffer big enough for the entire slice,
-            // meaning the accesses will not be out of bounds, just
-            // full of garbage.
-            Expr newextent = newmax - newmin + 1;
+            // We by default don't cap the new extent to make sure it
+            // doesn't run over. That is because allocation bounds
+            // inference will allocate a buffer big enough for the
+            // entire slice, meaning the accesses will not be out of
+            // bounds, just full of garbage. The only time we cap the
+            // extents is for DistributedImage in order to know the
+            // non-garbage local extents.
+            Expr newextent = (cap_extents ? min(newmax, oldmax) : newmax) - newmin + 1;
             bool insert_sz = !slice_size_inserted.count(loop_var);
             slice_size_inserted.insert(loop_var);
             if (ends_with(let->name, ".loop_min")) {
@@ -893,10 +896,10 @@ public:
     }
 };
 
-Stmt distribute_loops_only(Stmt s) {
+Stmt distribute_loops_only(Stmt s, bool cap_extents) {
     FindDistributedLoops find;
     s.accept(&find);
-    return DistributeLoops(find.distributed_bounds).mutate(s);
+    return DistributeLoops(find.distributed_bounds, cap_extents).mutate(s);
 }
 
 Stmt distribute_loops(Stmt s) {

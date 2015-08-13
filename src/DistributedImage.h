@@ -34,17 +34,17 @@ namespace Internal {
 // Lower the given function enough to get bounds information on
 // input buffers with respect to rank and number of MPI
 // processors.
-Stmt partial_lower(Func f);
+Stmt partial_lower(Func f, bool cap_extents=false);
 vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
                               vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
-                              vector<int> &mins);
+                              vector<int> &mins, vector<int> &capped_local_extents);
 
 }
 
 template<typename T>
 class DistributedImage {
     vector<int> full_extents;
-    vector<int> local_extents;
+    vector<int> local_extents, capped_local_extents;
     vector<Expr> symbolic_extents, symbolic_mins;
     vector<int> mins;
     ImageParam param;
@@ -120,7 +120,8 @@ public:
      * jitting. */
     void allocate() {
         internal_assert(!image.defined());
-        local_extents = Internal::get_buffer_bounds(wrapper, full_extents, symbolic_extents, symbolic_mins, mins);
+        local_extents = Internal::get_buffer_bounds(wrapper, full_extents, symbolic_extents, symbolic_mins, mins,
+                                                    capped_local_extents);
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
         b.set_distributed(local_extents, symbolic_extents, symbolic_mins);
         param.set(b);
@@ -141,9 +142,10 @@ public:
     int global_height() const { return image.height(); }
     int global_channels() const { return image.channels(); }
 
-    int width() const { return local_extents[0]; }
-    int height() const { return local_extents[1]; }
-    int channels() const { return local_extents[2]; }
+    int extent(int dim) const { return capped_local_extents[dim]; }
+    int width() const { return capped_local_extents[0]; }
+    int height() const { return capped_local_extents[1]; }
+    int channels() const { return capped_local_extents[2]; }
 
     /** Return the global x coordinate corresponding to the local x
      * coordinate. */
