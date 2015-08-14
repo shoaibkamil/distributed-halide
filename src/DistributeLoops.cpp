@@ -286,6 +286,7 @@ class FindBuffersUsingVariable : public IRVisitor {
             arg.accept(&vars);
         }
         if (vars.names.count(name)) {
+            // These are the only two call types that can be buffer references.
             if (call->call_type == Call::Image) {
                 if (call->image.defined()) {
                     inputs.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::Image, call->image.name(), (Buffer)call->image));
@@ -295,8 +296,6 @@ class FindBuffersUsingVariable : public IRVisitor {
             } else if (call->call_type == Call::Halide) {
                 internal_assert(call->func.outputs() == 1);
                 inputs.push_back(AbstractBuffer(call->func.output_types()[0], AbstractBuffer::Halide, call->func.name()));
-            } else {
-                internal_assert(false) << "Unhandled call type.\n";
             }
 
         }
