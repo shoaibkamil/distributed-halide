@@ -20,12 +20,30 @@ int mpi_printf(const char *format, ...) {
     }
 }
 
+template <class T>
+void print_img1d(DistributedImage<T> &img) {
+    for (int x = 0; x < img.width(); x++) {
+        std::cout << std::setw(4) << img(x);
+    }
+    std::cout << "\n";
+}
+
+template <class T>
+void print_img2d(DistributedImage<T> &img) {
+    for (int y = 0; y < img.height(); y++) {
+        for (int x = 0; x < img.width(); x++) {
+            std::cout << std::setw(4) << img(x, y);
+        }
+        std::cout << "\n";
+    }
+}
+
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
 
-    int rank = 0;
+    int rank = 0, numprocs = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
+    MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
     //Internal::distribute_loops_test();
 
     // {
