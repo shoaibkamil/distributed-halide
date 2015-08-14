@@ -1157,6 +1157,8 @@ void distribute_loops_test() {
         testenv.push(f.name() + ".s0.x.min", Var(g.name() + ".s0.x.min"));
         testenv.push(f.name() + ".s0.x.max", Var(g.name() + ".s0.x.max") + 1);
 
+
+        // First test have/need of the f buffer to function g.
         Box need = simplify_box(req, testenv);
         testenv.pop("Rank");
         Box have = simplify_box(b, testenv);
@@ -1175,7 +1177,7 @@ void distribute_loops_test() {
             testenv.ref("r") = 1;
             Box have_concrete = simplify_box(have, testenv);
             Box need_concrete = simplify_box(need, testenv);
-            internal_assert(have_concrete[0] == Interval(11, 20));
+            internal_assert(have_concrete[0] == Interval(11, 21));
             internal_assert(need_concrete[0] == Interval(10, 20));
         }
         {
