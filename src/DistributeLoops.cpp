@@ -361,13 +361,14 @@ Stmt copy_memory(Expr dest, Expr src, Expr size) {
 class ChangeDistributedLoopBuffers : public IRMutator {
     string name, newname;
     const Box &box;
+    bool change_calls;
 public:
     using IRMutator::visit;
-    ChangeDistributedLoopBuffers(const string &n, const string &nn, const Box &b) :
-        name(n), newname(nn), box(b) {}
+    ChangeDistributedLoopBuffers(const string &n, const string &nn, const Box &b, bool c) :
+        name(n), newname(nn), box(b), change_calls(c) {}
 
     void visit(const Call *call) {
-        if (call->name == name) {
+        if (change_calls && call->name == name) {
             vector<Expr> newargs;
             for (unsigned i = 0; i < box.size(); i++) {
                 newargs.push_back(call->args[i] - box[i].min);
@@ -381,7 +382,7 @@ public:
     }
 
     void visit(const Provide *provide) {
-        if (provide->name == name) {
+        if (!change_calls && provide->name == name) {
             vector<Expr> newargs;
             for (unsigned i = 0; i < box.size(); i++) {
                 newargs.push_back(provide->args[i] - box[i].min);
@@ -651,14 +652,14 @@ Stmt update_io_buffers(Stmt loop, const map<string, Box> &required,
     for (const auto it : required) {
         const AbstractBuffer &in = inputs.at(it.first);
         const Box &b = it.second;
-        ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b);
+        ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b, true);
         loop = change.mutate(loop);
     }
 
     for (const auto it : provided) {
         const string &name = it.first;
         const Box &b = it.second;
-        ChangeDistributedLoopBuffers change(name, name, b);
+        ChangeDistributedLoopBuffers change(name, name, b, false);
         loop = change.mutate(loop);
     }
     return loop;
