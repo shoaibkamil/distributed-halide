@@ -827,7 +827,8 @@ public:
     void visit(const For *for_loop) {
         if (for_loop->for_type == ForType::Distributed) {
             for (auto it = env.begin(), ite = env.end(); it != ite; ++it) {
-                if (starts_with(it.name(), for_loop->name)) {
+                string prefix = for_loop->name + ".";
+                if (starts_with(it.name(), prefix)) {
                     distributed_bounds[it.name()] = it.value();
                 }
             }
