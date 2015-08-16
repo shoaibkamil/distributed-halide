@@ -111,7 +111,7 @@ Stmt lower(const vector<Function> &outputs, const Target &t, const vector<IRMuta
     // that inferred bounds are in terms of processor rank.
     if (t.has_feature(Target::MPI)) {
         debug(1) << "Converting distributed for loops to MPI calls...\n";
-        s = distribute_loops(s);
+        s = distribute_loops(s, env);
         debug(2) << "Lowering after converting distributed for loops:\n" << s << "\n\n";
     }
 

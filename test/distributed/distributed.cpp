@@ -510,6 +510,59 @@ int main(int argc, char **argv) {
     }
 
     {
+        DistributedImage<int> in(11, 113);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
+
+        Expr clamped_x = clamp(x, 0, in.global_width()-1),
+            clamped_y = clamp(y, 0, in.global_height()-1);
+        Func clamped;
+        clamped(x, y) = in(clamped_x, clamped_y);
+        Func blurx, blury;
+        blurx(x, y) = (clamped(x-1, y) + clamped(x, y) + clamped(x+1, y)) / 3;
+        blury(x, y) = (blurx(x, y-1) + blurx(x, y) + blurx(x, y+1)) / 3;
+
+        // First tile, then fuse the tile indices and distribute
+        // across the tiles.
+        Var x_outer, y_outer, x_inner, y_inner, tile_index;
+        blurx.tile(x, y, x_outer, y_outer, x_inner, y_inner, 2, 2);
+        blurx.fuse(x_outer, y_outer, tile_index);
+        blurx.compute_root().distribute(tile_index);
+        blury.distribute(y);
+
+        DistributedImage<int> out(11, 113);
+        out.set_domain(x, y);
+        out.placement().distribute(y);
+        out.allocate();
+        blury.realize(out.get_buffer());
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                const int xmax = out.global_width() - 1, ymax = out.global_height() - 1;
+                const int gxp1 = out.global(0, x+1) >= xmax ? xmax : out.global(0, x+1),
+                    gxm1 = out.global(0, x) == 0 ? 0 : out.global(0, x-1);
+                const int gyp1 = out.global(1, y+1) >= ymax ? ymax : out.global(1, y+1),
+                    gym1 = out.global(1, y) == 0 ? 0 : out.global(1, y-1);
+                const int gx = out.global(0, x), gy = out.global(1, y);
+                const int correct = (((gxm1 + gym1 + gx + gym1 + gxp1 + gym1)/3) +
+                                     ((gxm1 + gy + gx + gy + gxp1 + gy)/3) +
+                                     ((gxm1 + gyp1 + gx + gyp1 + gxp1 + gyp1)/3)) / 3;
+                if (out(x, y) != correct) {
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
+                    MPI_Finalize();
+                    return -1;
+                }
+            }
+        }
+    }
+
+    {
         DistributedImage<int> in(20);
         in.set_domain(x);
         in.placement().distribute(x);

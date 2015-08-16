@@ -32,6 +32,9 @@ using std::set;
 using std::map;
 
 namespace {
+const bool trace_have_needs = false;
+const bool trace_provides = false;
+
 // Return a string representation of the given box.
 string box2str(const Box &b) {
     std::stringstream mins, maxs;
@@ -386,7 +389,16 @@ public:
             for (unsigned i = 0; i < box.size(); i++) {
                 newargs.push_back(provide->args[i] - box[i].min);
             }
-            stmt = Provide::make(newname, provide->values, newargs);
+            Stmt newprovide = Provide::make(newname, provide->values, newargs);
+            if (trace_provides) {
+                Stmt p = Evaluate::make(print_when(rank() == 0, {string("rank"), rank(),
+                                string("providing to"), provide->name,
+                                string("global ["), provide->args[0], provide->args[1], string("],"),
+                                string("local ["), newargs[0], newargs[1], string("] ="),
+                                provide->values[0]}));
+                newprovide = Block::make(p, newprovide);
+            }
+            stmt = newprovide;
         } else {
             IRMutator::visit(provide);
         }
@@ -531,6 +543,24 @@ Stmt copy_on_node_data(const map<string, Box> &required,
             Stmt unpack = pack_region(Unpack, in.type(), scratch_name, in.extended_name(), need, dest_box);
             s = Block::make(pack, unpack);
             s = allocate_scratch(scratch_name, in.type(), I.box(), s);
+        }
+
+        if (trace_have_needs) {
+            Stmt p = Evaluate::make(print_when(rank() == 0, {string("rank"), rank(),
+                            string("buffer " + in.name() + " bounds"),
+                            have[0].max - have[0].min + 1, string("x"), have[1].max - have[1].min + 1, string("\n"),
+                            string("buffer " + in.extended_name() + " bounds"),
+                            need[0].max - need[0].min + 1, string("x"), need[1].max - need[1].min + 1, string("\n"),
+                            string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
+                            string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
+                            string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
+                            string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max,
+                            string("\n   src_box[0].min ="), src_box[0].min, string("src_box[0].max ="), src_box[0].max,
+                            string("\n   src_box[1].min ="), src_box[1].min, string("src_box[1].max ="), src_box[1].max,
+                            string("\n   dest_box[0].min ="), dest_box[0].min, string("dest_box[0].max ="), dest_box[0].max,
+                            string("\n   dest_box[1].min ="), dest_box[1].min, string("dest_box[1].max ="), dest_box[1].max
+                            }));
+            s = Block::make(p, s);
         }
 
         if (copy.defined()) {
@@ -752,17 +782,46 @@ class DistributeLoops : public IRMutator {
 public:
     set<string> slice_size_inserted;
     const map<string, Expr> &distributed_bounds;
+    const std::map<std::string, Function> &env;
     bool cap_extents;
-    DistributeLoops(const map<string, Expr> &bounds, bool cap=false) : distributed_bounds(bounds), cap_extents(cap) {}
+    DistributeLoops(const map<string, Expr> &bounds, const std::map<std::string, Function> &e, bool cap=false) : distributed_bounds(bounds), env(e), cap_extents(cap) {}
 
     using IRMutator::visit;
     void visit(const LetStmt *let) {
         if (distributed_bounds.find(let->name) != distributed_bounds.end()) {
             string loop_var = remove_suffix(let->name);
+            string funcname = first_token(let->name);
+            string stage_prefix = funcname + ".s0";
             Expr oldmin = distributed_bounds.at(loop_var + ".loop_min"),
                 oldmax = distributed_bounds.at(loop_var + ".loop_max"),
                 oldextent = distributed_bounds.at(loop_var + ".loop_extent");
             Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / Var("NumProcessors")));
+
+            // Check if this dimension was fused, and get the inner
+            // extent if so.
+            Expr inner;
+            for (Split s : env.at(funcname).schedule().splits()) {
+                if (s.is_fuse() && ends_with(loop_var, s.old_var)) {
+                    internal_assert(!inner.defined());
+                    Var inner_extent(stage_prefix + "." + s.inner + ".loop_extent");
+                    inner = inner_extent;
+                }
+            }
+
+            // If the dimension was fused, we have to round up our
+            // slice size to be a multiple of the inner
+            // dimension. This is so that distributing fused
+            // dimensions maintains the invariant that each processor
+            // gets an axis-aligned bounding box of the buffer in
+            // question. Without rounding up, you can have a situation
+            // e.g. with tiling where distributing a fused tile
+            // dimension splits up the input buffer among processor
+            // ranks non axis-aligned.
+            if (inner.defined()) {
+                Expr numrows = (slice_size + inner - 1) / inner;
+                slice_size = numrows * inner;
+            }
+
             Expr newmin = oldmin + Var(loop_var + ".SliceSize") * Var("Rank"),
                 newmax = newmin + Var(loop_var + ".SliceSize") - 1;
             // We by default don't cap the new extent to make sure it
@@ -806,6 +865,16 @@ private:
         size_t lastdot = str.find_last_of(".");
         if (lastdot != std::string::npos) {
             return str.substr(0, lastdot);
+        } else {
+            return str;
+        }
+    }
+
+    // Return first token of the string delimited by '.'
+    string first_token(const string &str) const {
+        size_t firstdot = str.find_first_of(".");
+        if (firstdot != std::string::npos) {
+            return str.substr(0, firstdot);
         } else {
             return str;
         }
@@ -897,16 +966,16 @@ public:
     }
 };
 
-Stmt distribute_loops_only(Stmt s, bool cap_extents) {
+Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env, bool cap_extents) {
     FindDistributedLoops find;
     s.accept(&find);
-    return DistributeLoops(find.distributed_bounds, cap_extents).mutate(s);
+    return DistributeLoops(find.distributed_bounds, env, cap_extents).mutate(s);
 }
 
-Stmt distribute_loops(Stmt s) {
+Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env) {
     FindDistributedLoops find;
     s.accept(&find);
-    s = DistributeLoops(find.distributed_bounds).mutate(s);
+    s = DistributeLoops(find.distributed_bounds, env).mutate(s);
     GetPipelineInputs getio;
     s.accept(&getio);
     SetInputBufferBounds setb(getio.inputs);
@@ -967,7 +1036,7 @@ Stmt partial_lower(Func f) {
 
     FindDistributedLoops find;
     s.accept(&find);
-    s = DistributeLoops(find.distributed_bounds).mutate(s);
+    s = DistributeLoops(find.distributed_bounds, env).mutate(s);
     return s;
 }
 

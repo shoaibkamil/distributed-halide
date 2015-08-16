@@ -77,7 +77,7 @@ Stmt partial_lower(Func f, bool cap_extents) {
     vector<string> order = realization_order(outputs, env);
     Stmt s = schedule_functions(outputs, order, env, !t.has_feature(Target::NoAsserts));
     FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
-    s = distribute_loops_only(s, cap_extents);
+    s = distribute_loops_only(s, env, cap_extents);
     s = bounds_inference(s, outputs, order, env, func_bounds);
     return s;
 }

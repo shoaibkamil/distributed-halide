@@ -14,8 +14,8 @@ namespace Internal {
  * them into loops that operate on a subset of their input data
  * according to their MPI rank.
  */
-Stmt distribute_loops(Stmt);
-Stmt distribute_loops_only(Stmt s, bool cap_extents);
+Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env);
+Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env, bool cap_extents);
 
 void distribute_loops_test();
 
