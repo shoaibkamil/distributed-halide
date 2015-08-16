@@ -380,6 +380,8 @@ private:
             stream << keyword("parallel");
         } else if (op->for_type == ForType::Distributed) {
             stream << keyword("distributed");
+        } else if (op->for_type == ForType::DistributedParallel) {
+            stream << keyword("distributed parallel");
         } else if (op->for_type == ForType::Vectorized) {
             stream << keyword("vectorized");
         } else if (op->for_type == ForType::Unrolled) {

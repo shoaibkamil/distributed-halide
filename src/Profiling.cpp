@@ -234,7 +234,7 @@ private:
 
     void visit(const For *op) {
         current_loop_level++;
-        if ((op->for_type == ForType::Parallel || op->for_type == ForType::Distributed) && level >= 1) {
+        if ((op->for_type == ForType::Parallel || op->for_type == ForType::Distributed || op->for_type == ForType::DistributedParallel) && level >= 1) {
             std::cerr << "Warning: The Halide profiler does not yet support "
                       << "parallel or distributed schedules. Not profiling inside the loop over "
                       << op->name << "\n";

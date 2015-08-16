@@ -43,6 +43,7 @@ struct VarOrRVar {
 class Stage {
     Internal::Schedule schedule;
     void set_dim_type(VarOrRVar var, Internal::ForType t);
+    Internal::ForType get_dim_type(VarOrRVar var);
     void set_dim_device_api(VarOrRVar var, DeviceAPI device_api);
     void split(const std::string &old, const std::string &outer, const std::string &inner, Expr factor, bool exact);
     std::string stage_name;

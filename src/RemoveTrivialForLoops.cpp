@@ -13,7 +13,8 @@ class RemoveTrivialForLoops : public IRMutator {
         Stmt body = mutate(for_loop->body);
         if (is_one(for_loop->extent) && !CodeGen_GPU_Dev::is_gpu_var(for_loop->name)) {
             if (for_loop->for_type == ForType::Parallel ||
-                for_loop->for_type == ForType::Distributed) {
+                for_loop->for_type == ForType::Distributed ||
+                for_loop->for_type == ForType::DistributedParallel) {
                 std::cerr << "Warning: Parallel or distributed for loop over "
                           << for_loop->name << " has extent one. "
                           << "Can't do one piece of work in parallel.\n";

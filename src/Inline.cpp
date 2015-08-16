@@ -47,6 +47,10 @@ class Inliner : public IRMutator {
                 user_error << "Cannot distribute dimension "
                            << d.var << " of function "
                            << f.name() << " because the function is scheduled inline.\n";
+            } else if (d.for_type == ForType::DistributedParallel) {
+                user_error << "Cannot distribute/parallelize dimension "
+                           << d.var << " of function "
+                           << f.name() << " because the function is scheduled inline.\n";
             } else if (d.for_type == ForType::Unrolled) {
                 user_error << "Cannot unroll dimension "
                            << d.var << " of function "

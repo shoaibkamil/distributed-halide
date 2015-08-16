@@ -259,7 +259,7 @@ void Stage::set_dim_type(VarOrRVar var, ForType t) {
 
             // If it's an rvar and the for type is parallel, we need to
             // validate that this doesn't introduce a race condition.
-            if (!dims[i].pure && var.is_rvar && (t == ForType::Vectorized || t == ForType::Parallel || t == ForType::Distributed)) {
+            if (!dims[i].pure && var.is_rvar && (t == ForType::Vectorized || t == ForType::Parallel || t == ForType::Distributed || t == ForType::DistributedParallel)) {
                 user_assert(schedule.allow_race_conditions())
                     << "In schedule for " << stage_name
                     << ", marking var " << var.name()
@@ -291,6 +291,20 @@ void Stage::set_dim_type(VarOrRVar var, ForType t) {
                    << dump_argument_list();
     }
 }
+
+Internal::ForType Stage::get_dim_type(VarOrRVar var) {
+    vector<Dim> &dims = schedule.dims();
+    for (size_t i = 0; i < dims.size(); i++) {
+        if (var_name_match(dims[i].var, var.name())) {
+            return dims[i].for_type;
+        }
+    }
+    internal_error << "In schedule for " << stage_name
+                   << ", could not find dimension " << var.name();
+    // Silence compiler warning
+    return ForType::Serial;
+}
+
 
 void Stage::set_dim_device_api(VarOrRVar var, DeviceAPI device_api) {
     bool found = false;
@@ -551,12 +565,18 @@ Stage &Stage::serial(VarOrRVar var) {
 }
 
 Stage &Stage::distribute(VarOrRVar var) {
-    set_dim_type(var, ForType::Distributed);
+    ForType type = get_dim_type(var) == ForType::Parallel ?
+        ForType::DistributedParallel :
+        ForType::Distributed;
+    set_dim_type(var, type);
     return *this;
 }
 
 Stage &Stage::parallel(VarOrRVar var) {
-    set_dim_type(var, ForType::Parallel);
+    ForType type = get_dim_type(var) == ForType::Distributed ?
+        ForType::DistributedParallel :
+        ForType::Parallel;
+    set_dim_type(var, type);
     return *this;
 }
 

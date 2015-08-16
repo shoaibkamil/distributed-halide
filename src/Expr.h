@@ -235,6 +235,7 @@ enum class ForType {
     Serial,
     Parallel,
     Distributed,
+    DistributedParallel,
     Vectorized,
     Unrolled
 };
