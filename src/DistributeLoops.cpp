@@ -730,11 +730,6 @@ public:
     }
 
     void visit(const For *for_loop) {
-        // if (for_loop->for_type != ForType::Distributed) {
-        //     IRMutator::visit(for_loop);
-        //     return;
-        // }
-
         map<string, Box> required, provided;
         required = boxes_required(for_loop);
         provided = boxes_provided(for_loop);
@@ -857,6 +852,10 @@ public:
             stmt = For::make(for_loop->name, for_loop->min, for_loop->extent,
                              ForType::Serial, for_loop->device_api,
                              for_loop->body);
+        } else if (for_loop->for_type == ForType::DistributedParallel) {
+            stmt = For::make(for_loop->name, for_loop->min, for_loop->extent,
+                             ForType::Parallel, for_loop->device_api,
+                             for_loop->body);
         }
     }
 private:
@@ -894,7 +893,8 @@ public:
     }
 
     void visit(const For *for_loop) {
-        if (for_loop->for_type == ForType::Distributed) {
+        if (for_loop->for_type == ForType::Distributed ||
+            for_loop->for_type == ForType::DistributedParallel) {
             for (auto it = env.begin(), ite = env.end(); it != ite; ++it) {
                 string prefix = for_loop->name + ".";
                 if (starts_with(it.name(), prefix)) {

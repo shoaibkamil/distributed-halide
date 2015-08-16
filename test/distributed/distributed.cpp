@@ -534,7 +534,7 @@ int main(int argc, char **argv) {
         Var x_outer, y_outer, x_inner, y_inner, tile_index;
         blurx.tile(x, y, x_outer, y_outer, x_inner, y_inner, 2, 2);
         blurx.fuse(x_outer, y_outer, tile_index);
-        blurx.compute_root().distribute(tile_index);
+        blurx.compute_root().distribute(tile_index).parallel(tile_index);
         blury.distribute(y);
 
         DistributedImage<int> out(11, 113);
