@@ -336,6 +336,18 @@ class FindBuffersUsingVariable : public IRVisitor {
         }
         IRVisitor::visit(call);
     }
+
+    void visit(const Provide *op) {
+        GetVariablesInExpr vars(env);
+        for (Expr arg : op->args) {
+            arg.accept(&vars);
+        }
+        if (vars.names.count(name)) {
+            internal_assert(op->values.size() == 1);
+            inputs.push_back(AbstractBuffer(op->values[0].type(), AbstractBuffer::Halide, op->name));
+        }
+        IRVisitor::visit(op);
+    }
 public:
     string name;
     vector<AbstractBuffer> inputs;
@@ -543,14 +555,12 @@ Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) {
 // For each required region, copy the on-node portion into an
 // extended buffer (big enough for required region including
 // ghost zone).
-Stmt copy_on_node_data(const map<string, Box> &required,
-                       const map<string, AbstractBuffer> &inputs) {
+Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &required) {
     Stmt copy;
     for (const auto it : required) {
-        const string &name = it.first;
-        const AbstractBuffer &in = inputs.at(name);
+        const AbstractBuffer &in = it;
         const Box &have = in.have();
-        const Box &need = it.second;
+        const Box &need = it.need(func);
 
         BoxIntersection I(have, need);
         vector<Expr> offset_have, offset_need;
@@ -675,14 +685,12 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
 
 // For each required region, generate communication code between ranks
 // that own data needed by other ranks.
-Stmt exchange_data(const map<string, Box> &required,
-                   const map<string, AbstractBuffer> &inputs) {
+Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required) {
     Stmt sendloop, recvloop;
     for (const auto it : required) {
-        const string &name = it.first;
-        const Box &need = it.second;
-        const AbstractBuffer &in = inputs.at(name);
+        const AbstractBuffer &in = it;
         const Box &have = in.have();
+        const Box &need = in.need(func);
 
         if (sendloop.defined()) {
             sendloop = Block::make(sendloop, communicate_intersection(Send, in, have, need));
@@ -707,32 +715,30 @@ Stmt exchange_data(const map<string, Box> &required,
 // Change all uses of the original input buffers to use the extended
 // buffers, and modify output buffer indices to be "local" indices
 // (instead of global).
-Stmt update_io_buffers(Stmt loop, const map<string, Box> &required,
-                       const map<string, AbstractBuffer> &inputs,
-                       const map<string, Box> &provided) {
+Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffer> &required,
+                       const vector<AbstractBuffer> &provided) {
     for (const auto it : required) {
-        const AbstractBuffer &in = inputs.at(it.first);
-        const Box &b = it.second;
+        const AbstractBuffer &in = it;
+        const Box &b = in.need(func);
         ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b, true);
         loop = change.mutate(loop);
     }
 
     for (const auto it : provided) {
-        const string &name = it.first;
-        const Box &b = it.second;
-        ChangeDistributedLoopBuffers change(name, name, b, false);
+        const AbstractBuffer &out = it;
+        const Box &b = out.have();
+        ChangeDistributedLoopBuffers change(out.name(), out.name(), b, false);
         loop = change.mutate(loop);
     }
     return loop;
 }
 
 // Allocate extended buffers for the given body.
-Stmt allocate_extended_buffers(Stmt body, const map<string, Box> &required,
-                               const map<string, AbstractBuffer> &inputs) {
+Stmt allocate_extended_buffers(Stmt body, const string &func, const vector<AbstractBuffer> &required) {
     Stmt allocates = body;
     for (const auto it : required) {
-        const AbstractBuffer &in = inputs.at(it.first);
-        const Box &b = it.second;
+        const AbstractBuffer &in = it;
+        const Box &b = in.need(func);
         allocates = allocate_scratch(in.extended_name(), in.type(), b, allocates);
     }
     return allocates;
@@ -743,6 +749,7 @@ Stmt allocate_extended_buffers(Stmt body, const map<string, Box> &required,
 class InjectCommunication : public IRMutator {
 public:
     Scope<Expr> env;
+    SmallStack<string> current_function;
 
     const map<string, AbstractBuffer> &inputs;
     InjectCommunication(const map<string, AbstractBuffer> &in) : inputs(in) {}
@@ -761,24 +768,28 @@ public:
         env.pop(let->name);
     }
 
+    void visit(const ProducerConsumer *op) {
+        current_function.push(op->name);
+        IRMutator::visit(op);
+        current_function.pop();
+    }
+
     void visit(const For *for_loop) {
-        map<string, Box> required, provided;
-        required = boxes_required(for_loop);
-        provided = boxes_provided(for_loop);
-
-        // Boxes are initially in terms of loop_min/max/extent. We
-        // need them in terms of processor rank, which we can
-        // accomplish by simplifying them with the current environment
-        // (which has the loop_* let statements).
-        for (auto it : required) {
-            required[it.first] = simplify_box(it.second, env);
-        }
-
-        for (auto it : provided) {
-            provided[it.first] = simplify_box(it.second, env);
-        }
-
+        map<string, Box> r, p;
+        vector<AbstractBuffer> required, provided;
         Stmt newloop = for_loop;
+
+        r = boxes_required(for_loop);
+        p = boxes_provided(for_loop);
+
+        for (auto it : r) {
+            internal_assert(inputs.find(it.first) != inputs.end());
+            required.push_back(inputs.at(it.first));
+        }
+        for (auto it : p) {
+            internal_assert(inputs.find(it.first) != inputs.end()) << it.first;
+            provided.push_back(inputs.at(it.first));
+        }
 
         // For each Image input buffer:
         // Allocate scratch buffer big enough for what I have + ghost zone
@@ -786,18 +797,18 @@ public:
         // Send/recv from somebody else using rank_required/provided.
         // Replace input buffer refs with scratch
 
-        Stmt copy = copy_on_node_data(required, inputs);
+        Stmt copy = copy_on_node_data(current_function.top(), required);
         if (copy.defined()) {
             newloop = Block::make(copy, newloop);
         }
 
-        Stmt border_exchange = exchange_data(required, inputs);
+        Stmt border_exchange = exchange_data(current_function.top(), required);
         if (border_exchange.defined()) {
             newloop = Block::make(border_exchange, newloop);
         }
 
-        newloop = update_io_buffers(newloop, required, inputs, provided);
-        newloop = allocate_extended_buffers(newloop, required, inputs);
+        newloop = update_io_buffers(newloop, current_function.top(), required, provided);
+        newloop = allocate_extended_buffers(newloop, current_function.top(), required);
 
         stmt = newloop;
     }
