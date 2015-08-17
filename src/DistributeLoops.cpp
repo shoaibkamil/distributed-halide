@@ -324,13 +324,13 @@ class FindBuffersUsingVariable : public IRVisitor {
             // These are the only two call types that can be buffer references.
             if (call->call_type == Call::Image) {
                 if (call->image.defined()) {
-                    inputs.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::Image, call->image.name(), (Buffer)call->image));
+                    buffers.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::Image, call->image.name(), (Buffer)call->image));
                 } else {
-                    inputs.push_back(AbstractBuffer(call->param.type(), AbstractBuffer::Image, call->param.name(), call->param.get_buffer()));
+                    buffers.push_back(AbstractBuffer(call->param.type(), AbstractBuffer::Image, call->param.name(), call->param.get_buffer()));
                 }
             } else if (call->call_type == Call::Halide) {
                 internal_assert(call->func.outputs() == 1);
-                inputs.push_back(AbstractBuffer(call->func.output_types()[0], AbstractBuffer::Halide, call->func.name()));
+                buffers.push_back(AbstractBuffer(call->func.output_types()[0], AbstractBuffer::Halide, call->func.name()));
             }
 
         }
@@ -344,21 +344,21 @@ class FindBuffersUsingVariable : public IRVisitor {
         }
         if (vars.names.count(name)) {
             internal_assert(op->values.size() == 1);
-            inputs.push_back(AbstractBuffer(op->values[0].type(), AbstractBuffer::Halide, op->name));
+            buffers.push_back(AbstractBuffer(op->values[0].type(), AbstractBuffer::Halide, op->name));
         }
         IRVisitor::visit(op);
     }
 public:
     string name;
-    vector<AbstractBuffer> inputs;
+    vector<AbstractBuffer> buffers;
     FindBuffersUsingVariable(string n) : name(n) {}
 };
 
-// Return a list of the input buffers used in the given for loop.
-map<string, AbstractBuffer> buffers_required(const For *for_loop) {
+// Return a list of the buffers used in the given for loop.
+map<string, AbstractBuffer> buffers_used(const For *for_loop) {
     FindBuffersUsingVariable find(for_loop->name);
     for_loop->body.accept(&find);
-    vector<AbstractBuffer> buffers(find.inputs.begin(), find.inputs.end());
+    vector<AbstractBuffer> buffers(find.buffers.begin(), find.buffers.end());
     map<string, AbstractBuffer> result;
 
     for (AbstractBuffer buf : buffers) {
@@ -748,24 +748,10 @@ Stmt allocate_extended_buffers(Stmt body, const string &func, const vector<Abstr
 
 class InjectCommunication : public IRMutator {
 public:
-    Scope<Expr> env;
-
-    const map<string, AbstractBuffer> &inputs;
-    InjectCommunication(const map<string, AbstractBuffer> &in) : inputs(in) {}
+    const map<string, AbstractBuffer> &buffers;
+    InjectCommunication(const map<string, AbstractBuffer> &bufs) : buffers(bufs) {}
 
     using IRMutator::visit;
-
-    void visit(const LetStmt *let) {
-        env.push(let->name, let->value);
-        IRMutator::visit(let);
-        env.pop(let->name);
-    }
-
-    void visit(const Let *let) {
-        env.push(let->name, let->value);
-        IRMutator::visit(let);
-        env.pop(let->name);
-    }
 
     void visit(const ProducerConsumer *op) {
         string current_function = op->name;
@@ -777,12 +763,12 @@ public:
         p = boxes_provided(op->produce);
 
         for (auto it : r) {
-            internal_assert(inputs.find(it.first) != inputs.end());
-            required.push_back(inputs.at(it.first));
+            internal_assert(buffers.find(it.first) != buffers.end());
+            required.push_back(buffers.at(it.first));
         }
         for (auto it : p) {
-            internal_assert(inputs.find(it.first) != inputs.end()) << it.first;
-            provided.push_back(inputs.at(it.first));
+            internal_assert(buffers.find(it.first) != buffers.end()) << it.first;
+            provided.push_back(buffers.at(it.first));
         }
 
         Stmt copy = copy_on_node_data(current_function, required);
@@ -942,16 +928,16 @@ private:
 // Construct a map of all input buffers used in a pipeline. The
 // results are a map from buffer name -> AbstractBuffer with
 // information about the buffer.
-class GetPipelineInputs : public IRVisitor {
+class GetPipelineBuffers : public IRVisitor {
 public:
-    map<string, AbstractBuffer> inputs;
+    map<string, AbstractBuffer> buffers;
 
     using IRVisitor::visit;
 
     void visit(const For *for_loop) {
-        map<string, AbstractBuffer> in;
-        in = buffers_required(for_loop);
-        inputs.insert(in.begin(), in.end());
+        map<string, AbstractBuffer> bufs;
+        bufs = buffers_used(for_loop);
+        buffers.insert(bufs.begin(), bufs.end());
         IRVisitor::visit(for_loop);
     }
 };
@@ -960,12 +946,12 @@ public:
 // provided by their producing loops. This should take place *after*
 // loops have been distributed, otherwise the bounds set will be
 // global values.
-class SetInputBufferBounds : public IRGraphVisitor {
+class SetBufferBounds : public IRGraphVisitor {
     set<string> done;
 public:
     Scope<Expr> env;
-    map<string, AbstractBuffer> &inputs;
-    SetInputBufferBounds(map<string, AbstractBuffer> &in) : inputs(in) {}
+    map<string, AbstractBuffer> &buffers;
+    SetBufferBounds(map<string, AbstractBuffer> &bufs) : buffers(bufs) {}
 
     using IRGraphVisitor::visit;
 
@@ -987,16 +973,16 @@ public:
         map<string, Box> provided = boxes_provided(op->produce),
             required = boxes_required(op->produce);
         for (auto it : provided) {
-            if (inputs.find(it.first) != inputs.end()) {
-                AbstractBuffer &buf = inputs.at(it.first);
+            if (buffers.find(it.first) != buffers.end()) {
+                AbstractBuffer &buf = buffers.at(it.first);
                 internal_assert(buf.buffer_type() != AbstractBuffer::Image);
                 buf.set_have_bounds(simplify_box(it.second, env));
             }
         }
 
         for (auto it : required) {
-            if (inputs.find(it.first) != inputs.end()) {
-                AbstractBuffer &buf = inputs.at(it.first);
+            if (buffers.find(it.first) != buffers.end()) {
+                AbstractBuffer &buf = buffers.at(it.first);
                 buf.set_need_bounds(current_function, simplify_box(it.second, env));
             }
         }
@@ -1015,11 +1001,11 @@ Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env) {
     FindDistributedLoops find;
     s.accept(&find);
     s = DistributeLoops(find.distributed_bounds, env).mutate(s);
-    GetPipelineInputs getio;
+    GetPipelineBuffers getio;
     s.accept(&getio);
-    SetInputBufferBounds setb(getio.inputs);
+    SetBufferBounds setb(getio.buffers);
     s.accept(&setb);
-    s = InjectCommunication(getio.inputs).mutate(s);
+    s = InjectCommunication(getio.buffers).mutate(s);
     s = LetStmt::make("Rank", rank(), s);
     s = LetStmt::make("NumProcessors", num_processors(), s);
     return s;
@@ -1095,11 +1081,11 @@ map<string, Box> func_boxes_required(Func f) {
 
 map<string, AbstractBuffer> func_input_buffers(Func f) {
     Stmt s = partial_lower(f);
-    GetPipelineInputs getio;
+    GetPipelineBuffers getio;
     s.accept(&getio);
-    SetInputBufferBounds setb(getio.inputs);
+    SetBufferBounds setb(getio.buffers);
     s.accept(&setb);
-    return getio.inputs;
+    return getio.buffers;
 }
 
 int expr2int(Expr e) {
@@ -1134,9 +1120,9 @@ void distribute_loops_test() {
 
         map<string, Box> boxes_provided = func_boxes_provided(f),
             boxes_required = func_boxes_required(f);
-        map<string, AbstractBuffer> inputs = func_input_buffers(f);
+        map<string, AbstractBuffer> buffers = func_input_buffers(f);
 
-        const AbstractBuffer &buf = inputs.at(in.name());
+        const AbstractBuffer &buf = buffers.at(in.name());
         const Box &have = buf.have();
         const Box &need = boxes_required.at(in.name());
 
@@ -1188,9 +1174,9 @@ void distribute_loops_test() {
         f.compute_root().distribute(x);
         map<string, Box> boxes_provided = func_boxes_provided(f),
             boxes_required = func_boxes_required(f);
-        map<string, AbstractBuffer> inputs = func_input_buffers(f);
+        map<string, AbstractBuffer> buffers = func_input_buffers(f);
 
-        const AbstractBuffer &buf = inputs.at(in.name());
+        const AbstractBuffer &buf = buffers.at(in.name());
         const Box &b = buf.have();
         const Box &req = boxes_required.at(in.name());
 
@@ -1250,9 +1236,9 @@ void distribute_loops_test() {
 
         map<string, Box> boxes_provided = func_boxes_provided(g),
             boxes_required = func_boxes_required(g);
-        map<string, AbstractBuffer> inputs = func_input_buffers(g);
+        map<string, AbstractBuffer> buffers = func_input_buffers(g);
 
-        const AbstractBuffer &buf = inputs.at(f.name());
+        const AbstractBuffer &buf = buffers.at(f.name());
         const Box &b = buf.have();
         const Box &req = boxes_required.at(f.name());
 
@@ -1329,7 +1315,7 @@ void distribute_loops_test() {
         testenv.ref("Rank") = Var("r");
         need = simplify_box(boxes_required.at(in.name()), testenv);
         testenv.pop("Rank");
-        have = simplify_box(inputs.at(in.name()).have(), testenv);
+        have = simplify_box(buffers.at(in.name()).have(), testenv);
         testenv.push("Rank", 0);
 
         {
