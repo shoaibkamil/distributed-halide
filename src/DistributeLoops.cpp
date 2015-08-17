@@ -234,7 +234,7 @@ public:
     // Return the region (in parameterized global coordinates)
     // required of this buffer by the given function.
     const Box &need(const string &func) const {
-        internal_assert(_need_bounds.find(func) != _need_bounds.end());
+        internal_assert(_need_bounds.find(func) != _need_bounds.end()) << func;
         return _need_bounds.at(func);
     }
 
@@ -749,7 +749,6 @@ Stmt allocate_extended_buffers(Stmt body, const string &func, const vector<Abstr
 class InjectCommunication : public IRMutator {
 public:
     Scope<Expr> env;
-    SmallStack<string> current_function;
 
     const map<string, AbstractBuffer> &inputs;
     InjectCommunication(const map<string, AbstractBuffer> &in) : inputs(in) {}
@@ -769,18 +768,13 @@ public:
     }
 
     void visit(const ProducerConsumer *op) {
-        current_function.push(op->name);
-        IRMutator::visit(op);
-        current_function.pop();
-    }
-
-    void visit(const For *for_loop) {
+        string current_function = op->name;
         map<string, Box> r, p;
         vector<AbstractBuffer> required, provided;
-        Stmt newloop = for_loop;
+        Stmt newproduce = op->produce;
 
-        r = boxes_required(for_loop);
-        p = boxes_provided(for_loop);
+        r = boxes_required(op->produce);
+        p = boxes_provided(op->produce);
 
         for (auto it : r) {
             internal_assert(inputs.find(it.first) != inputs.end());
@@ -791,26 +785,20 @@ public:
             provided.push_back(inputs.at(it.first));
         }
 
-        // For each Image input buffer:
-        // Allocate scratch buffer big enough for what I have + ghost zone
-        // Copy my stuff into scratch
-        // Send/recv from somebody else using rank_required/provided.
-        // Replace input buffer refs with scratch
-
-        Stmt copy = copy_on_node_data(current_function.top(), required);
+        Stmt copy = copy_on_node_data(current_function, required);
         if (copy.defined()) {
-            newloop = Block::make(copy, newloop);
+            newproduce = Block::make(copy, newproduce);
         }
 
-        Stmt border_exchange = exchange_data(current_function.top(), required);
+        Stmt border_exchange = exchange_data(current_function, required);
         if (border_exchange.defined()) {
-            newloop = Block::make(border_exchange, newloop);
+            newproduce = Block::make(border_exchange, newproduce);
         }
 
-        newloop = update_io_buffers(newloop, current_function.top(), required, provided);
-        newloop = allocate_extended_buffers(newloop, current_function.top(), required);
+        newproduce = update_io_buffers(newproduce, current_function, required, provided);
+        newproduce = allocate_extended_buffers(newproduce, current_function, required);
 
-        stmt = newloop;
+        stmt = ProducerConsumer::make(op->name, newproduce, mutate(op->update), mutate(op->consume));
     }
 };
 
