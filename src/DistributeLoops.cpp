@@ -259,10 +259,16 @@ public:
 
     // Return a box in local coordinates (i.e. counting from mins of
     // 0) corresponding to the given global region.
-    Box local_region(const Box &b) const {
+    Box local_region(const Box &b, const string &func = "") const {
         Box result(b.size());
+        Box local_origin;
+        if (func.empty()) {
+            local_origin = have();
+        } else {
+            local_origin = need(func);
+        }
         for (unsigned i = 0; i < b.size(); i++) {
-            result[i] = Interval(b[i].min - _bounds[i].min, b[i].max - _bounds[i].max);
+            result[i] = Interval(b[i].min - local_origin[i].min, b[i].max - local_origin[i].min);
         }
         return result;
     }
@@ -563,13 +569,8 @@ Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &require
         const Box &need = it.need(func);
 
         BoxIntersection I(have, need);
-        vector<Expr> offset_have, offset_need;
-        for (unsigned i = 0; i < have.size(); i++) {
-            offset_have.push_back(have[i].min);
-            offset_need.push_back(need[i].min);
-        }
-        Box dest_box = offset_box(I.box(), offset_need);
-        Box src_box = offset_box(I.box(), offset_have);
+        Box dest_box = in.local_region(I.box(), func);
+        Box src_box = in.local_region(I.box());
 
         Stmt s;
         if (I.box().size() == 1) {
@@ -617,7 +618,10 @@ Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &require
 typedef enum { Send, Recv } CommunicateCmd;
 // Generate communication code to send/recv the intersection of the
 // 'have' and 'need' regions of 'buf'.
-Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, const Box &have, const Box &need) {
+Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, const string &func) {
+    const Box &have = buf.have();
+    const Box &need = buf.need(func);
+
     Scope<Expr> env;
     env.push("Rank", Var("r"));
     Box have_parameterized = simplify_box(have, env);
@@ -643,14 +647,8 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     // extended buffer counts from 0). This just means subtracting the
     // min global coordinate from the intersection bounds (which are
     // also global) to get a local coordinate starting from 0.
-    vector<Expr> offset_have, offset_need;
-    internal_assert(have.size() == need.size());
-    for (unsigned i = 0; i < have.size(); i++) {
-        offset_have.push_back(have[i].min);
-        offset_need.push_back(need[i].min);
-    }
-    Box local_have = offset_box(I.box(), offset_have),
-        local_need = offset_box(I.box(), offset_need);
+    Box local_have = buf.local_region(I.box()),
+        local_need = buf.local_region(I.box(), func);
 
     switch (cmd) {
     case Send:
@@ -689,19 +687,17 @@ Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required) {
     Stmt sendloop, recvloop;
     for (const auto it : required) {
         const AbstractBuffer &in = it;
-        const Box &have = in.have();
-        const Box &need = in.need(func);
 
         if (sendloop.defined()) {
-            sendloop = Block::make(sendloop, communicate_intersection(Send, in, have, need));
+            sendloop = Block::make(sendloop, communicate_intersection(Send, in, func));
         } else {
-            sendloop = communicate_intersection(Send, in, have, need);
+            sendloop = communicate_intersection(Send, in, func);
         }
 
         if (recvloop.defined()) {
-            recvloop = Block::make(recvloop, communicate_intersection(Recv, in, have, need));
+            recvloop = Block::make(recvloop, communicate_intersection(Recv, in, func));
         } else {
-            recvloop = communicate_intersection(Recv, in, have, need);
+            recvloop = communicate_intersection(Recv, in, func);
         }
     }
     internal_assert(sendloop.defined() == recvloop.defined());
