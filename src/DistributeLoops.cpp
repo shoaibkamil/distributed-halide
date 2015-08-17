@@ -213,6 +213,8 @@ public:
         return _name + "_extended";
     }
 
+    // Return the size of the given box in bytes according to the type
+    // of this buffer.
     Expr size_of(const Box &b) const {
         internal_assert(b.size() > 0);
         Expr num_elems = 1;
@@ -222,18 +224,47 @@ public:
         return num_elems * elem_size();
     }
 
-    const Box &bounds() const {
+    // Return the region (in parameterized global coordinates)
+    // produced of this buffer.
+    const Box &have() const {
         internal_assert(!_bounds.empty()) << _name;
         return _bounds;
     }
 
-    void set_bounds(const Box &b) {
+    // Return the region (in parameterized global coordinates)
+    // required of this buffer by the given function.
+    const Box &need(const string &func) const {
+        internal_assert(_need_bounds.find(func) != _need_bounds.end());
+        return _need_bounds.at(func);
+    }
+
+    // Set the region produced of this buffer.
+    void set_have_bounds(const Box &b) {
         internal_assert(_bounds.empty());
         set_dimensions(b.size());
         _bounds = Box(b.size());
         for (unsigned i = 0; i < b.size(); i++) {
             _bounds[i] = Interval(b[i].min, b[i].max);
         }
+    }
+
+    // Set the region required of this buffer by a function.
+    void set_need_bounds(const string &func, const Box &b) {
+        internal_assert(_need_bounds.find(func) == _need_bounds.end());
+        _need_bounds[func] = Box(b.size());
+        for (unsigned i = 0; i < b.size(); i++) {
+            _need_bounds[func][i] = Interval(b[i].min, b[i].max);
+        }
+    }
+
+    // Return a box in local coordinates (i.e. counting from mins of
+    // 0) corresponding to the given global region.
+    Box local_region(const Box &b) const {
+        Box result(b.size());
+        for (unsigned i = 0; i < b.size(); i++) {
+            result[i] = Interval(b[i].min - _bounds[i].min, b[i].max - _bounds[i].max);
+        }
+        return result;
     }
 private:
     Type _type;
@@ -243,6 +274,7 @@ private:
     vector<Expr> mins;
     vector<Expr> extents;
     Box _bounds;
+    map<string, Box> _need_bounds;
 };
 
 // Build a set of all the variables referenced. This traverses through
@@ -319,7 +351,7 @@ map<string, AbstractBuffer> buffers_required(const For *for_loop) {
 
     for (AbstractBuffer buf : buffers) {
         if (buf.buffer_type() == AbstractBuffer::Image) {
-            internal_assert(!buf.bounds().empty());
+            internal_assert(!buf.have().empty());
         }
         result[buf.name()] = buf;
     }
@@ -517,7 +549,7 @@ Stmt copy_on_node_data(const map<string, Box> &required,
     for (const auto it : required) {
         const string &name = it.first;
         const AbstractBuffer &in = inputs.at(name);
-        const Box &have = in.bounds();
+        const Box &have = in.have();
         const Box &need = it.second;
 
         BoxIntersection I(have, need);
@@ -616,7 +648,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
             addr = address_of(buf.name(), local_have[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("r"))));
         } else {
-            Stmt pack = pack_region(Pack, buf.type(), scratch_name, buf.name(), buf.bounds(), local_have);
+            Stmt pack = pack_region(Pack, buf.type(), scratch_name, buf.name(), buf.have(), local_have);
             addr = address_of(scratch_name, 0);
             commstmt = IfThenElse::make(cond, Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r")))));
         }
@@ -650,7 +682,7 @@ Stmt exchange_data(const map<string, Box> &required,
         const string &name = it.first;
         const Box &need = it.second;
         const AbstractBuffer &in = inputs.at(name);
-        const Box &have = in.bounds();
+        const Box &have = in.have();
 
         if (sendloop.defined()) {
             sendloop = Block::make(sendloop, communicate_intersection(Send, in, have, need));
@@ -929,40 +961,48 @@ public:
 // provided by their producing loops. This should take place *after*
 // loops have been distributed, otherwise the bounds set will be
 // global values.
-class SetInputBufferBounds : public IRVisitor {
+class SetInputBufferBounds : public IRGraphVisitor {
     set<string> done;
 public:
     Scope<Expr> env;
     map<string, AbstractBuffer> &inputs;
     SetInputBufferBounds(map<string, AbstractBuffer> &in) : inputs(in) {}
 
-    using IRVisitor::visit;
+    using IRGraphVisitor::visit;
 
     void visit(const LetStmt *let) {
         env.push(let->name, let->value);
-        IRVisitor::visit(let);
+        IRGraphVisitor::visit(let);
         env.pop(let->name);
     }
 
     void visit(const Let *let) {
         env.push(let->name, let->value);
-        IRVisitor::visit(let);
+        IRGraphVisitor::visit(let);
         env.pop(let->name);
     }
 
-    void visit(const For *for_loop) {
-        map<string, Box> provided = boxes_provided(for_loop);
+    void visit(const ProducerConsumer *op) {
+        string current_function = op->name;
+
+        map<string, Box> provided = boxes_provided(op->produce),
+            required = boxes_required(op->produce);
         for (auto it : provided) {
             if (inputs.find(it.first) != inputs.end()) {
                 AbstractBuffer &buf = inputs.at(it.first);
                 internal_assert(buf.buffer_type() != AbstractBuffer::Image);
-                if (!done.count(buf.name())) {
-                    buf.set_bounds(simplify_box(it.second, env));
-                    done.insert(buf.name());
-                }
+                buf.set_have_bounds(simplify_box(it.second, env));
             }
         }
-        IRVisitor::visit(for_loop);
+
+        for (auto it : required) {
+            if (inputs.find(it.first) != inputs.end()) {
+                AbstractBuffer &buf = inputs.at(it.first);
+                buf.set_need_bounds(current_function, simplify_box(it.second, env));
+            }
+        }
+
+        IRGraphVisitor::visit(op);
     }
 };
 
@@ -1098,7 +1138,7 @@ void distribute_loops_test() {
         map<string, AbstractBuffer> inputs = func_input_buffers(f);
 
         const AbstractBuffer &buf = inputs.at(in.name());
-        const Box &have = buf.bounds();
+        const Box &have = buf.have();
         const Box &need = boxes_required.at(in.name());
 
         Scope<Expr> testenv;
@@ -1152,7 +1192,7 @@ void distribute_loops_test() {
         map<string, AbstractBuffer> inputs = func_input_buffers(f);
 
         const AbstractBuffer &buf = inputs.at(in.name());
-        const Box &b = buf.bounds();
+        const Box &b = buf.have();
         const Box &req = boxes_required.at(in.name());
 
         Scope<Expr> testenv;
@@ -1214,7 +1254,7 @@ void distribute_loops_test() {
         map<string, AbstractBuffer> inputs = func_input_buffers(g);
 
         const AbstractBuffer &buf = inputs.at(f.name());
-        const Box &b = buf.bounds();
+        const Box &b = buf.have();
         const Box &req = boxes_required.at(f.name());
 
 
@@ -1290,7 +1330,7 @@ void distribute_loops_test() {
         testenv.ref("Rank") = Var("r");
         need = simplify_box(boxes_required.at(in.name()), testenv);
         testenv.pop("Rank");
-        have = simplify_box(inputs.at(in.name()).bounds(), testenv);
+        have = simplify_box(inputs.at(in.name()).have(), testenv);
         testenv.push("Rank", 0);
 
         {
