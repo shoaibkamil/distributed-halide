@@ -964,22 +964,17 @@ public:
     }
 
     void visit(const ProducerConsumer *op) {
-        string current_function = op->name;
-
-        map<string, Box> provided = boxes_provided(op->produce),
-            required = boxes_required(op->produce);
-        for (auto it : provided) {
-            if (buffers.find(it.first) != buffers.end()) {
-                AbstractBuffer &buf = buffers.at(it.first);
-                internal_assert(buf.buffer_type() != AbstractBuffer::Image);
-                buf.set_have_bounds(simplify_box(it.second, env));
-            }
-        }
+        map<string, Box> required = boxes_required(op->produce);
+        Box provided = box_provided(op->produce, op->name);
+        internal_assert(buffers.find(op->name) != buffers.end());
+        AbstractBuffer &buf = buffers.at(op->name);
+        internal_assert(buf.buffer_type() != AbstractBuffer::Image);
+        buf.set_have_bounds(simplify_box(provided, env));
 
         for (auto it : required) {
             if (buffers.find(it.first) != buffers.end()) {
                 AbstractBuffer &buf = buffers.at(it.first);
-                buf.set_need_bounds(current_function, simplify_box(it.second, env));
+                buf.set_need_bounds(op->name, simplify_box(it.second, env));
             }
         }
 
