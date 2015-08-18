@@ -35,6 +35,27 @@ namespace {
 const bool trace_have_needs = false;
 const bool trace_provides = false;
 
+// Removes last token of the string, delimited by '.'
+string remove_suffix(const string &str) {
+    size_t lastdot = str.find_last_of(".");
+    if (lastdot != std::string::npos) {
+        return str.substr(0, lastdot);
+    } else {
+        return str;
+    }
+}
+
+// Return first token of the string delimited by '.'
+string first_token(const string &str) {
+    size_t firstdot = str.find_first_of(".");
+    if (firstdot != std::string::npos) {
+        return str.substr(0, firstdot);
+    } else {
+        return str;
+    }
+}
+
+
 // Return a string representation of the given box.
 string box2str(const Box &b) {
     std::stringstream mins, maxs;
@@ -141,19 +162,28 @@ class AbstractBuffer {
 public:
     typedef enum { Halide, Image } BufferType;
 
-    AbstractBuffer() : _dimensions(-1) {}
+    AbstractBuffer() : _dimensions(-1), _distributed(false) {}
     AbstractBuffer(Type type, BufferType btype, const string &name) :
-        _type(type), _btype(btype), _name(name), _dimensions(-1) {}
+        _type(type), _btype(btype), _name(name), _dimensions(-1), _distributed(false) {}
     AbstractBuffer(Type type, BufferType btype, const string &name, const Buffer &buffer) :
         _type(type), _btype(btype), _name(name), _dimensions(-1) {
         internal_assert(btype == Image);
         internal_assert(buffer.defined());
         internal_assert(buffer.distributed());
+        _distributed = buffer.distributed();
         for (int i = 0; i < buffer.dimensions(); i++) {
             Expr min = buffer.local_min(i);
             Expr max = min + buffer.local_extent(i) - 1;
             _bounds.push_back(Interval(min, max));
         }
+    }
+
+    bool distributed() const {
+        return _distributed;
+    }
+
+    void set_distributed() {
+        _distributed = true;
     }
 
     int dimensions() const {
@@ -277,6 +307,7 @@ private:
     BufferType _btype;
     string _name;
     int _dimensions;
+    bool _distributed;
     vector<Expr> mins;
     vector<Expr> extents;
     Box _bounds;
@@ -871,30 +902,11 @@ public:
                              for_loop->body);
         }
     }
-private:
-    // Removes last token of the string, delimited by '.'
-    string remove_suffix(const string &str) const {
-        size_t lastdot = str.find_last_of(".");
-        if (lastdot != std::string::npos) {
-            return str.substr(0, lastdot);
-        } else {
-            return str;
-        }
-    }
-
-    // Return first token of the string delimited by '.'
-    string first_token(const string &str) const {
-        size_t firstdot = str.find_first_of(".");
-        if (firstdot != std::string::npos) {
-            return str.substr(0, firstdot);
-        } else {
-            return str;
-        }
-    }
 };
 
 class FindDistributedLoops : public IRVisitor {
 public:
+    set<string> distributed_functions;
     map<string, Expr> distributed_bounds;
 
     using IRVisitor::visit;
@@ -914,6 +926,8 @@ public:
                     distributed_bounds[it.name()] = it.value();
                 }
             }
+            string funcname = first_token(for_loop->name);
+            distributed_functions.insert(funcname);
         }
         IRVisitor::visit(for_loop);
     }
@@ -927,12 +941,20 @@ private:
 class GetPipelineBuffers : public IRVisitor {
 public:
     map<string, AbstractBuffer> buffers;
+    const set<string> &distributed_functions;
+    GetPipelineBuffers(const set<string> &d) : distributed_functions(d) {}
 
     using IRVisitor::visit;
 
     void visit(const For *for_loop) {
+        string funcname = first_token(for_loop->name);
         map<string, AbstractBuffer> bufs;
         bufs = buffers_used(for_loop);
+        for (auto it : bufs) {
+            if (distributed_functions.count(it.first)) {
+                it.second.set_distributed();
+            }
+        }
         buffers.insert(bufs.begin(), bufs.end());
         IRVisitor::visit(for_loop);
     }
@@ -992,7 +1014,7 @@ Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env) {
     FindDistributedLoops find;
     s.accept(&find);
     s = DistributeLoops(find.distributed_bounds, env).mutate(s);
-    GetPipelineBuffers getio;
+    GetPipelineBuffers getio(find.distributed_functions);
     s.accept(&getio);
     SetBufferBounds setb(getio.buffers);
     s.accept(&setb);
@@ -1071,8 +1093,12 @@ map<string, Box> func_boxes_required(Func f) {
 }
 
 map<string, AbstractBuffer> func_input_buffers(Func f) {
+    map<string, Function> env;
     Stmt s = partial_lower(f);
-    GetPipelineBuffers getio;
+    FindDistributedLoops find;
+    s.accept(&find);
+    s = DistributeLoops(find.distributed_bounds, env).mutate(s);
+    GetPipelineBuffers getio(find.distributed_functions);
     s.accept(&getio);
     SetBufferBounds setb(getio.buffers);
     s.accept(&setb);
