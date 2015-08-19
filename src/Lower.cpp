@@ -141,6 +141,15 @@ Stmt lower(const vector<Function> &outputs, const Target &t, const vector<IRMuta
     s = uniquify_variable_names(s);
     debug(2) << "Lowering after uniquifying variable names:\n" << s << "\n\n";
 
+    // This pass injects communication to fetch remote regions of
+    // buffers. This must happen after bounds inference so that we can
+    // determine buffer bounds.
+    if (t.has_feature(Target::MPI)) {
+        debug(1) << "Injecting communication for distributed buffers...\n";
+        s = inject_communication(s, env);
+        debug(2) << "Lowering after injecting communication:\n" << s << "\n\n";
+    }
+
     debug(1) << "Performing storage folding optimization...\n";
     s = storage_folding(s);
     debug(2) << "Lowering after storage folding:\n" << s << '\n';

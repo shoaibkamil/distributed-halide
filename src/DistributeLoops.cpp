@@ -34,6 +34,7 @@ using std::map;
 namespace {
 const bool trace_have_needs = false;
 const bool trace_provides = false;
+const bool trace_messages = false;
 
 // Removes last token of the string, delimited by '.'
 string remove_suffix(const string &str) {
@@ -105,7 +106,7 @@ Box simplify_box(const Box &b, const Scope<Expr> &env) {
     for (unsigned i = 0; i < b.size(); i++) {
         Expr min = replace.mutate(b[i].min),
             max = replace.mutate(b[i].max);
-        result[i] = Interval(min, max);
+        result[i] = Interval(simplify(min), simplify(max));
     }
     return result;
 }
@@ -240,7 +241,7 @@ public:
     }
 
     string extended_name() const {
-        return _name + "_extended";
+        return _btype == Image ? _name + "_extended" : _name;
     }
 
     // Return the size of the given box in bytes according to the type
@@ -458,9 +459,9 @@ public:
             for (unsigned i = 0; i < box.size(); i++) {
                 newargs.push_back(call->args[i] - box[i].min);
             }
-            expr = Call::make(call->type, newname, newargs, call->call_type,
-                              call->func, call->value_index, call->image,
-                              call->param);
+            expr = Call::make(call->type, newname, newargs,
+                              call->call_type, call->func, call->value_index,
+                              call->image, call->param);
         } else {
             IRMutator::visit(call);
         }
@@ -601,6 +602,8 @@ Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &require
         const Box &have = in.have();
         const Box &need = it.need(func);
 
+        if (in.buffer_type() != AbstractBuffer::Image) continue;
+
         BoxIntersection I(have, need);
         Box dest_box = in.local_region(I.box(), func);
         Box src_box = in.local_region(I.box());
@@ -619,24 +622,6 @@ Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &require
             Stmt unpack = pack_region(Unpack, in.type(), scratch_name, in.extended_name(), need, dest_box);
             s = Block::make(pack, unpack);
             s = allocate_scratch(scratch_name, in.type(), I.box(), s);
-        }
-
-        if (trace_have_needs) {
-            Stmt p = Evaluate::make(print_when(rank() == 0, {string("rank"), rank(),
-                            string("buffer " + in.name() + " bounds"),
-                            have[0].max - have[0].min + 1, string("x"), have[1].max - have[1].min + 1, string("\n"),
-                            string("buffer " + in.extended_name() + " bounds"),
-                            need[0].max - need[0].min + 1, string("x"), need[1].max - need[1].min + 1, string("\n"),
-                            string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
-                            string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
-                            string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
-                            string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max,
-                            string("\n   src_box[0].min ="), src_box[0].min, string("src_box[0].max ="), src_box[0].max,
-                            string("\n   src_box[1].min ="), src_box[1].min, string("src_box[1].max ="), src_box[1].max,
-                            string("\n   dest_box[0].min ="), dest_box[0].min, string("dest_box[0].max ="), dest_box[0].max,
-                            string("\n   dest_box[1].min ="), dest_box[1].min, string("dest_box[1].max ="), dest_box[1].max
-                            }));
-            s = Block::make(p, s);
         }
 
         if (copy.defined()) {
@@ -705,12 +690,51 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         }
         break;
     }
+    if (trace_messages && cmd == Send) {
+        Stmt p = Evaluate::make(print_when(cond, {string("rank"), rank(),
+                        string("sending to rank"), Var("r"),
+                        string("buffer " + buf.name() + ":\n"),
+                        string("size"),
+                        I.box()[0].max - I.box()[0].min + 1,
+                        //string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
+                        //string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
+                        string("\n   need_parameterized[0].min ="), need_parameterized[0].min, string("need_parameterized[0].max ="), need_parameterized[0].max,
+                        //string("\n   need_parameterized[1].min ="), need_parameterized[1].min, string("need_parameterized[1].max ="), need_parameterized[1].max
+                        string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
+                        //string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
+                        string("\n   local_have[0].min ="), local_have[0].min, string("local_have[0].max ="), local_have[0].max,
+                        //string("\n   local_have[1].min ="), local_have[1].min, string("local_have[1].max ="), local_have[1].max,
+                        }));
+        commstmt = Block::make(p, commstmt);
+    }
+
+    if (trace_messages && cmd == Recv) {
+        Stmt p = Evaluate::make(print_when(cond, {string("rank"), rank(),
+                        string("receiving from rank"), Var("r"),
+                        string("buffer " + buf.name() + ":\n"),
+                        string("size"),
+                        I.box()[0].max - I.box()[0].min + 1,
+                        //string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("\n   have_parameterized[0].min ="), have_parameterized[0].min, string("have_parameterized[0].max ="), have_parameterized[0].max,
+                        //string("\n   have_parameterized[1].min ="), have_parameterized[1].min, string("have_parameterized[1].max ="), have_parameterized[1].max,
+                        string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
+                        //string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max
+                        string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
+                        //string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max
+                        string("\n   local_need[0].min ="), local_need[0].min, string("local_need[0].max ="), local_need[0].max,
+                        //string("\n   local_need[1].min ="), local_need[1].min, string("local_need[1].max ="), local_need[1].max,
+                        }));
+        commstmt = Block::make(p, commstmt);
+    }
+
     // TODO: we have to allocate the communication buffer inside the
     // loop because the size of the intersection depends on "r". Can
     // we do something smarter?
     commstmt = LetStmt::make("msgsize", buf.size_of(I.box()), commstmt);
     commstmt = allocate_scratch(scratch_name, buf.type(), I.box(), commstmt);
     commstmt = For::make("r", 0, Var("NumProcessors"), ForType::Serial, DeviceAPI::Host, commstmt);
+
     return commstmt;
 }
 
@@ -720,6 +744,7 @@ Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required) {
     Stmt sendloop, recvloop;
     for (const auto it : required) {
         const AbstractBuffer &in = it;
+        if (!in.distributed()) continue;
 
         if (sendloop.defined()) {
             sendloop = Block::make(sendloop, communicate_intersection(Send, in, func));
@@ -749,6 +774,7 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
     for (const auto it : required) {
         const AbstractBuffer &in = it;
         const Box &b = in.need(func);
+        if (in.buffer_type() != AbstractBuffer::Image) continue;
         ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b, true);
         loop = change.mutate(loop);
     }
@@ -756,6 +782,7 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
     for (const auto it : provided) {
         const AbstractBuffer &out = it;
         const Box &b = out.have();
+        if (out.buffer_type() != AbstractBuffer::Image) continue;
         ChangeDistributedLoopBuffers change(out.name(), out.name(), b, false);
         loop = change.mutate(loop);
     }
@@ -768,6 +795,7 @@ Stmt allocate_extended_buffers(Stmt body, const string &func, const vector<Abstr
     for (const auto it : required) {
         const AbstractBuffer &in = it;
         const Box &b = in.need(func);
+        if (in.buffer_type() != AbstractBuffer::Image) continue;
         allocates = allocate_scratch(in.extended_name(), in.type(), b, allocates);
     }
     return allocates;
@@ -814,6 +842,32 @@ public:
         newproduce = allocate_extended_buffers(newproduce, current_function, required);
 
         stmt = ProducerConsumer::make(op->name, newproduce, mutate(op->update), mutate(op->consume));
+
+        if (trace_have_needs) {
+            Stmt p;
+            for (const auto &in : required) {
+                Box have = in.have(), need = in.need(current_function);
+                if (in.name() == "f") continue;
+                Stmt pp = Evaluate::make(print_when(rank() == 1, {string("rank"), rank(),
+                                string("function " + current_function + " requires"),
+                                string("buffer " + in.name() + ":\n"),
+                                string("have size"),
+                                have[0].max - have[0].min + 1, string("x"), have[1].max - have[1].min + 1, string("\n"),
+                                string("need size (" + in.extended_name() + ")"),
+                                need[0].max - need[0].min + 1, string("x"), need[1].max - need[1].min + 1, string("\n"),
+                                string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
+                                string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
+                                string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
+                                string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max
+                                }));
+                if (p.defined()) {
+                    p = Block::make(p, pp);
+                } else {
+                    p = pp;
+                }
+            }
+            stmt = Block::make(p, stmt);
+        }
     }
 };
 
@@ -891,7 +945,13 @@ public:
             IRMutator::visit(let);
         }
     }
+};
 
+// Remove the "distributed" attribute from all distributed loops, and
+// replace with the non-distributed serial/parallel version.
+class ChangeDistributedFor : public IRMutator {
+public:
+    using IRMutator::visit;
     void visit(const For *for_loop) {
         IRMutator::visit(for_loop);
         if (for_loop->for_type == ForType::Distributed) {
@@ -995,6 +1055,13 @@ public:
         internal_assert(buf.buffer_type() != AbstractBuffer::Image);
         buf.set_have_bounds(simplify_box(provided, env));
 
+        // We say that a producer with no consumer (i.e. the end of
+        // the pipeline) is an image, because we will need to manually
+        // correct load/store indices.
+        if (is_no_op((Stmt)op->consume)) {
+            buf.set_buffer_type(AbstractBuffer::Image);
+        }
+
         for (auto it : required) {
             if (buffers.find(it.first) != buffers.end()) {
                 AbstractBuffer &buf = buffers.at(it.first);
@@ -1016,11 +1083,18 @@ Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env) {
     FindDistributedLoops find;
     s.accept(&find);
     s = DistributeLoops(find.distributed_bounds, env).mutate(s);
+    return s;
+}
+
+Stmt inject_communication(Stmt s, const std::map<std::string, Function> &env) {
+    FindDistributedLoops find;
+    s.accept(&find);
     GetPipelineBuffers getio(find.distributed_functions);
     s.accept(&getio);
     SetBufferBounds setb(getio.buffers);
     s.accept(&setb);
     s = InjectCommunication(getio.buffers).mutate(s);
+    s = ChangeDistributedFor().mutate(s);
     s = LetStmt::make("Rank", rank(), s);
     s = LetStmt::make("NumProcessors", num_processors(), s);
     return s;
@@ -1073,10 +1147,13 @@ Stmt partial_lower(Func f) {
     }
     vector<string> order = realization_order(outputs, env);
     Stmt s = schedule_functions(outputs, order, env, !t.has_feature(Target::NoAsserts));
-
+    FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
     FindDistributedLoops find;
     s.accept(&find);
     s = DistributeLoops(find.distributed_bounds, env).mutate(s);
+    s = bounds_inference(s, outputs, order, env, func_bounds);
+    s = allocation_bounds_inference(s, env, func_bounds);
+    s = uniquify_variable_names(s);
     return s;
 }
 
@@ -1099,7 +1176,6 @@ map<string, AbstractBuffer> func_input_buffers(Func f) {
     Stmt s = partial_lower(f);
     FindDistributedLoops find;
     s.accept(&find);
-    s = DistributeLoops(find.distributed_bounds, env).mutate(s);
     GetPipelineBuffers getio(find.distributed_functions);
     s.accept(&getio);
     SetBufferBounds setb(getio.buffers);
@@ -1137,19 +1213,19 @@ void distribute_loops_test() {
         f(x) = clamped(x) + clamped(x+1);
         f.compute_root().distribute(x);
 
-        map<string, Box> boxes_provided = func_boxes_provided(f),
-            boxes_required = func_boxes_required(f);
         map<string, AbstractBuffer> buffers = func_input_buffers(f);
 
+        internal_assert(buffers.find(in.name()) != buffers.end());
         const AbstractBuffer &buf = buffers.at(in.name());
         const Box &have = buf.have();
-        const Box &need = boxes_required.at(in.name());
+        const Box &need = buf.need(f.name());
 
         Scope<Expr> testenv;
         testenv.push("Rank", 0);
         testenv.push("NumProcessors", numprocs);
-        testenv.push(f.name() + ".s0.x.min", 0);
-        testenv.push(f.name() + ".s0.x.max", w-1);
+        testenv.push(f.name() + ".min.0", 0);
+        testenv.push(f.name() + ".max.0", w-1);
+        testenv.push(f.name() + ".extent.0", w);
 
         {
             testenv.ref("Rank") = 0;
@@ -1191,19 +1267,19 @@ void distribute_loops_test() {
         Func f("f");
         f(x) = in(x) + 1;
         f.compute_root().distribute(x);
-        map<string, Box> boxes_provided = func_boxes_provided(f),
-            boxes_required = func_boxes_required(f);
         map<string, AbstractBuffer> buffers = func_input_buffers(f);
 
+        internal_assert(buffers.find(in.name()) != buffers.end());
         const AbstractBuffer &buf = buffers.at(in.name());
         const Box &b = buf.have();
-        const Box &req = boxes_required.at(in.name());
+        const Box &req = buf.need(f.name());
 
         Scope<Expr> testenv;
         testenv.push("Rank", Var("r"));
         testenv.push("NumProcessors", numprocs);
-        testenv.push(f.name() + ".s0.x.min", 0);
-        testenv.push(f.name() + ".s0.x.max", w-1);
+        testenv.push(f.name() + ".min.0", 0);
+        testenv.push(f.name() + ".max.0", w-1);
+        testenv.push(f.name() + ".extent.0", w);
 
         Box need = simplify_box(req, testenv);
         testenv.pop("Rank");
@@ -1253,23 +1329,24 @@ void distribute_loops_test() {
         f.compute_root().distribute(x);
         g.compute_root().distribute(x);
 
-        map<string, Box> boxes_provided = func_boxes_provided(g),
-            boxes_required = func_boxes_required(g);
         map<string, AbstractBuffer> buffers = func_input_buffers(g);
 
+        internal_assert(buffers.find(f.name()) != buffers.end());
         const AbstractBuffer &buf = buffers.at(f.name());
         const Box &b = buf.have();
-        const Box &req = boxes_required.at(f.name());
-
+        const Box &req = buf.need(g.name());
 
         Scope<Expr> testenv;
         testenv.push("Rank", Var("r"));
         testenv.push("NumProcessors", numprocs);
-        testenv.push(g.name() + ".s0.x.min", 0);
-        testenv.push(g.name() + ".s0.x.max", w-1);
-        testenv.push(f.name() + ".s0.x.min", Var(g.name() + ".s0.x.min"));
-        testenv.push(f.name() + ".s0.x.max", Var(g.name() + ".s0.x.max") + 1);
 
+        testenv.push(g.name() + ".min.0", 0);
+        testenv.push(g.name() + ".max.0", w-1);
+        testenv.push(g.name() + ".extent.0", w);
+
+        testenv.push(f.name() + ".min.0", Var(g.name() + ".min.0"));
+        testenv.push(f.name() + ".max.0", Var(g.name() + ".max.0") + 1);
+        testenv.push(f.name() + ".extent.0", Var(f.name() + ".max.0") - Var(f.name() + ".min.0") + 1);
 
         // First test have/need of the f buffer to function g.
         Box need = simplify_box(req, testenv);
@@ -1332,7 +1409,8 @@ void distribute_loops_test() {
         // Now test have/need of the input buffer to function f.
         testenv.pop("r");
         testenv.ref("Rank") = Var("r");
-        need = simplify_box(boxes_required.at(in.name()), testenv);
+        internal_assert(buffers.find(in.name()) != buffers.end());
+        need = simplify_box(buffers.at(in.name()).need(f.name()), testenv);
         testenv.pop("Rank");
         have = simplify_box(buffers.at(in.name()).have(), testenv);
         testenv.push("Rank", 0);
@@ -1390,6 +1468,115 @@ void distribute_loops_test() {
             internal_assert(intersection[0] == Interval(11, 9));
             // -4 size is ok: we test for size > 0 to determine empty intersections.
             internal_assert(expr2int(buf.size_of(intersection)) == -4);
+        }
+    }
+
+    {
+        Var y("y");
+        DistributedImage<int> in2(10, 20, "in");
+        in2.set_domain(x, y);
+        in2.placement().distribute(y);
+        in2.allocate();
+        Func clamped2;
+        clamped2(x, y) = in2(clamp(x, 0, in2.global_width() - 1),
+                             clamp(y, 0, in2.global_height() - 1));
+
+        Func f("f"), g("g");
+        f(x, y) = clamped2(x, y) + clamped2(x, y+1) + 1;
+        g(x, y) = f(x, y) + f(x, y+1) + 1;
+        f.compute_at(g, y);
+        g.compute_root().distribute(y);
+
+        map<string, AbstractBuffer> buffers = func_input_buffers(g);
+
+        internal_assert(buffers.find(f.name()) != buffers.end());
+        const AbstractBuffer &buf = buffers.at(f.name());
+
+        Scope<Expr> testenv;
+        testenv.push("Rank", Var("r"));
+        testenv.push("NumProcessors", numprocs);
+
+        testenv.push(g.name() + ".min.0", 0);
+        testenv.push(g.name() + ".max.0", in2.global_width()-1);
+        testenv.push(g.name() + ".extent.0", Var(g.name() + ".max.0") - Var(g.name() + ".min.0") + 1);
+        testenv.push(g.name() + ".min.1", 0);
+        testenv.push(g.name() + ".max.1", in2.global_height()-1);
+        testenv.push(g.name() + ".extent.1", Var(g.name() + ".max.1") - Var(g.name() + ".min.1") + 1);
+
+
+        testenv.push(f.name() + ".min.0", Var(g.name() + ".min.0"));
+        testenv.push(f.name() + ".max.0", Var(g.name() + ".max.0"));
+        testenv.push(f.name() + ".extent.0", Var(f.name() + ".max.0") - Var(f.name() + ".min.0") + 1);
+
+        testenv.push(f.name() + ".min.1", Var(g.name() + ".min.1"));
+        testenv.push(f.name() + ".max.1", Var(g.name() + ".max.1") + 2);
+        testenv.push(f.name() + ".extent.1", Var(f.name() + ".max.1") - Var(f.name() + ".min.1") + 1);
+
+        // Test have/need of the input buffer.
+        internal_assert(buffers.find(in2.name()) != buffers.end());
+        Box need = simplify_box(buffers.at(in2.name()).need(g.name()), testenv);
+        testenv.pop("Rank");
+        Box have = simplify_box(buffers.at(in2.name()).have(), testenv);
+        testenv.push("Rank", 0);
+
+        {
+            testenv.ref("Rank") = 0;
+            testenv.push("r", 0);
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(0, 9));
+            internal_assert(have_concrete[1] == Interval(0, 9));
+            internal_assert(need_concrete[0] == Interval(0, 9));
+            internal_assert(need_concrete[1] == Interval(0, 11));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            testenv.ref("r") = 1;
+            Box have_concrete = simplify_box(have, testenv);
+            Box need_concrete = simplify_box(need, testenv);
+            internal_assert(have_concrete[0] == Interval(0, 9));
+            internal_assert(have_concrete[1] == Interval(10, 19));
+            internal_assert(need_concrete[0] == Interval(0, 9));
+            internal_assert(need_concrete[1] == Interval(10, 19));
+        }
+        {
+            testenv.ref("Rank") = 1;
+            testenv.ref("r") = 0;
+            BoxIntersection TI(have, need);
+            // What rank 1 has and rank 0 needs.
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(0, 9));
+            internal_assert(intersection[1] == Interval(10, 11));
+            internal_assert(expr2int(buf.size_of(intersection)) == 10*2*4);
+
+            // Local intersection for rank 1
+            vector<Expr> offset;
+            for (unsigned i = 0; i < have.size(); i++) {
+                offset.push_back(have[i].min);
+            }
+            Box offsetI = offset_box(intersection, offset);
+            Box localI = simplify_box(offsetI, testenv);
+            internal_assert(localI[0] == Interval(0, 9));
+            internal_assert(localI[1] == Interval(0, 1));
+
+            // Local intersection for rank 0
+            for (unsigned i = 0; i < need.size(); i++) {
+                offset[i] = need[i].min;
+            }
+            offsetI = offset_box(intersection, offset);
+            localI = simplify_box(offsetI, testenv);
+            internal_assert(localI[0] == Interval(0, 9));
+            internal_assert(localI[1] == Interval(10, 11));
+        }
+        {
+            BoxIntersection TI(have, need);
+            testenv.ref("Rank") = 0;
+            testenv.ref("r") = 1;
+            // What rank 0 has and rank 1 needs (nothing):
+            Box intersection = simplify_box(TI.box(), testenv);
+            internal_assert(intersection[0] == Interval(0, 9));
+            internal_assert(intersection[1] == Interval(10, 9));
+            internal_assert(expr2int(buf.size_of(intersection)) == 0);
         }
     }
 

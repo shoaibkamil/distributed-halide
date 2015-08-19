@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
         Expr clamped_x = clamp(x, 0, in.global_width()-1);
         Func clamped;
         clamped(x) = in(clamped_x);
-        Func f, g;
+        Func f("f"), g("g");
         f(x) = clamped(x) + clamped(x+1) + 1;
         g(x) = f(x) + f(x+1) + 1;
         f.compute_root().distribute(x);
@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
             const int correct = (2 * out.global(x) + 2 * out.global(xp1) + 1) +
                 (2 * out.global(xp1) + 2 * out.global(xp2) + 1) + 1;
             if (out(x) != correct) {
-                mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
+                printf("[rank %d] out(%d) = %d instead of %d\n", rank, x, out(x), correct);
                 MPI_Finalize();
                 return -1;
             }
@@ -259,6 +259,49 @@ int main(int argc, char **argv) {
                 const int max = out.global_height() - 1;
                 const int clamp = out.global(1, y+1) >= max ? out.local(1, max) : y+1;
                 const int correct = out.global(0, x) + out.global(1, y) + out.global(0, x) + out.global(1, clamp) + 1;
+                if (out(x, y) != correct) {
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
+                    MPI_Finalize();
+                    return -1;
+                }
+            }
+        }
+    }
+
+    {
+        DistributedImage<int> in(10, 20);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
+
+        Expr clamped_x = clamp(x, 0, in.global_width()-1),
+            clamped_y = clamp(y, 0, in.global_height()-1);
+        Func clamped;
+        clamped(x, y) = in(clamped_x, clamped_y);
+        Func f, g;
+        f(x, y) = clamped(x, y) + clamped(x, y+1) + 1;
+        g(x, y) = f(x, y) + f(x, y+1) + 1;
+        f.compute_at(g, y);
+        g.distribute(y);
+
+        DistributedImage<int> out(10, 20);
+        out.set_domain(x, y);
+        out.placement().distribute(y);
+        out.allocate();
+        g.realize(out.get_buffer());
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                const int max = out.global_height() - 1;
+                const int yp1 = out.global(1, y+1) >= max ? out.local(1, max) : y+1,
+                    yp2 = out.global(1, y+2) >= max ? out.local(1, max) : y+2;
+                const int correct = (out.global(0, x) + out.global(1, y) + out.global(0, x) + out.global(1, yp1) + 1) +
+                    (out.global(0, x) + out.global(1, yp1) + out.global(0, x) + out.global(1, yp2) + 1) + 1;
                 if (out(x, y) != correct) {
                     printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
                     MPI_Finalize();
@@ -344,7 +387,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-
+    /*
     {
         DistributedImage<int> in(10, 20, 30);
         in.set_domain(x, y, z);
@@ -385,6 +428,7 @@ int main(int argc, char **argv) {
             }
         }
     }
+    */
 
     {
         DistributedImage<int> in(10, 20);
@@ -462,6 +506,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    /*
     {
         DistributedImage<int> in(100, 100);
         in.set_domain(x, y);
@@ -561,7 +606,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-
+    */
     {
         DistributedImage<int> in(20);
         in.set_domain(x);
