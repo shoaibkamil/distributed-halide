@@ -264,7 +264,9 @@ public:
     // Return the region (in parameterized global coordinates)
     // required of this buffer by the given function.
     const Box &need(const string &func) const {
-        internal_assert(_need_bounds.find(func) != _need_bounds.end()) << func;
+        if (_need_bounds.find(func) == _need_bounds.end()) {
+            internal_error << "Buffer " << name() << " is not needed by " << func << "\n";
+        }
         return _need_bounds.at(func);
     }
 
@@ -950,7 +952,7 @@ public:
         string funcname = first_token(for_loop->name);
         map<string, AbstractBuffer> bufs;
         bufs = buffers_used(for_loop);
-        for (auto it : bufs) {
+        for (auto &it : bufs) {
             if (distributed_functions.count(it.first)) {
                 it.second.set_distributed();
             }
