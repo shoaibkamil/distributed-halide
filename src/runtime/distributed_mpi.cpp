@@ -155,8 +155,8 @@ WEAK int halide_do_distr_send(const void *buf, int count, int dest) {
 
     int tag = 0;
     if (trace_messages) {
-        printf("[rank %d] Issuing send buf %p, count %d, dest %d\n",
-               rank, buf, count, dest);
+        printf("[rank %d] Issuing send buf %p (buf[0]=%d), count %d, dest %d\n",
+               rank, buf, *(int *)buf, count, dest);
     }
     return MPI_Isend(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM, &HALIDE_MPI_REQ);
     //return MPI_Send(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM);
@@ -171,11 +171,12 @@ WEAK int halide_do_distr_recv(void *buf, int count, int source) {
 
     int tag = 0;
     MPI_Status status;
+    int rc = MPI_Recv(buf, count, MPI_UNSIGNED_CHAR, source, tag, HALIDE_MPI_COMM, &status);
     if (trace_messages) {
-        printf("[rank %d] Issuing recv buf %p, count %d, source %d\n",
-               rank, buf, count, source);
+        printf("[rank %d] Received buf %p (buf[0]=%d), count %d, source %d\n",
+               rank, buf, *(int *)buf, count, source);
     }
-    return MPI_Recv(buf, count, MPI_UNSIGNED_CHAR, source, tag, HALIDE_MPI_COMM, &status);
+    return rc;
 }
 
 } // extern "C"
