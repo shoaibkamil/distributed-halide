@@ -35,6 +35,7 @@ namespace {
 const bool trace_have_needs = false;
 const bool trace_provides = false;
 const bool trace_messages = false;
+const bool trace_progress = false;
 
 // Removes last token of the string, delimited by '.'
 string remove_suffix(const string &str) {
@@ -635,23 +636,25 @@ Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &require
         BoxIntersection I(have, need);
         Box dest_box = in.local_region(I.box(), func);
         Box src_box = in.local_region(I.box());
-
+        Var numbytes = Var("numbytes");
         Stmt s;
         if (I.box().size() == 1) {
             Expr destoff = dest_box[0].min, srcoff = src_box[0].min;
             Expr destoffbytes = destoff * in.elem_size(), srcoffbytes = srcoff * in.elem_size();
             Expr dest = address_of(in.extended_name(), destoffbytes), src = address_of(in.name(), srcoffbytes);
-            Expr numbytes = in.size_of(dest_box);
             s = copy_memory(dest, src, numbytes);
         } else {
             // s = copy_box(in.type(), in.name(), have, src_box, in.extended_name(), need, dest_box);
             string scratch_name = "scratch";
-            Stmt pack = pack_region(Pack, in.type(), scratch_name, in.name(), have, src_box);
+            Stmt pack = pack_region(Pack, in.type(), scratch_name, in.name(), in.shape(), src_box);
             Stmt unpack = pack_region(Unpack, in.type(), scratch_name, in.extended_name(), need, dest_box);
             s = Block::make(pack, unpack);
             s = allocate_scratch(scratch_name, in.type(), I.box(), s);
         }
 
+        Expr cond = GT::make(numbytes, 0);
+        s = IfThenElse::make(cond, s);
+        s = LetStmt::make(numbytes.name(), in.size_of(dest_box), s);
         if (copy.defined()) {
             copy = Block::make(copy, s);
         } else {
@@ -872,10 +875,26 @@ public:
         if (copy.defined()) {
             newproduce = Block::make(copy, newproduce);
         }
+        if (trace_progress) {
+            Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+                            string("before copy_on_node_data")}));
+            newproduce = Block::make(p, newproduce);
+            p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+                            string("after copy_on_node_data")}));
+            newproduce = Block::make(newproduce, p);
+        }
 
         Stmt border_exchange = exchange_data(current_function, required);
         if (border_exchange.defined()) {
             newproduce = Block::make(border_exchange, newproduce);
+        }
+        if (trace_progress) {
+            Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+                            string("before exchange_data")}));
+            newproduce = Block::make(p, newproduce);
+            p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+                            string("after exchange_data")}));
+            newproduce = Block::make(newproduce, p);
         }
 
         newproduce = update_io_buffers(newproduce, current_function, required, provided);
