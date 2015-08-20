@@ -660,6 +660,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     Expr cond = And::make(NE::make(Var("Rank"), Var("r")), GT::make(numbytes, 0));
     Stmt commstmt;
     const string scratch_name = buf.name() + "_commscratch";
+    bool need_scratch = true;
 
     // Convert the intersection box to "local" coordinates (the
     // extended buffer counts from 0). This just means subtracting the
@@ -671,22 +672,24 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     switch (cmd) {
     case Send:
         if (local_have.size() == 1) {
+            need_scratch = false;
             addr = address_of(buf.name(), local_have[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("r"))));
         } else {
             Stmt pack = pack_region(Pack, buf.type(), scratch_name, buf.name(), buf.have(), local_have);
             addr = address_of(scratch_name, 0);
-            commstmt = IfThenElse::make(cond, Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r")))));
+            commstmt = Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r"))));
         }
         break;
     case Recv:
         if (local_need.size() == 1) {
+            need_scratch = false;
             addr = address_of(buf.extended_name(), local_need[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("r"))));
         } else {
             Stmt unpack = pack_region(Unpack, buf.type(), scratch_name, buf.extended_name(), need, local_need);
             addr = address_of(scratch_name, 0);
-            commstmt = IfThenElse::make(cond, Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack));
+            commstmt = Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack);
         }
         break;
     }
@@ -731,8 +734,11 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     // TODO: we have to allocate the communication buffer inside the
     // loop because the size of the intersection depends on "r". Can
     // we do something smarter?
+    if (need_scratch) {
+        commstmt = allocate_scratch(scratch_name, buf.type(), I.box(), commstmt);
+    }
+    commstmt = IfThenElse::make(cond, commstmt);
     commstmt = LetStmt::make("msgsize", buf.size_of(I.box()), commstmt);
-    commstmt = allocate_scratch(scratch_name, buf.type(), I.box(), commstmt);
     commstmt = For::make("r", 0, Var("NumProcessors"), ForType::Serial, DeviceAPI::Host, commstmt);
 
     return commstmt;
