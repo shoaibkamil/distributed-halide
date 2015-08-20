@@ -1124,19 +1124,27 @@ public:
 Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env, bool cap_extents) {
     FindDistributedLoops find;
     s.accept(&find);
+    if (find.distributed_functions.empty()) {
+        return s;
+    }
     return DistributeLoops(find.distributed_bounds, env, cap_extents).mutate(s);
 }
 
 Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env) {
     FindDistributedLoops find;
     s.accept(&find);
-    s = DistributeLoops(find.distributed_bounds, env).mutate(s);
-    return s;
+    if (find.distributed_functions.empty()) {
+        return s;
+    }
+    return DistributeLoops(find.distributed_bounds, env).mutate(s);
 }
 
 Stmt inject_communication(Stmt s, const std::map<std::string, Function> &env) {
     FindDistributedLoops find;
     s.accept(&find);
+    if (find.distributed_functions.empty()) {
+        return s;
+    }
     GetPipelineBuffers getio(find.distributed_functions);
     s.accept(&getio);
     SetBufferBounds setb(getio.buffers);
