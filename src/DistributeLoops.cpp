@@ -167,15 +167,17 @@ public:
     AbstractBuffer(Type type, BufferType btype, const string &name) :
         _type(type), _btype(btype), _name(name), _dimensions(-1), _distributed(false) {}
     AbstractBuffer(Type type, BufferType btype, const string &name, const Buffer &buffer) :
-        _type(type), _btype(btype), _name(name), _dimensions(-1) {
+        _type(type), _btype(btype), _name(name) {
         internal_assert(btype == Image);
         internal_assert(buffer.defined());
         internal_assert(buffer.distributed());
         _distributed = buffer.distributed();
+        _dimensions = buffer.dimensions();
         for (int i = 0; i < buffer.dimensions(); i++) {
             Expr min = buffer.local_min(i);
             Expr max = min + buffer.local_extent(i) - 1;
             _bounds.push_back(Interval(min, max));
+            _shape.push_back(Interval(min, max));
         }
     }
 
@@ -255,6 +257,15 @@ public:
         return num_elems * elem_size();
     }
 
+    // Return the region (in parameterized global coordinates) that
+    // represents the shape of this buffer. This can be different than
+    // 'have' when a buffer is allocated larger than is actually
+    // produced.
+    const Box &shape() const {
+        internal_assert(!_shape.empty()) << _name;
+        return _shape;
+    }
+
     // Return the region (in parameterized global coordinates)
     // produced of this buffer.
     const Box &have() const {
@@ -271,10 +282,22 @@ public:
         return _need_bounds.at(func);
     }
 
+    // Set the shape of this buffer.
+    void set_shape(const Box &b) {
+        internal_assert(_shape.empty());
+        internal_assert(_btype != Image);
+        internal_assert(_dimensions == -1);
+        internal_assert(b.size() > 0);
+        set_dimensions(b.size());
+        _shape = Box(b.size());
+        for (unsigned i = 0; i < b.size(); i++) {
+            _shape[i] = Interval(b[i].min, b[i].max);
+        }
+    }
+
     // Set the region produced of this buffer.
     void set_have_bounds(const Box &b) {
         internal_assert(_bounds.empty());
-        set_dimensions(b.size());
         _bounds = Box(b.size());
         for (unsigned i = 0; i < b.size(); i++) {
             _bounds[i] = Interval(b[i].min, b[i].max);
@@ -295,10 +318,14 @@ public:
     Box local_region(const Box &b, const string &func = "") const {
         Box result(b.size());
         Box local_origin;
-        if (func.empty()) {
-            local_origin = have();
+        if (_btype == AbstractBuffer::Image) {
+            if (func.empty()) {
+                local_origin = shape();
+            } else {
+                local_origin = need(func);
+            }
         } else {
-            local_origin = need(func);
+            local_origin = shape();
         }
         for (unsigned i = 0; i < b.size(); i++) {
             result[i] = Interval(b[i].min - local_origin[i].min, b[i].max - local_origin[i].min);
@@ -314,6 +341,7 @@ private:
     vector<Expr> mins;
     vector<Expr> extents;
     Box _bounds;
+    Box _shape;
     map<string, Box> _need_bounds;
 };
 
@@ -676,7 +704,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
             addr = address_of(buf.name(), local_have[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("r"))));
         } else {
-            Stmt pack = pack_region(Pack, buf.type(), scratch_name, buf.name(), buf.have(), local_have);
+            Stmt pack = pack_region(Pack, buf.type(), scratch_name, buf.name(), buf.shape(), local_have);
             addr = address_of(scratch_name, 0);
             commstmt = Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r"))));
         }
@@ -687,27 +715,31 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
             addr = address_of(buf.extended_name(), local_need[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("r"))));
         } else {
-            Stmt unpack = pack_region(Unpack, buf.type(), scratch_name, buf.extended_name(), need, local_need);
+            Box shape = buf.buffer_type() == AbstractBuffer::Image ? need : buf.shape();
+            Stmt unpack = pack_region(Unpack, buf.type(), scratch_name, buf.extended_name(), shape, local_need);
             addr = address_of(scratch_name, 0);
             commstmt = Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack);
         }
         break;
     }
+    Box shape = buf.shape();
     if (trace_messages && cmd == Send) {
         Stmt p = Evaluate::make(print_when(cond, {string("rank"), rank(),
                         string("sending to rank"), Var("r"),
                         string("buffer " + buf.name() + ":\n"),
                         string("size"),
                         I.box()[0].max - I.box()[0].min + 1,
-                        //string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("\n   shape[0].min ="), shape[0].min, string("shape[0].max ="), shape[0].max,
+                        string("\n   shape[1].min ="), shape[1].min, string("shape[1].max ="), shape[1].max,
                         string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
-                        //string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
+                        string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
                         string("\n   need_parameterized[0].min ="), need_parameterized[0].min, string("need_parameterized[0].max ="), need_parameterized[0].max,
-                        //string("\n   need_parameterized[1].min ="), need_parameterized[1].min, string("need_parameterized[1].max ="), need_parameterized[1].max
+                        string("\n   need_parameterized[1].min ="), need_parameterized[1].min, string("need_parameterized[1].max ="), need_parameterized[1].max,
                         string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
-                        //string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
+                        string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
                         string("\n   local_have[0].min ="), local_have[0].min, string("local_have[0].max ="), local_have[0].max,
-                        //string("\n   local_have[1].min ="), local_have[1].min, string("local_have[1].max ="), local_have[1].max,
+                        string("\n   local_have[1].min ="), local_have[1].min, string("local_have[1].max ="), local_have[1].max
                         }));
         commstmt = Block::make(p, commstmt);
     }
@@ -718,15 +750,17 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
                         string("buffer " + buf.name() + ":\n"),
                         string("size"),
                         I.box()[0].max - I.box()[0].min + 1,
-                        //string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("\n   shape[0].min ="), shape[0].min, string("shape[0].max ="), shape[0].max,
+                        string("\n   shape[1].min ="), shape[1].min, string("shape[1].max ="), shape[1].max,
                         string("\n   have_parameterized[0].min ="), have_parameterized[0].min, string("have_parameterized[0].max ="), have_parameterized[0].max,
-                        //string("\n   have_parameterized[1].min ="), have_parameterized[1].min, string("have_parameterized[1].max ="), have_parameterized[1].max,
+                        string("\n   have_parameterized[1].min ="), have_parameterized[1].min, string("have_parameterized[1].max ="), have_parameterized[1].max,
                         string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
-                        //string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max
+                        string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max,
                         string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
-                        //string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max
+                        string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
                         string("\n   local_need[0].min ="), local_need[0].min, string("local_need[0].max ="), local_need[0].max,
-                        //string("\n   local_need[1].min ="), local_need[1].min, string("local_need[1].max ="), local_need[1].max,
+                        string("\n   local_need[1].min ="), local_need[1].min, string("local_need[1].max ="), local_need[1].max
                         }));
         commstmt = Block::make(p, commstmt);
     }
@@ -1051,6 +1085,14 @@ public:
         env.push(let->name, let->value);
         IRGraphVisitor::visit(let);
         env.pop(let->name);
+    }
+
+    void visit(const Realize *op) {
+        AbstractBuffer &buf = buffers.at(op->name);
+        internal_assert(buf.buffer_type() != AbstractBuffer::Image);
+        Box b = box_touched(op->body, op->name);
+        buf.set_shape(b);
+        IRGraphVisitor::visit(op);
     }
 
     void visit(const ProducerConsumer *op) {

@@ -387,7 +387,43 @@ int main(int argc, char **argv) {
             }
         }
     }
-    /*
+
+    {
+        DistributedImage<int> in(10, 20);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
+
+        Func f, g;
+        f(x, y) = 2 * in(x, y);
+        g(x, y) = 2 * f(x, y);
+        f.compute_root().distribute(x);
+        g.distribute(y);
+
+        DistributedImage<int> out(10, 20);
+        out.set_domain(x, y);
+        out.placement().distribute(y);
+        out.allocate();
+        g.realize(out.get_buffer());
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                int gx = out.global(0, x), gy = out.global(1, y);
+                const int correct = 4*(gx + gy);
+                if (out(x, y) != correct) {
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
+                    MPI_Finalize();
+                    return -1;
+                }
+            }
+        }
+    }
+
     {
         DistributedImage<int> in(10, 20, 30);
         in.set_domain(x, y, z);
@@ -420,7 +456,7 @@ int main(int argc, char **argv) {
                     int gx = out.global(0, x), gy = out.global(1, y), gz = out.global(2, z);
                     int correct = 4*(gx+gy+gz);
                     if (out(x,y,z) != correct) {
-                        mpi_printf("out(%d,%d,%d) = %d instead of %d\n", x, y, z, out(x,y,z), correct);
+                        printf("[rank %d] out(%d,%d,%d) = %d instead of %d\n", rank, x, y, z, out(x,y,z), correct);
                         MPI_Finalize();
                         return -1;
                     }
@@ -428,7 +464,6 @@ int main(int argc, char **argv) {
             }
         }
     }
-    */
 
     {
         DistributedImage<int> in(10, 20);
@@ -506,7 +541,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    /*
     {
         DistributedImage<int> in(100, 100);
         in.set_domain(x, y);
@@ -606,7 +640,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-    */
+
     {
         DistributedImage<int> in(20);
         in.set_domain(x);
@@ -620,8 +654,8 @@ int main(int argc, char **argv) {
         Func f, g;
         f(x) = in(x) + 1;
         g(x) = f(x) + 1;
-        Var xi;
-        f.compute_root().split(x, x, xi, 8).distribute(x);
+        Var xo("xo"), xi("xi");
+        f.compute_root().split(x, xo, xi, 8).distribute(xo);
         g.distribute(x);
 
         DistributedImage<int> out(20);
