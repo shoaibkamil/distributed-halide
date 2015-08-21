@@ -41,6 +41,8 @@ typedef struct MPI_Status {
     int MPI_ERROR;
 } MPI_Status;
 
+#define MPI_SUCCESS          0      /* Successful return code */
+
 extern int MPI_Comm_size(MPI_Comm, int *);
 extern int MPI_Comm_rank(MPI_Comm, int *);
 extern int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
@@ -62,7 +64,7 @@ namespace Halide { namespace Runtime { namespace Internal {
 
 WEAK int halide_num_processes;
 WEAK bool halide_mpi_initialized = false;
-WEAK bool trace_messages = false;
+WEAK bool trace_messages = true;
 
 WEAK void halide_initialize_mpi() {
     MPI_Comm_dup(MPI_COMM_WORLD, &HALIDE_MPI_COMM);
@@ -158,8 +160,12 @@ WEAK int halide_do_distr_send(const void *buf, int count, int dest) {
         printf("[rank %d] Issuing send buf %p (buf[0]=%d), count %d, dest %d\n",
                rank, buf, *(int *)buf, count, dest);
     }
-    return MPI_Isend(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM, &HALIDE_MPI_REQ);
     //return MPI_Send(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM);
+    int rc = MPI_Isend(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM, &HALIDE_MPI_REQ);
+    if (rc != MPI_SUCCESS) {
+        printf("[rank %d] isend failed.\n", rank);
+    }
+    return rc;
 }
 
 WEAK int halide_do_distr_recv(void *buf, int count, int source) {
@@ -175,6 +181,9 @@ WEAK int halide_do_distr_recv(void *buf, int count, int source) {
     if (trace_messages) {
         printf("[rank %d] Received buf %p (buf[0]=%d), count %d, source %d\n",
                rank, buf, *(int *)buf, count, source);
+    }
+    if (rc != MPI_SUCCESS) {
+        printf("[rank %d] receive failed.\n", rank);
     }
     return rc;
 }
