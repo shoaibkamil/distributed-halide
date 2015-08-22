@@ -33,6 +33,8 @@ typedef int MPI_Datatype;
 #define MPI_UNSIGNED_LONG_LONG ((MPI_Datatype)0x4c000819)
 #define MPI_LONG_LONG      MPI_LONG_LONG_INT
 
+#define MPI_ORDER_C              56
+
 typedef struct MPI_Status {
     int count_lo;
     int count_hi_and_cancelled;
@@ -56,6 +58,12 @@ extern int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, in
                      MPI_Comm comm, MPI_Request *request);
 extern int MPI_Wait(MPI_Request *request, MPI_Status *status);
 extern int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]);
+
+extern int MPI_Type_commit(MPI_Datatype *datatype);
+extern int MPI_Type_free(MPI_Datatype *datatype);
+extern int MPI_Type_create_subarray(int ndims, const int array_of_sizes[],
+                                    const int array_of_subsizes[], const int array_of_starts[],
+                                    int order, MPI_Datatype oldtype, MPI_Datatype *newtype);
 
 MPI_Comm HALIDE_MPI_COMM;
 
@@ -103,6 +111,10 @@ public:
         return _idx;
     }
 
+    T operator[](unsigned i) {
+        return *(_data + i);
+    }
+
     T *data() {
         return _data;
     }
@@ -125,6 +137,7 @@ private:
 
 SimpleVector<MPI_Request> outstanding_receives;
 SimpleVector<MPI_Request> outstanding_sends;
+SimpleVector<MPI_Datatype> send_datatypes, recv_datatypes;
 
 WEAK void halide_initialize_mpi() {
     MPI_Comm_dup(MPI_COMM_WORLD, &HALIDE_MPI_COMM);
@@ -249,6 +262,33 @@ WEAK int halide_do_distr_isend(const void *buf, int count, int dest) {
     return rc;
 }
 
+WEAK int halide_do_distr_isend_subarray(const void *buf, int ndims, int *sizes, int *subsizes, int *starts, int dest) {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    int rank = 0;
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
+    if (trace_messages) {
+        printf("[rank %d] Issuing isend buf %p (buf[0]=%d), dest %d\n",
+               rank, buf, *(int *)buf, dest);
+    }
+
+    MPI_Datatype subarray;
+    MPI_Type_create_subarray(ndims, sizes, subsizes, starts, MPI_ORDER_C, MPI_UNSIGNED_CHAR, &subarray);
+    MPI_Type_commit(&subarray);
+    // Save the datatype so we can free it later.
+    send_datatypes.push_back(subarray);
+
+    MPI_Request req;
+    int tag = 0;
+    int rc = MPI_Isend(buf, 1, subarray, dest, tag, HALIDE_MPI_COMM, &req);
+    if (rc != MPI_SUCCESS) {
+        printf("[rank %d] isend failed.\n", rank);
+    }
+    outstanding_sends.push_back(req);
+    return rc;
+}
+
 WEAK int halide_do_distr_recv(void *buf, int count, int source) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
@@ -290,7 +330,33 @@ WEAK int halide_do_distr_irecv(void *buf, int count, int source) {
     return rc;
 }
 
-WEAK int halide_do_distr_waitall() {
+WEAK int halide_do_distr_irecv_subarray(void *buf, int ndims, int *sizes, int *subsizes, int *starts, int source) {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    int rank = 0;
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
+    if (trace_messages) {
+        printf("[rank %d] Issuing irecv buf %p, source %d\n", rank, buf, source);
+    }
+
+    MPI_Datatype subarray;
+    MPI_Type_create_subarray(ndims, sizes, subsizes, starts, MPI_ORDER_C, MPI_UNSIGNED_CHAR, &subarray);
+    MPI_Type_commit(&subarray);
+    // Save the datatype so we can free it later.
+    recv_datatypes.push_back(subarray);
+
+    MPI_Request req;
+    int tag = 0;
+    int rc = MPI_Irecv(buf, 1, subarray, source, tag, HALIDE_MPI_COMM, &req);
+    if (rc != MPI_SUCCESS) {
+        printf("[rank %d] irecv failed.\n", rank);
+    }
+    outstanding_receives.push_back(req);
+    return rc;
+}
+
+WEAK int halide_do_distr_waitall_recvs() {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
@@ -299,19 +365,55 @@ WEAK int halide_do_distr_waitall() {
 
     int count = outstanding_receives.size();
     if (trace_messages) {
-        printf("[rank %d] Issuing waitall for %d irecvs\n", rank, count);
+        printf("[rank %d] Issuing recv waitall for %d irecvs\n", rank, count);
     }
-    for (int i = 0; i < count; i++) {
-        MPI_Status status;
-        int rc = MPI_Wait(&outstanding_receives.data()[i], &status);
+    int rc = MPI_SUCCESS;
+    if (count > 0) {
+        MPI_Status stati[count];
+        rc = MPI_Waitall(count, outstanding_receives.data(), stati);
         if (rc != MPI_SUCCESS) {
-            printf("[rank %d] waitall failed.\n", rank);
+            printf("[rank %d] recv waitall failed.\n", rank);
         }
-        return rc;
+        outstanding_receives.clear();
+
+        // Clean up datatypes
+        for (unsigned i = 0; i < recv_datatypes.size(); i++) {
+            MPI_Datatype dt = recv_datatypes[i];
+            MPI_Type_free(&dt);
+        }
+        recv_datatypes.clear();
     }
-    outstanding_receives.clear();
-    return MPI_SUCCESS;
+    return rc;
 }
 
+WEAK int halide_do_distr_waitall_sends() {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    int rank = 0;
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
+
+    int count = outstanding_sends.size();
+    if (trace_messages) {
+        printf("[rank %d] Issuing send waitall for %d isends\n", rank, count);
+    }
+    int rc = MPI_SUCCESS;
+    if (count > 0) {
+        MPI_Status stati[count];
+        rc = MPI_Waitall(count, outstanding_sends.data(), stati);
+        if (rc != MPI_SUCCESS) {
+            printf("[rank %d] send waitall failed.\n", rank);
+        }
+        outstanding_sends.clear();
+
+        // Clean up datatypes
+        for (unsigned i = 0; i < send_datatypes.size(); i++) {
+            MPI_Datatype dt = send_datatypes[i];
+            MPI_Type_free(&dt);
+        }
+        send_datatypes.clear();
+    }
+    return rc;
+}
 
 } // extern "C"
