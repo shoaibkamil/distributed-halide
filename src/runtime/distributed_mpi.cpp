@@ -52,23 +52,54 @@ extern int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest
                      MPI_Comm comm, MPI_Request *request);
 extern int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                     MPI_Comm comm, MPI_Status *status);
+extern int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+                     MPI_Comm comm, MPI_Request *request);
+extern int MPI_Wait(MPI_Request *request, MPI_Status *status);
+extern int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]);
+
 MPI_Comm HALIDE_MPI_COMM;
-MPI_Request HALIDE_MPI_REQ;
 
 WEAK int halide_do_task(void *user_context, halide_task f, int idx,
                         uint8_t *closure);
+
+extern void *malloc(size_t);
+extern void *realloc(void *ptr, size_t size);
 
 } // extern "C"
 
 namespace Halide { namespace Runtime { namespace Internal {
 
-WEAK int halide_num_processes;
-WEAK bool halide_mpi_initialized = false;
-WEAK bool trace_messages = true;
+int halide_num_processes;
+bool halide_mpi_initialized = false;
+bool trace_messages = true;
+
+unsigned outstanding_receives_idx = 0;
+unsigned outstanding_receives_size = 0;
+MPI_Request *outstanding_receives = NULL;
+
+inline int num_outstanding_receives() {
+    return outstanding_receives_idx;
+}
+
+void add_receive_request(MPI_Request req) {
+    if (outstanding_receives_idx == outstanding_receives_size) {
+        outstanding_receives_size *= 2;
+        outstanding_receives = (MPI_Request *)realloc(outstanding_receives, outstanding_receives_size * sizeof(MPI_Request));
+        halide_assert(NULL, outstanding_receives != NULL);
+    }
+    outstanding_receives[outstanding_receives_idx++] = req;
+}
+
+void clear_receive_requests() {
+    outstanding_receives_idx = 0;
+}
 
 WEAK void halide_initialize_mpi() {
     MPI_Comm_dup(MPI_COMM_WORLD, &HALIDE_MPI_COMM);
     MPI_Comm_size(HALIDE_MPI_COMM, &halide_num_processes);
+    outstanding_receives_size = 16;
+    outstanding_receives = (MPI_Request *)malloc(outstanding_receives_size * sizeof(MPI_Request));
+    halide_assert(NULL, outstanding_receives != NULL);
     halide_mpi_initialized = true;
 }
 
@@ -160,8 +191,27 @@ WEAK int halide_do_distr_send(const void *buf, int count, int dest) {
         printf("[rank %d] Issuing send buf %p (buf[0]=%d), count %d, dest %d\n",
                rank, buf, *(int *)buf, count, dest);
     }
-    //return MPI_Send(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM);
-    int rc = MPI_Isend(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM, &HALIDE_MPI_REQ);
+    int rc = MPI_Send(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM);
+    if (rc != MPI_SUCCESS) {
+        printf("[rank %d] send failed.\n", rank);
+    }
+    return rc;
+}
+
+WEAK int halide_do_distr_isend(const void *buf, int count, int dest) {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    int rank = 0;
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
+
+    int tag = 0;
+    if (trace_messages) {
+        printf("[rank %d] Issuing isend buf %p (buf[0]=%d), count %d, dest %d\n",
+               rank, buf, *(int *)buf, count, dest);
+    }
+    MPI_Request req;
+    int rc = MPI_Isend(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM, &req);
     if (rc != MPI_SUCCESS) {
         printf("[rank %d] isend failed.\n", rank);
     }
@@ -187,5 +237,50 @@ WEAK int halide_do_distr_recv(void *buf, int count, int source) {
     }
     return rc;
 }
+
+WEAK int halide_do_distr_irecv(void *buf, int count, int source) {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    int rank = 0;
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
+
+    int tag = 0;
+    MPI_Request req;
+    if (trace_messages) {
+        printf("[rank %d] Issuing irecv buf %p, count %d, source %d\n",
+               rank, buf, count, source);
+    }
+    int rc = MPI_Irecv(buf, count, MPI_UNSIGNED_CHAR, source, tag, HALIDE_MPI_COMM, &req);
+    if (rc != MPI_SUCCESS) {
+        printf("[rank %d] irecv failed.\n", rank);
+    }
+    add_receive_request(req);
+    return rc;
+}
+
+WEAK int halide_do_distr_waitall() {
+    if (!halide_mpi_initialized) {
+        halide_initialize_mpi();
+    }
+    int rank = 0;
+    MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
+
+    int count = outstanding_receives_idx;
+    if (trace_messages) {
+        printf("[rank %d] Issuing waitall for %d irecvs\n", rank, count);
+    }
+    for (int i = 0; i < count; i++) {
+        MPI_Status status;
+        int rc = MPI_Wait(&outstanding_receives[i], &status);
+        if (rc != MPI_SUCCESS) {
+            printf("[rank %d] waitall failed.\n", rank);
+        }
+        return rc;
+    }
+    clear_receive_requests();
+    return MPI_SUCCESS;
+}
+
 
 } // extern "C"
