@@ -455,9 +455,26 @@ Expr send(Expr address, Expr count, Expr rank) {
     return Call::make(Int(32), "halide_do_distr_send", {address, count, rank}, Call::Extern);
 }
 
+// Insert call to isend 'count' bytes starting at 'address' to 'rank'.
+Expr isend(Expr address, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_isend", {address, count, rank}, Call::Extern);
+}
+
 // Insert call to receive 'count' bytes from 'rank' to buffer starting at 'address'.
 Expr recv(Expr address, Expr count, Expr rank) {
     return Call::make(Int(32), "halide_do_distr_recv", {address, count, rank}, Call::Extern);
+}
+
+// Insert call to irecv 'count' bytes from 'rank' to buffer starting at 'address'.
+Expr irecv(Expr address, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_irecv", {address, count, rank}, Call::Extern);
+}
+
+// Wait for all outstanding irecvs.
+Stmt waitall() {
+    Expr rc = Call::make(Int(32), "halide_do_distr_waitall", {}, Call::Extern);
+    Expr error = Call::make(Int(32), "halide_error_extern_stage_failed", {string("halide_do_distr_waitall"), rc}, Call::Extern);
+    return AssertStmt::make(rc == 0, error);
 }
 
 // Return the (symbolic) address of the given buffer at the given
