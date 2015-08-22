@@ -64,7 +64,8 @@ WEAK int halide_do_task(void *user_context, halide_task f, int idx,
 
 extern void *malloc(size_t);
 extern void *realloc(void *ptr, size_t size);
-
+extern void *memset(void *s, int c, size_t n);
+extern void free(void *ptr);
 } // extern "C"
 
 namespace Halide { namespace Runtime { namespace Internal {
@@ -73,33 +74,63 @@ int halide_num_processes;
 bool halide_mpi_initialized = false;
 bool trace_messages = true;
 
-unsigned outstanding_receives_idx = 0;
-unsigned outstanding_receives_size = 0;
-MPI_Request *outstanding_receives = NULL;
+template <class T>
+class SimpleVector {
+public:
+    SimpleVector() : _allocated_size(0), _idx(0), _data(NULL) {}
 
-inline int num_outstanding_receives() {
-    return outstanding_receives_idx;
-}
-
-void add_receive_request(MPI_Request req) {
-    if (outstanding_receives_idx == outstanding_receives_size) {
-        outstanding_receives_size *= 2;
-        outstanding_receives = (MPI_Request *)realloc(outstanding_receives, outstanding_receives_size * sizeof(MPI_Request));
-        halide_assert(NULL, outstanding_receives != NULL);
+    void push_back(T t) {
+        if (_idx == _allocated_size) {
+            _allocated_size *= 2;
+            _data = (T *)realloc(_data, _allocated_size * sizeof(T));
+            halide_assert(NULL, _data != NULL);
+        }
+        _data[_idx++] = t;
     }
-    outstanding_receives[outstanding_receives_idx++] = req;
-}
 
-void clear_receive_requests() {
-    outstanding_receives_idx = 0;
-}
+    void clear() {
+        memset(_data, 0, _allocated_size * sizeof(T));
+        _idx = 0;
+    }
+
+    void free() {
+        free(_data);
+        _idx = 0;
+        _allocated_size = 0;
+    }
+
+    unsigned size() const {
+        return _idx;
+    }
+
+    T *data() {
+        return _data;
+    }
+
+    const T *data() const {
+        return _data;
+    }
+
+    void reserve(unsigned size) {
+        halide_assert(NULL, size >= _allocated_size);
+        _allocated_size = size;
+        _data = (T *)realloc(_data, _allocated_size * sizeof(T));
+        halide_assert(NULL, _data != NULL);
+    }
+private:
+    unsigned _allocated_size;
+    unsigned _idx;
+    T *_data;
+};
+
+SimpleVector<MPI_Request> outstanding_receives;
+SimpleVector<MPI_Request> outstanding_sends;
 
 WEAK void halide_initialize_mpi() {
     MPI_Comm_dup(MPI_COMM_WORLD, &HALIDE_MPI_COMM);
     MPI_Comm_size(HALIDE_MPI_COMM, &halide_num_processes);
-    outstanding_receives_size = 16;
-    outstanding_receives = (MPI_Request *)malloc(outstanding_receives_size * sizeof(MPI_Request));
-    halide_assert(NULL, outstanding_receives != NULL);
+    outstanding_receives.reserve(16);
+    outstanding_sends.reserve(16);
     halide_mpi_initialized = true;
 }
 
@@ -255,7 +286,7 @@ WEAK int halide_do_distr_irecv(void *buf, int count, int source) {
     if (rc != MPI_SUCCESS) {
         printf("[rank %d] irecv failed.\n", rank);
     }
-    add_receive_request(req);
+    outstanding_receives.push_back(req);
     return rc;
 }
 
@@ -266,19 +297,19 @@ WEAK int halide_do_distr_waitall() {
     int rank = 0;
     MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
 
-    int count = outstanding_receives_idx;
+    int count = outstanding_receives.size();
     if (trace_messages) {
         printf("[rank %d] Issuing waitall for %d irecvs\n", rank, count);
     }
     for (int i = 0; i < count; i++) {
         MPI_Status status;
-        int rc = MPI_Wait(&outstanding_receives[i], &status);
+        int rc = MPI_Wait(&outstanding_receives.data()[i], &status);
         if (rc != MPI_SUCCESS) {
             printf("[rank %d] waitall failed.\n", rank);
         }
         return rc;
     }
-    clear_receive_requests();
+    outstanding_receives.clear();
     return MPI_SUCCESS;
 }
 
