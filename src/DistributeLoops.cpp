@@ -457,16 +457,6 @@ Expr rank() {
     return Call::make(Int(32), "halide_do_distr_rank", {}, Call::Extern);
 }
 
-// Insert call to send 'count' bytes starting at 'address' to 'rank'.
-Expr send(Expr address, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_send", {address, count, rank}, Call::Extern);
-}
-
-// Insert call to isend 'count' bytes starting at 'address' to 'rank'.
-Expr isend(Expr address, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_isend", {address, count, rank}, Call::Extern);
-}
-
 // Insert call to communicate the given box of a buffer to 'rank'.
 typedef enum { Send, Recv } CommunicateCmd;
 Stmt communicate_subarray(CommunicateCmd cmd, const string &name,
@@ -525,14 +515,19 @@ Stmt communicate_subarray(CommunicateCmd cmd, const string &name,
     return allocate;
 }
 
+// Insert call to send 'count' bytes starting at 'address' to 'rank'.
+Expr send(Expr address, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_send", {address, count, rank}, Call::Extern);
+}
+
+// Insert call to isend 'count' bytes starting at 'address' to 'rank'.
+Expr isend(Expr address, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_isend", {address, count, rank}, Call::Extern);
+}
+
 Stmt isend_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
     return communicate_subarray(Send, buf.name(), buf.type(), shape, b, rank);
 }
-
-Stmt irecv_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
-    return communicate_subarray(Recv, buf.extended_name(), buf.type(), shape, b, rank);
-}
-
 
 // Insert call to receive 'count' bytes from 'rank' to buffer starting at 'address'.
 Expr recv(Expr address, Expr count, Expr rank) {
@@ -544,11 +539,26 @@ Expr irecv(Expr address, Expr count, Expr rank) {
     return Call::make(Int(32), "halide_do_distr_irecv", {address, count, rank}, Call::Extern);
 }
 
+Stmt irecv_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
+    return communicate_subarray(Recv, buf.extended_name(), buf.type(), shape, b, rank);
+}
+
 // Wait for all outstanding irecvs.
-Stmt waitall() {
-    Expr rc = Call::make(Int(32), "halide_do_distr_waitall", {}, Call::Extern);
-    Expr error = Call::make(Int(32), "halide_error_extern_stage_failed", {string("halide_do_distr_waitall"), rc}, Call::Extern);
-    return AssertStmt::make(rc == 0, error);
+Stmt waitall_irecv(const string &name) {
+    Expr address = address_of(name, 0);
+    Expr rc = Call::make(Int(32), "halide_do_distr_waitall_recvs", {address}, Call::Extern);
+    return Evaluate::make(rc);
+}
+
+// Wait for all outstanding isends.  The buffer name is unnecessary
+// except to prevent Halide and/or LLVM optimizing away these
+// calls. The argument is necessary to indicate that they may have
+// side effects affecting the buffer, and therefore cannot be moved or
+// optimized away.
+Stmt waitall_isend(const string &name) {
+    Expr address = address_of(name, 0);
+    Expr rc = Call::make(Int(32), "halide_do_distr_waitall_sends", {address}, Call::Extern);
+    return Evaluate::make(rc);
 }
 
 // Construct a statement to copy 'size' bytes from src to dest.
@@ -788,11 +798,8 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         if (local_have.size() == 1) {
             need_scratch = false;
             addr = address_of(buf.name(), local_have[0].min * buf.elem_size());
-            commstmt = IfThenElse::make(cond, Evaluate::make(send(addr, numbytes, Var("r"))));
+            commstmt = IfThenElse::make(cond, Evaluate::make(isend(addr, numbytes, Var("r"))));
         } else {
-            Stmt pack = pack_region(Pack, buf.type(), scratch_name, buf.name(), buf.shape(), local_have);
-            addr = address_of(scratch_name, 0);
-            // commstmt = Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r"))));
             commstmt = isend_subarray(buf, buf.shape(), local_have, Var("r"));
         }
         break;
@@ -800,12 +807,9 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         if (local_need.size() == 1) {
             need_scratch = false;
             addr = address_of(buf.extended_name(), local_need[0].min * buf.elem_size());
-            commstmt = IfThenElse::make(cond, Evaluate::make(recv(addr, numbytes, Var("r"))));
+            commstmt = IfThenElse::make(cond, Evaluate::make(irecv(addr, numbytes, Var("r"))));
         } else {
             Box shape = buf.buffer_type() == AbstractBuffer::Image ? need : buf.shape();
-            Stmt unpack = pack_region(Unpack, buf.type(), scratch_name, buf.extended_name(), shape, local_need);
-            addr = address_of(scratch_name, 0);
-            // commstmt = Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack);
             commstmt = irecv_subarray(buf, shape, local_need, Var("r"));
         }
         break;
@@ -870,27 +874,34 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
 // that own data needed by other ranks.
 Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required) {
     Stmt sendloop, recvloop;
+    Stmt sendwait, recvwait;
     for (const auto it : required) {
         const AbstractBuffer &in = it;
         if (!in.distributed()) continue;
 
         if (sendloop.defined()) {
             sendloop = Block::make(sendloop, communicate_intersection(Send, in, func));
+            sendwait = Block::make(sendwait, waitall_isend(in.name()));
         } else {
             sendloop = communicate_intersection(Send, in, func);
+            sendwait = waitall_isend(in.name());
         }
 
         if (recvloop.defined()) {
             recvloop = Block::make(recvloop, communicate_intersection(Recv, in, func));
+            recvwait = Block::make(recvwait, waitall_irecv(in.extended_name()));
         } else {
             recvloop = communicate_intersection(Recv, in, func);
+            recvwait = waitall_irecv(in.extended_name());
         }
     }
     internal_assert(sendloop.defined() == recvloop.defined());
     if (!sendloop.defined()) {
         return Stmt();
     } else {
-        return Block::make(sendloop, recvloop);
+        Stmt comm = Block::make(recvloop, sendloop);
+        Stmt wait = Block::make(recvwait, sendwait);
+        return Block::make(comm, wait);
     }
 }
 
@@ -971,16 +982,18 @@ public:
 
         Stmt border_exchange = exchange_data(current_function, required);
         if (border_exchange.defined()) {
+            // TODO: move the isend waitall after computation.
             newproduce = Block::make(border_exchange, newproduce);
         }
-        if (trace_progress) {
-            Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
-                            string("before exchange_data")}));
-            newproduce = Block::make(p, newproduce);
-            p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
-                            string("after exchange_data")}));
-            newproduce = Block::make(newproduce, p);
-        }
+
+        // if (trace_progress) {
+        //     Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+        //                     string("before exchange_data")}));
+        //     newproduce = Block::make(p, newproduce);
+        //     p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+        //                     string("after exchange_data")}));
+        //     newproduce = Block::make(newproduce, p);
+        // }
 
         newproduce = update_io_buffers(newproduce, current_function, required, provided);
         newproduce = allocate_extended_buffers(newproduce, current_function, required);

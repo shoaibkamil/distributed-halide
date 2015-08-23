@@ -89,7 +89,7 @@ namespace Halide { namespace Runtime { namespace Internal {
 
 int halide_num_processes;
 bool halide_mpi_initialized = false;
-bool trace_messages = true;
+bool trace_messages = false;
 
 template <class T>
 class SimpleVector {
@@ -97,6 +97,7 @@ public:
     SimpleVector() : _allocated_size(0), _idx(0), _data(NULL) {}
 
     void push_back(T t) {
+        halide_assert(NULL, _allocated_size > 0);
         if (_idx == _allocated_size) {
             _allocated_size *= 2;
             _data = (T *)realloc(_data, _allocated_size * sizeof(T));
@@ -121,6 +122,7 @@ public:
     }
 
     T operator[](unsigned i) {
+        halide_assert(NULL, i < size());
         return *(_data + i);
     }
 
@@ -205,6 +207,8 @@ WEAK void halide_initialize_mpi() {
     MPI_Comm_size(HALIDE_MPI_COMM, &halide_num_processes);
     outstanding_receives.reserve(16);
     outstanding_sends.reserve(16);
+    send_datatypes.reserve(16);
+    recv_datatypes.reserve(16);
     halide_mpi_initialized = true;
 }
 
@@ -320,6 +324,7 @@ WEAK int halide_do_distr_isend(const void *buf, int count, int dest) {
     if (rc != MPI_SUCCESS) {
         printf("[rank %d] isend failed.\n", rank);
     }
+    outstanding_sends.push_back(req);
     return rc;
 }
 
@@ -424,7 +429,7 @@ WEAK int halide_do_distr_irecv_subarray(void *buf, halide_type_code_t type_code,
     return rc;
 }
 
-WEAK int halide_do_distr_waitall_recvs() {
+WEAK int halide_do_distr_waitall_recvs(void *p) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
@@ -454,7 +459,7 @@ WEAK int halide_do_distr_waitall_recvs() {
     return rc;
 }
 
-WEAK int halide_do_distr_waitall_sends() {
+WEAK int halide_do_distr_waitall_sends(void *p) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
