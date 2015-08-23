@@ -7,7 +7,7 @@ const int niters = 10;
 #define begin_timing gettimeofday(&t1, NULL); for (int i = 0; i < niters; i++) {
 #define end_timing } gettimeofday(&t2, NULL);
 
-//#define DISTRIBUTED
+#define DISTRIBUTED
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
@@ -89,26 +89,29 @@ int main(int argc, char **argv) {
     float sum = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0f;
 
     printf("[rank %d] avg time\t%.3f\tseconds\n", rank, sum/niters);
-    
-    // for (int y = 0; y < output.height(); y++) {
-    //     for (int x = 0; x < output.width(); x++) {
-    //         const int xmax = output.global_width() - 1, ymax = output.global_height() - 1;
-    //         const int gxp1 = output.global(0, x+1) >= xmax ? xmax : output.global(0, x+1),
-    //             gxm1 = output.global(0, x) == 0 ? 0 : output.global(0, x-1);
-    //         const int gyp1 = output.global(1, y+1) >= ymax ? ymax : output.global(1, y+1),
-    //             gym1 = output.global(1, y) == 0 ? 0 : output.global(1, y-1);
-    //         const int gx = output.global(0, x), gy = output.global(1, y);
-    //         const int correct = (((gxm1 + gym1 + gx + gym1 + gxp1 + gym1)/3) +
-    //                              ((gxm1 + gy + gx + gy + gxp1 + gy)/3) +
-    //                              ((gxm1 + gyp1 + gx + gyp1 + gxp1 + gyp1)/3)) / 3;
-    //         if (output(x, y) != correct) {
-    //             printf("[rank %d] output(%d,%d) = %d instead of %d\n", rank, x, y, output(x, y), correct);
-    //             MPI_Finalize();
-    //             return -1;
-    //         }
-    //     }
-    // }
 
+#ifdef DISTRIBUTED
+    for (int y = 0; y < output.height(); y++) {
+        for (int x = 0; x < output.width(); x++) {
+            const int xmax = output.global_width() - 1, ymax = output.global_height() - 1;
+            const int gxp1 = output.global(0, x+1) >= xmax ? xmax : output.global(0, x+1),
+                gxm1 = output.global(0, x) == 0 ? 0 : output.global(0, x-1);
+            const int gyp1 = output.global(1, y+1) >= ymax ? ymax : output.global(1, y+1),
+                gym1 = output.global(1, y) == 0 ? 0 : output.global(1, y-1);
+            const int gx = output.global(0, x), gy = output.global(1, y);
+            const int correct = (((gxm1 + gym1 + gx + gym1 + gxp1 + gym1)/3) +
+                                 ((gxm1 + gy + gx + gy + gxp1 + gy)/3) +
+                                 ((gxm1 + gyp1 + gx + gyp1 + gxp1 + gyp1)/3)) / 3;
+            if (output(x, y) != correct) {
+                printf("[rank %d] output(%d,%d) = %d instead of %d\n", rank, x, y, output(x, y), correct);
+                MPI_Finalize();
+                return -1;
+            }
+        }
+    }
+#else
+    if (rank == 0) printf("No correctness test performed.\n");
+#endif
     if (rank == 0) {
         printf("Blur test succeeded!\n");
     }
