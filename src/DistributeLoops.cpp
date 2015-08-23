@@ -440,6 +440,13 @@ map<string, AbstractBuffer> buffers_used(const For *for_loop) {
     return result;
 }
 
+// Return the (symbolic) address of the given buffer at the given
+// byte index.
+Expr address_of(const string &buffer, Expr index) {
+    Expr first_elem = Load::make(UInt(8), buffer, index, Buffer(), Parameter());
+    return Call::make(Handle(), Call::address_of, {first_elem}, Call::Intrinsic);
+}
+
 // Return total number of processors available.
 Expr num_processors() {
     return Call::make(Int(32), "halide_do_distr_size", {}, Call::Extern);
@@ -460,6 +467,73 @@ Expr isend(Expr address, Expr count, Expr rank) {
     return Call::make(Int(32), "halide_do_distr_isend", {address, count, rank}, Call::Extern);
 }
 
+// Insert call to communicate the given box of a buffer to 'rank'.
+typedef enum { Send, Recv } CommunicateCmd;
+Stmt communicate_subarray(CommunicateCmd cmd, const string &name,
+                          Type t, const Box &shape, const Box &b, Expr rank) {
+    vector<Expr> args;
+    int ndims = (int)b.size();
+    string size_buf = name + "_sizes",
+        subsize_buf = name + "_subsizes",
+        starts_buf = name + "_starts";
+
+    /*
+      Notes:
+
+      - Because the arrays are row-major, dimension 0 corresponds to
+        the outermost dimension, and dimension n-1 is the row
+        dimension. This is the opposite of how Boxes and Bounds are
+        stored in Halide, so we have to transpose here.
+     */
+
+    Expr address = address_of(name, 0);
+    Stmt size_stores = Store::make(size_buf, shape[ndims - 1].max - shape[ndims - 1].min + 1, 0);
+    Stmt subsize_stores = Store::make(subsize_buf, b[ndims - 1].max - b[ndims - 1].min + 1, 0);
+    Stmt start_stores = Store::make(starts_buf, b[ndims - 1].min, 0);
+    for (int i = ndims - 2, j=1; i >= 0; i--, j++) {
+        Expr size = shape[i].max - shape[i].min + 1;
+        Expr subsize = b[i].max - b[i].min + 1;
+        Expr start = b[i].min;
+        Stmt store_size = Store::make(size_buf, size, j);
+        Stmt store_subsize = Store::make(subsize_buf, subsize, j);
+        Stmt store_start = Store::make(starts_buf, start, j);
+        size_stores = Block::make(size_stores, store_size);
+        subsize_stores = Block::make(subsize_stores, store_subsize);
+        start_stores = Block::make(start_stores, store_start);
+    }
+
+    Expr sizes = address_of(size_buf, 0),
+        subsizes = address_of(subsize_buf, 0),
+        starts = address_of(starts_buf, 0);
+    args = {address, t.code, t.bits, ndims, sizes, subsizes, starts, rank};
+    Expr call;
+    switch (cmd) {
+    case Send:
+        call = Call::make(Int(32), "halide_do_distr_isend_subarray", args, Call::Extern);
+        break;
+    case Recv:
+        call = Call::make(Int(32), "halide_do_distr_irecv_subarray", args, Call::Extern);
+        break;
+    }
+    Stmt stores = Block::make(size_stores, Block::make(subsize_stores, start_stores));
+    Stmt stmt = Block::make(stores, Evaluate::make(call));
+
+    Stmt allocate = Allocate::make(size_buf, Int(32), {ndims}, const_true(), stmt);
+    allocate = Allocate::make(subsize_buf, Int(32), {ndims}, const_true(), allocate);
+    allocate = Allocate::make(starts_buf, Int(32), {ndims}, const_true(), allocate);
+
+    return allocate;
+}
+
+Stmt isend_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
+    return communicate_subarray(Send, buf.name(), buf.type(), shape, b, rank);
+}
+
+Stmt irecv_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
+    return communicate_subarray(Recv, buf.extended_name(), buf.type(), shape, b, rank);
+}
+
+
 // Insert call to receive 'count' bytes from 'rank' to buffer starting at 'address'.
 Expr recv(Expr address, Expr count, Expr rank) {
     return Call::make(Int(32), "halide_do_distr_recv", {address, count, rank}, Call::Extern);
@@ -475,13 +549,6 @@ Stmt waitall() {
     Expr rc = Call::make(Int(32), "halide_do_distr_waitall", {}, Call::Extern);
     Expr error = Call::make(Int(32), "halide_error_extern_stage_failed", {string("halide_do_distr_waitall"), rc}, Call::Extern);
     return AssertStmt::make(rc == 0, error);
-}
-
-// Return the (symbolic) address of the given buffer at the given
-// byte index.
-Expr address_of(const string &buffer, Expr index) {
-    Expr first_elem = Load::make(UInt(8), buffer, index, Buffer(), Parameter());
-    return Call::make(Handle(), Call::address_of, {first_elem}, Call::Intrinsic);
 }
 
 // Construct a statement to copy 'size' bytes from src to dest.
@@ -681,7 +748,6 @@ Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &require
     return copy;
 }
 
-typedef enum { Send, Recv } CommunicateCmd;
 // Generate communication code to send/recv the intersection of the
 // 'have' and 'need' regions of 'buf'.
 Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, const string &func) {
@@ -726,7 +792,8 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         } else {
             Stmt pack = pack_region(Pack, buf.type(), scratch_name, buf.name(), buf.shape(), local_have);
             addr = address_of(scratch_name, 0);
-            commstmt = Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r"))));
+            // commstmt = Block::make(pack, Evaluate::make(send(addr, numbytes, Var("r"))));
+            commstmt = isend_subarray(buf, buf.shape(), local_have, Var("r"));
         }
         break;
     case Recv:
@@ -738,7 +805,8 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
             Box shape = buf.buffer_type() == AbstractBuffer::Image ? need : buf.shape();
             Stmt unpack = pack_region(Unpack, buf.type(), scratch_name, buf.extended_name(), shape, local_need);
             addr = address_of(scratch_name, 0);
-            commstmt = Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack);
+            // commstmt = Block::make(Evaluate::make(recv(addr, numbytes, Var("r"))), unpack);
+            commstmt = irecv_subarray(buf, shape, local_need, Var("r"));
         }
         break;
     }

@@ -33,6 +33,15 @@ typedef int MPI_Datatype;
 #define MPI_UNSIGNED_LONG_LONG ((MPI_Datatype)0x4c000819)
 #define MPI_LONG_LONG      MPI_LONG_LONG_INT
 
+#define MPI_INT8_T            ((MPI_Datatype)0x4c000137)
+#define MPI_INT16_T           ((MPI_Datatype)0x4c000238)
+#define MPI_INT32_T           ((MPI_Datatype)0x4c000439)
+#define MPI_INT64_T           ((MPI_Datatype)0x4c00083a)
+#define MPI_UINT8_T           ((MPI_Datatype)0x4c00013b)
+#define MPI_UINT16_T          ((MPI_Datatype)0x4c00023c)
+#define MPI_UINT32_T          ((MPI_Datatype)0x4c00043d)
+#define MPI_UINT64_T          ((MPI_Datatype)0x4c00083e)
+
 #define MPI_ORDER_C              56
 
 typedef struct MPI_Status {
@@ -138,6 +147,58 @@ private:
 SimpleVector<MPI_Request> outstanding_receives;
 SimpleVector<MPI_Request> outstanding_sends;
 SimpleVector<MPI_Datatype> send_datatypes, recv_datatypes;
+
+MPI_Datatype halide_to_mpi_type(halide_type_code_t type_code, int bits) {
+    MPI_Datatype result = MPI_UNSIGNED_CHAR;
+    switch (type_code) {
+    case halide_type_int: {
+        switch (bits) {
+        case 8:
+            return MPI_INT8_T;
+        case 16:
+            return MPI_INT16_T;
+        case 32:
+            return MPI_INT32_T;
+        case 64:
+            return MPI_INT64_T;
+        default:
+            halide_assert(NULL, false);
+            break;
+        }
+    }
+    case halide_type_uint: {
+        switch (bits) {
+        case 8:
+            return MPI_UINT8_T;
+        case 16:
+            return MPI_UINT16_T;
+        case 32:
+            return MPI_UINT32_T;
+        case 64:
+            return MPI_UINT64_T;
+        default:
+            halide_assert(NULL, false);
+            break;
+        }
+    }
+    case halide_type_float: {
+        switch (bits) {
+        case 32:
+            return MPI_FLOAT;
+        case 64:
+            return MPI_DOUBLE;
+        default:
+            halide_assert(NULL, false);
+            break;
+        }
+    }
+    case halide_type_handle:
+    default:
+        halide_assert(NULL, false);
+        break;
+    }
+    return result;
+}
 
 WEAK void halide_initialize_mpi() {
     MPI_Comm_dup(MPI_COMM_WORLD, &HALIDE_MPI_COMM);
@@ -262,19 +323,22 @@ WEAK int halide_do_distr_isend(const void *buf, int count, int dest) {
     return rc;
 }
 
-WEAK int halide_do_distr_isend_subarray(const void *buf, int ndims, int *sizes, int *subsizes, int *starts, int dest) {
+WEAK int halide_do_distr_isend_subarray(const void *buf, halide_type_code_t type_code, int type_bits, int ndims, int *sizes, int *subsizes, int *starts, int dest) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
     int rank = 0;
     MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
     if (trace_messages) {
-        printf("[rank %d] Issuing isend buf %p (buf[0]=%d), dest %d\n",
-               rank, buf, *(int *)buf, dest);
+        printf("[rank %d] Issuing isend_subarray to dest %d:\n", rank, dest);
+        for (int i = 0; i < ndims; i++) {
+            printf("    [rank %d] subsize[%d] = %d\n", rank, i, subsizes[i]);
+        }
     }
 
+    MPI_Datatype basetype = halide_to_mpi_type(type_code, type_bits);
     MPI_Datatype subarray;
-    MPI_Type_create_subarray(ndims, sizes, subsizes, starts, MPI_ORDER_C, MPI_UNSIGNED_CHAR, &subarray);
+    MPI_Type_create_subarray(ndims, sizes, subsizes, starts, MPI_ORDER_C, basetype, &subarray);
     MPI_Type_commit(&subarray);
     // Save the datatype so we can free it later.
     send_datatypes.push_back(subarray);
@@ -330,18 +394,22 @@ WEAK int halide_do_distr_irecv(void *buf, int count, int source) {
     return rc;
 }
 
-WEAK int halide_do_distr_irecv_subarray(void *buf, int ndims, int *sizes, int *subsizes, int *starts, int source) {
+WEAK int halide_do_distr_irecv_subarray(void *buf, halide_type_code_t type_code, int type_bits, int ndims, int *sizes, int *subsizes, int *starts, int source) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
     int rank = 0;
     MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
     if (trace_messages) {
-        printf("[rank %d] Issuing irecv buf %p, source %d\n", rank, buf, source);
+        printf("[rank %d] Issuing irecv_subarray from source %d:\n", rank, source);
+        for (int i = 0; i < ndims; i++) {
+            printf("    [rank %d] subsize[%d] = %d\n", rank, i, subsizes[i]);
+        }
     }
 
+    MPI_Datatype basetype = halide_to_mpi_type(type_code, type_bits);
     MPI_Datatype subarray;
-    MPI_Type_create_subarray(ndims, sizes, subsizes, starts, MPI_ORDER_C, MPI_UNSIGNED_CHAR, &subarray);
+    MPI_Type_create_subarray(ndims, sizes, subsizes, starts, MPI_ORDER_C, basetype, &subarray);
     MPI_Type_commit(&subarray);
     // Save the datatype so we can free it later.
     recv_datatypes.push_back(subarray);
