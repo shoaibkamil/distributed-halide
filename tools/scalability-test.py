@@ -8,14 +8,15 @@ import subprocess
 import sys
 
 class Config:
-    def __init__(self, output_dir, nodes, srcfile, args):
+    def __init__(self, output_dir, nodes, srcfile, baseline, args):
         self.output_dir = output_dir
         self.nodes = map(int, nodes.split(","))
         self.tasks_per_node = [1]
         self.srcfile = srcfile
+        self.baseline = float(baseline) if baseline else None
         self.exe = args
         self.input_size = "%sx%s" % (args[-2], args[-1])
-        if 1 not in self.nodes:
+        if baseline == None and 1 not in self.nodes:
             self.nodes = [1] + self.nodes
         if 1 not in self.tasks_per_node:
             self.tasks_per_node = [1] + self.tasks_per_node
@@ -78,6 +79,9 @@ def run(config):
             cmd = make_run_cmd(config, nranks, num_nodes)
             result = get_time(execute(cmd))
             results[nranks] = Result(cmd, num_nodes, result)
+    if config.baseline:
+        assert 1 not in results.keys()
+        results[1] = Result("Baseline specified on command line", 1, config.baseline)
     return results
 
 def calculate_slope(results):
@@ -145,16 +149,18 @@ def parse_config_argv():
     parser = OptionParser("Usage: %prog [options] exe [args]")
     parser.add_option("-o", "--output_dir", dest="output_dir",
                       help="Directory to place raw run results.")
-    parser.add_option("-n", "--nodes", dest="nodes",
-                      help="Comma separated number of nodes to run tests on.")
     parser.add_option("-s", "--src", dest="srcfile",
                       help="Source file for executable")
+    parser.add_option("-n", "--nodes", dest="nodes",
+                      help="Comma separated number of nodes to run tests on.")
+    parser.add_option("-b", "--baseline", dest="baseline",
+                      help="Specify a single rank runtime instead of running it.")
     (options, args) = parser.parse_args()
     if (len(args) == 0 or len(options.nodes) == 0):
         parser.print_help()
         sys.exit(1)
     config = Config(options.output_dir, options.nodes,
-                    options.srcfile, args)
+                    options.srcfile, options.baseline, args)
     return config
 
 def main():
