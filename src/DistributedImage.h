@@ -179,6 +179,14 @@ public:
         internal_assert(!mins.empty() && !local_extents.empty());
         return x >= mins[0] && x < (mins[0] + local_extents[0]);
     }
+    
+    bool mine(int x, int y) const {
+        internal_assert(!mins.empty() && !local_extents.empty());
+        internal_assert(mins.size() == 2);
+        bool myx = x >= mins[0] && x < (mins[0] + local_extents[0]);
+        bool myy = y >= mins[1] && y < (mins[1] + local_extents[1]);
+        return myx && myy;
+    }
 
     /** Get a pointer to the element at the min location. */
     NO_INLINE T *data() const {
