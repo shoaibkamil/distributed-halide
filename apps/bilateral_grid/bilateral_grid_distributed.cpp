@@ -1,4 +1,5 @@
 #include "Halide.h"
+#include "mpi_timing.h"
 #include <stdio.h>
 #include <random>
 
@@ -173,8 +174,21 @@ int main(int argc, char **argv) {
     blury.compute_root().reorder(c, x, y, z).parallel(z).vectorize(x, 4).unroll(c).distribute(z);
     bilateral_grid.compute_root().parallel(y).vectorize(x, 4).distribute(y);
 
-    bilateral_grid.realize(output.get_buffer());
     compute_correct(global_input, global_output);
+
+    bilateral_grid.realize(output.get_buffer());
+    const int niters = 10;
+    MPITiming timing(MPI_COMM_WORLD);
+    timing.barrier();
+    timeval t1, t2;
+    for (int i = 0; i < niters; i++) {
+        gettimeofday(&t1, NULL);
+        bilateral_grid.realize(output.get_buffer());
+        gettimeofday(&t2, NULL);
+        float t = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0f;
+        timing.record(t);
+    }
+    timing.reduce(MPITiming::Median);
 
     for (int y = 0; y < output.height(); y++) {
         for (int x = 0; x < output.width(); x++) {
@@ -188,6 +202,8 @@ int main(int argc, char **argv) {
         }
     }
 
+    timing.gather(MPITiming::Max);
+    timing.report();
     if (rank == 0) {
         printf("Bilateral grid test succeeded!\n");
     }
