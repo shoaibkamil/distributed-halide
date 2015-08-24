@@ -1,5 +1,6 @@
 #include <sys/time.h>
 #include "Halide.h"
+#include "mpi_timing.h"
 using namespace Halide;
 
 int main(int argc, char **argv) {
@@ -50,13 +51,19 @@ int main(int argc, char **argv) {
     // Realize once to compile
     blur_y.realize(output.get_buffer());
     // Run the program and test output for correctness
+    const int niters = 10;
+    MPITiming timing(MPI_COMM_WORLD);
+    timing.barrier();
     timeval t1, t2;
-    MPI_Barrier(MPI_COMM_WORLD);
-    gettimeofday(&t1, NULL);
-    blur_y.realize(output.get_buffer());
-    gettimeofday(&t2, NULL);
-    float compute_sec = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0f;
-
+    for (int i = 0; i < niters; i++) {
+        gettimeofday(&t1, NULL);
+        blur_y.realize(output.get_buffer());
+        gettimeofday(&t2, NULL);
+        float t = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0f;
+        timing.record(t);
+    }
+    timing.reduce(MPITiming::Median);
+    
     for (int y = 0; y < output.height(); y++) {
         for (int x = 0; x < output.width(); x++) {
             const int xmax = output.global_width() - 1, ymax = output.global_height() - 1;
@@ -77,20 +84,10 @@ int main(int argc, char **argv) {
         }
     }
 
-    float max_compute = compute_sec;
-    if (rank == 0) {
-        for (int i = 1; i < numprocs; i++) {
-            float t;
-            MPI_Recv(&t, 1, MPI_FLOAT, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            max_compute = t > max_compute ? t : max_compute;
-        }
-    } else {
-        MPI_Send(&compute_sec, 1, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
-    }
-
+    timing.gather(MPITiming::Max);
+    timing.report();
     if (rank == 0) {
         printf("Blur test succeeded!\n");
-        printf("Timing: <%d> ranks <%.3f> seconds\n", numprocs, max_compute);
     }
     MPI_Finalize();
     return 0;
