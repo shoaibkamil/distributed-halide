@@ -74,8 +74,6 @@ extern int MPI_Type_create_subarray(int ndims, const int array_of_sizes[],
                                     const int array_of_subsizes[], const int array_of_starts[],
                                     int order, MPI_Datatype oldtype, MPI_Datatype *newtype);
 
-MPI_Comm HALIDE_MPI_COMM;
-
 WEAK int halide_do_task(void *user_context, halide_task f, int idx,
                         uint8_t *closure);
 
@@ -87,9 +85,10 @@ extern void free(void *ptr);
 
 namespace Halide { namespace Runtime { namespace Internal {
 
-int halide_num_processes;
-bool halide_mpi_initialized = false;
-bool trace_messages = false;
+WEAK MPI_Comm HALIDE_MPI_COMM;
+WEAK int halide_num_processes;
+WEAK bool halide_mpi_initialized = false;
+WEAK bool trace_messages = false;
 
 template <class T>
 class SimpleVector {
@@ -146,11 +145,11 @@ private:
     T *_data;
 };
 
-SimpleVector<MPI_Request> outstanding_receives;
-SimpleVector<MPI_Request> outstanding_sends;
-SimpleVector<MPI_Datatype> send_datatypes, recv_datatypes;
+WEAK SimpleVector<MPI_Request> outstanding_receives;
+WEAK SimpleVector<MPI_Request> outstanding_sends;
+WEAK SimpleVector<MPI_Datatype> send_datatypes, recv_datatypes;
 
-MPI_Datatype halide_to_mpi_type(halide_type_code_t type_code, int bits) {
+WEAK MPI_Datatype halide_to_mpi_type(halide_type_code_t type_code, int bits) {
     MPI_Datatype result = MPI_UNSIGNED_CHAR;
     switch (type_code) {
     case halide_type_int: {

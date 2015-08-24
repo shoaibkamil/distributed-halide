@@ -460,7 +460,7 @@ void CodeGen_C::compile(const LoweredFunc &f) {
         stream << "int " << f.name << "_argv(void **args) HALIDE_FUNCTION_ATTRS;\n";
 
         // And also the metadata.
-       stream << "extern const halide_filter_metadata_t " << f.name << "_metadata;\n";
+       stream << "extern const struct halide_filter_metadata_t " << f.name << "_metadata;\n";
     }
 }
 
