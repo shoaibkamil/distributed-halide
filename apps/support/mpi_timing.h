@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <limits>
 #include <vector>
+#include <sys/time.h>
 #include "mpi.h"
 
 using std::numeric_limits;

@@ -1,4 +1,3 @@
-#include <sys/time.h>
 #include "Halide.h"
 #include "mpi_timing.h"
 using namespace Halide;
