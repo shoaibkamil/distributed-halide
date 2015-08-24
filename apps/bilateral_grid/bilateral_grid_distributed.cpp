@@ -167,14 +167,20 @@ int main(int argc, char **argv) {
     bilateral_grid(x, y) = interpolated(x, y, 0)/interpolated(x, y, 1);
 
     // CPU schedule
+    Var yin;
+    bilateral_grid.compute_root().split(y, y, yin, 256).parallel(y).distribute(y).vectorize(x, 4);
     histogram.compute_at(blurz, y);
     histogram.update().reorder(c, r.x, r.y, x, y).unroll(c);
-    blurz.compute_root().reorder(c, z, x, y).parallel(y).vectorize(x, 4).unroll(c).distribute(y);
-    blurx.compute_root().reorder(c, x, y, z).parallel(z).vectorize(x, 4).unroll(c).distribute(z);
-    blury.compute_root().reorder(c, x, y, z).parallel(z).vectorize(x, 4).unroll(c).distribute(z);
-    bilateral_grid.compute_root().parallel(y).vectorize(x, 4).distribute(y);
+    blurz.compute_at(bilateral_grid, y).reorder(c, z, x, y).vectorize(x, 4).unroll(c);
+    blurx.compute_at(bilateral_grid, y).reorder(c, x, y, z).vectorize(x, 4).unroll(c);
+    blury.compute_at(bilateral_grid, y).reorder(c, x, y, z).vectorize(x, 4).unroll(c);
 
-    compute_correct(global_input, global_output);
+    // blurz.compute_root().reorder(c, z, x, y).parallel(y).vectorize(x, 4).unroll(c).distribute(y);
+    // blurx.compute_root().reorder(c, x, y, z).parallel(z).vectorize(x, 4).unroll(c).distribute(z);
+    // blury.compute_root().reorder(c, x, y, z).parallel(z).vectorize(x, 4).unroll(c).distribute(z);
+    //bilateral_grid.compute_root().parallel(y).vectorize(x, 4).distribute(y);
+
+    //compute_correct(global_input, global_output);
 
     bilateral_grid.realize(output.get_buffer());
     const int niters = 10;
