@@ -84,12 +84,18 @@ def run(config):
         results[1] = Result("Baseline specified on command line", 1, config.baseline)
     return results
 
+def calc_speedup(singlerank, numranks, runtime):
+    try:
+        return singlerank/runtime
+    except ZeroDivisionError:
+        return numranks
+
 def calculate_slope(results):
     x = []
     y = []
     singlerank = results[1].value
     for k, v in results.items():
-        speedup = singlerank/v.value
+        speedup = calc_speedup(singlerank, k, v.value)
         x.append(k)
         y.append(speedup)
     line = np.polyfit(x, y, 1)
@@ -98,7 +104,7 @@ def calculate_slope(results):
 def calculate_highest_speedup(results):
     ranks = max(results.keys())
     singlerank = results[1].value
-    return (ranks, singlerank/results[ranks].value)
+    return (ranks, calc_speedup(singlerank, ranks, results[ranks].value))
 
 def report(config, results):
     slope = calculate_slope(results)
@@ -121,7 +127,8 @@ def report(config, results):
     contents += "--BEGIN DATA--\n"
     singlerank = results[1].value
     for k, v in results.items():
-        contents += "%d: %.3f\t%.3f\n" % (k, v.value, singlerank/v.value)
+        speedup = calc_speedup(singlerank, k, v.value)
+        contents += "%d: %.3f\t%.3f\n" % (k, v.value, speedup)
     contents += "--END DATA--\n"
     contents += "Raw source dump:\n"
     contents += "// File name %s\n" % config.srcfile
@@ -142,7 +149,7 @@ def report(config, results):
         f.write("% Img size, Number of ranks, runtime (sec), speedup:\n")
         singlerank = results[1].value
         for k, v in results.items():
-            speedup = singlerank / v.value
+            speedup = calc_speedup(singlerank, k, v.value)
             f.write("%s,%s,%s,%s\n" % (config.input_size, str(k), str(v.value), str(speedup)))
 
 def parse_config_argv():
