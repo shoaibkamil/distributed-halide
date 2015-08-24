@@ -1,5 +1,11 @@
 include ../support/Makefile.inc
 
+WITH_MPI ?=
+CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
+MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
+MPI_RUN=$(if $(WITH_MPI), srun --exclusive -N$(MPI_NODES), )
+MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
+
 all: filter
 
 $(LIB_HALIDE): ../.. ../../src
@@ -24,5 +30,9 @@ bilateral_grid.avi: bilateral_grid.cpp viz.sh ../../bin/HalideTraceViz
 out.png: filter
 	./filter ../images/gray.png out.png 0.1 10
 
+distributed_bilateral_grid: ../.. bilateral_grid_distributed.cpp
+	$(MAKE) -C ../../ $(LIB_HALIDE)
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 bilateral_grid_distributed.cpp ../../$(LIB_HALIDE) -o distributed_bilateral_grid -ldl -lpthread -lz $(LDFLAGS)
+
 clean:
-	rm -f bilateral_grid bilateral_grid.avi bilateral_grid.o bilateral_grid.h bilateral filter
+	rm -f bilateral_grid bilateral_grid.avi bilateral_grid.o bilateral_grid.h bilateral filter distributed_bilateral_grid
