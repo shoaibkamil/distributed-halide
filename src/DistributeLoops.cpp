@@ -783,8 +783,6 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     Expr numbytes = Var("msgsize");
     Expr cond = And::make(NE::make(Var("Rank"), Var("r")), GT::make(numbytes, 0));
     Stmt commstmt;
-    const string scratch_name = buf.name() + "_commscratch";
-    bool need_scratch = true;
 
     // Convert the intersection box to "local" coordinates (the
     // extended buffer counts from 0). This just means subtracting the
@@ -796,7 +794,6 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     switch (cmd) {
     case Send:
         if (local_have.size() == 1) {
-            need_scratch = false;
             addr = address_of(buf.name(), local_have[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(isend(addr, numbytes, Var("r"))));
         } else {
@@ -805,7 +802,6 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         break;
     case Recv:
         if (local_need.size() == 1) {
-            need_scratch = false;
             addr = address_of(buf.extended_name(), local_need[0].min * buf.elem_size());
             commstmt = IfThenElse::make(cond, Evaluate::make(irecv(addr, numbytes, Var("r"))));
         } else {
@@ -857,12 +853,6 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         commstmt = Block::make(p, commstmt);
     }
 
-    // TODO: we have to allocate the communication buffer inside the
-    // loop because the size of the intersection depends on "r". Can
-    // we do something smarter?
-    if (need_scratch) {
-        commstmt = allocate_scratch(scratch_name, buf.type(), I.box(), commstmt);
-    }
     commstmt = IfThenElse::make(cond, commstmt);
     commstmt = LetStmt::make("msgsize", buf.size_of(I.box()), commstmt);
     commstmt = For::make("r", 0, Var("NumProcessors"), ForType::Serial, DeviceAPI::Host, commstmt);
