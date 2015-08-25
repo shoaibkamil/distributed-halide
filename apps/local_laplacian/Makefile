@@ -1,5 +1,9 @@
 include ../support/Makefile.inc
 
+WITH_MPI ?=
+CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
+MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
+
 all: process
 
 local_laplacian_gen: ../../ local_laplacian_gen.cpp
@@ -30,5 +34,10 @@ local_laplacian_viz.o: local_laplacian_gen
 local_laplacian.avi: ../../bin/HalideTraceViz process_viz
 	bash viz.sh
 
+distributed_local_laplacian: ../../ local_laplacian_distributed.cpp
+	$(MAKE) -C ../../ $(LIB_HALIDE)
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 local_laplacian_distributed.cpp -g ../../$(LIB_HALIDE) -o distributed_local_laplacian -lpthread -ldl -lz \
+	$(LDFLAGS) $(LLVM_SHARED_LIBS)
+
 clean:
-	rm -f process local_laplacian.o process_viz local_laplacian_viz.o local_laplacian_gen local_laplacian.avi
+	rm -f process local_laplacian.o process_viz local_laplacian_viz.o local_laplacian_gen local_laplacian.avi distributed_local_laplacian
