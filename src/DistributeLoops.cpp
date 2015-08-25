@@ -516,13 +516,13 @@ Stmt communicate_subarray(CommunicateCmd cmd, const string &name,
 }
 
 // Insert call to send 'count' bytes starting at 'address' to 'rank'.
-Expr send(Expr address, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_send", {address, count, rank}, Call::Extern);
+Expr send(Expr address, Type t, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_send", {address, t.code, t.bits, count, rank}, Call::Extern);
 }
 
 // Insert call to isend 'count' bytes starting at 'address' to 'rank'.
-Expr isend(Expr address, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_isend", {address, count, rank}, Call::Extern);
+Expr isend(Expr address, Type t, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_isend", {address, t.code, t.bits, count, rank}, Call::Extern);
 }
 
 Stmt isend_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
@@ -530,13 +530,13 @@ Stmt isend_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, E
 }
 
 // Insert call to receive 'count' bytes from 'rank' to buffer starting at 'address'.
-Expr recv(Expr address, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_recv", {address, count, rank}, Call::Extern);
+Expr recv(Expr address, Type t, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_recv", {address, t.code, t.bits, count, rank}, Call::Extern);
 }
 
 // Insert call to irecv 'count' bytes from 'rank' to buffer starting at 'address'.
-Expr irecv(Expr address, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_irecv", {address, count, rank}, Call::Extern);
+Expr irecv(Expr address, Type t, Expr count, Expr rank) {
+    return Call::make(Int(32), "halide_do_distr_irecv", {address, t.code, t.bits, count, rank}, Call::Extern);
 }
 
 Stmt irecv_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
@@ -795,7 +795,8 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     case Send:
         if (local_have.size() == 1) {
             addr = address_of(buf.name(), local_have[0].min * buf.elem_size());
-            commstmt = IfThenElse::make(cond, Evaluate::make(isend(addr, numbytes, Var("r"))));
+            Expr msgsize = local_have[0].max - local_have[0].min + 1;
+            commstmt = IfThenElse::make(cond, Evaluate::make(isend(addr, buf.type(), msgsize, Var("r"))));
         } else {
             commstmt = isend_subarray(buf, buf.shape(), local_have, Var("r"));
         }
@@ -803,7 +804,8 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     case Recv:
         if (local_need.size() == 1) {
             addr = address_of(buf.extended_name(), local_need[0].min * buf.elem_size());
-            commstmt = IfThenElse::make(cond, Evaluate::make(irecv(addr, numbytes, Var("r"))));
+            Expr msgsize = local_have[0].max - local_have[0].min + 1;
+            commstmt = IfThenElse::make(cond, Evaluate::make(irecv(addr, buf.type(), msgsize, Var("r"))));
         } else {
             Box shape = buf.buffer_type() == AbstractBuffer::Image ? need : buf.shape();
             commstmt = irecv_subarray(buf, shape, local_need, Var("r"));

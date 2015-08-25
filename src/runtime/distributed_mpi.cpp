@@ -287,39 +287,39 @@ WEAK int halide_do_distr_rank() {
     return rank;
 }
 
-WEAK int halide_do_distr_send(const void *buf, int count, int dest) {
+WEAK int halide_do_distr_send(const void *buf, halide_type_code_t type_code, int type_bits, int count, int dest) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
     int rank = 0;
     MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
-
+    MPI_Datatype basetype = halide_to_mpi_type(type_code, type_bits);
     int tag = 0;
     if (trace_messages) {
         printf("[rank %d] Issuing send buf %p (buf[0]=%d), count %d, dest %d\n",
                rank, buf, *(int *)buf, count, dest);
     }
-    int rc = MPI_Send(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM);
+    int rc = MPI_Send(buf, count, basetype, dest, tag, HALIDE_MPI_COMM);
     if (rc != MPI_SUCCESS) {
         printf("[rank %d] send failed.\n", rank);
     }
     return rc;
 }
 
-WEAK int halide_do_distr_isend(const void *buf, int count, int dest) {
+WEAK int halide_do_distr_isend(const void *buf, halide_type_code_t type_code, int type_bits, int count, int dest) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
     int rank = 0;
     MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
-
+    MPI_Datatype basetype = halide_to_mpi_type(type_code, type_bits);
     int tag = 0;
     if (trace_messages) {
         printf("[rank %d] Issuing isend buf %p (buf[0]=%d), count %d, dest %d\n",
                rank, buf, *(int *)buf, count, dest);
     }
     MPI_Request req;
-    int rc = MPI_Isend(buf, count, MPI_UNSIGNED_CHAR, dest, tag, HALIDE_MPI_COMM, &req);
+    int rc = MPI_Isend(buf, count, basetype, dest, tag, HALIDE_MPI_COMM, &req);
     if (rc != MPI_SUCCESS) {
         printf("[rank %d] isend failed.\n", rank);
     }
@@ -357,16 +357,16 @@ WEAK int halide_do_distr_isend_subarray(const void *buf, halide_type_code_t type
     return rc;
 }
 
-WEAK int halide_do_distr_recv(void *buf, int count, int source) {
+WEAK int halide_do_distr_recv(void *buf, halide_type_code_t type_code, int type_bits, int count, int source) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
     int rank = 0;
     MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
-
+    MPI_Datatype basetype = halide_to_mpi_type(type_code, type_bits);
     int tag = 0;
     MPI_Status status;
-    int rc = MPI_Recv(buf, count, MPI_UNSIGNED_CHAR, source, tag, HALIDE_MPI_COMM, &status);
+    int rc = MPI_Recv(buf, count, basetype, source, tag, HALIDE_MPI_COMM, &status);
     if (trace_messages) {
         printf("[rank %d] Received buf %p (buf[0]=%d), count %d, source %d\n",
                rank, buf, *(int *)buf, count, source);
@@ -377,20 +377,20 @@ WEAK int halide_do_distr_recv(void *buf, int count, int source) {
     return rc;
 }
 
-WEAK int halide_do_distr_irecv(void *buf, int count, int source) {
+WEAK int halide_do_distr_irecv(void *buf, halide_type_code_t type_code, int type_bits, int count, int source) {
     if (!halide_mpi_initialized) {
         halide_initialize_mpi();
     }
     int rank = 0;
     MPI_Comm_rank(HALIDE_MPI_COMM, &rank);
-
+    MPI_Datatype basetype = halide_to_mpi_type(type_code, type_bits);
     int tag = 0;
     MPI_Request req;
     if (trace_messages) {
         printf("[rank %d] Issuing irecv buf %p, count %d, source %d\n",
                rank, buf, count, source);
     }
-    int rc = MPI_Irecv(buf, count, MPI_UNSIGNED_CHAR, source, tag, HALIDE_MPI_COMM, &req);
+    int rc = MPI_Irecv(buf, count, basetype, source, tag, HALIDE_MPI_COMM, &req);
     if (rc != MPI_SUCCESS) {
         printf("[rank %d] irecv failed.\n", rank);
     }
