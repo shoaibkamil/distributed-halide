@@ -3,8 +3,6 @@ include ../support/Makefile.inc
 WITH_MPI ?=
 CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
 MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
-MPI_RUN=$(if $(WITH_MPI), srun --exclusive -N$(MPI_NODES), )
-MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
 
 all: filter
 
