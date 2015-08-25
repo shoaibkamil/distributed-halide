@@ -94,7 +94,7 @@ public:
     void visit(const Variable *op) {
         IRMutator::visit(op);
         if (replacements.contains(op->name)) {
-            expr = mutate(replacements.get(op->name));
+            expr = replacements.get(op->name);
         }
     }
 };
@@ -1184,7 +1184,7 @@ public:
 // loops have been distributed, otherwise the bounds set will be
 // global values.
 class SetBufferBounds : public IRGraphVisitor {
-    set<string> done;
+    Scope<Expr> shallow_env;
 public:
     Scope<Expr> env;
     map<string, AbstractBuffer> &buffers;
@@ -1193,9 +1193,16 @@ public:
     using IRGraphVisitor::visit;
 
     void visit(const LetStmt *let) {
-        env.push(let->name, let->value);
+        // TODO: Revisit why maintaining this environment is
+        // necessary. There must be a better way to accomplish symbol
+        // capture so the have/needs are in terms of globals, not
+        // variables local to a production.
+        shallow_env.push(let->name, let->value);
+        Expr rhs = ReplaceVariables(shallow_env).mutate(let->value);
+        env.push(let->name, rhs);
         IRGraphVisitor::visit(let);
         env.pop(let->name);
+        shallow_env.pop(let->name);
     }
 
     void visit(const Let *let) {
