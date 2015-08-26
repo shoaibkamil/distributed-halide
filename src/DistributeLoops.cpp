@@ -1089,6 +1089,12 @@ public:
             }
             if (insert_sz) {
                 stmt = LetStmt::make(loop_var + ".SliceSize", slice_size, stmt);
+                Var np = Var("NumProcessors");
+                Expr error = Call::make(Int(32), "halide_error_dim_over_distributed",
+                                        {loop_var, oldextent, np},
+                                        Call::Extern);
+                Stmt assert = AssertStmt::make(oldextent >= np, error);
+                stmt = Block::make(assert, stmt);
             }
         } else {
             IRMutator::visit(let);

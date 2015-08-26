@@ -196,4 +196,13 @@ WEAK int halide_error_debug_to_file_failed(void *user_context, const char *func,
     return halide_error_code_debug_to_file_failed;
 }
 
+WEAK int halide_error_dim_over_distributed(void *user_context, const char *dim_name,
+                                           int dim_extent, int num_ranks) {
+    error(user_context)
+        << "Failed to distribute loop dimension " << dim_name
+        << " across " << num_ranks
+        << " ranks because it is too small (extent " << dim_extent << ")";
+    return halide_error_code_generic_error;
+}
+
 }

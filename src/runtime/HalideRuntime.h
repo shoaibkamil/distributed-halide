@@ -433,6 +433,8 @@ extern int halide_error_out_of_memory(void *user_context);
 extern int halide_error_buffer_argument_is_null(void *user_context, const char *buffer_name);
 extern int halide_error_debug_to_file_failed(void *user_context, const char *func,
                                              const char *filename, int error_code);
+extern int halide_error_dim_over_distributed(void *user_context, const char *dim_name,
+                                             int dim_extent, int num_ranks);
 // @}
 
 
