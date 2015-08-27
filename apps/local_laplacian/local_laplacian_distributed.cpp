@@ -153,22 +153,22 @@ int main(int argc, char **argv) {
     }
 
     // Make the remapping function as a lookup table.
-    Func remap;
+    Func remap("remap");
     Expr fx = cast<float>(x) / 256.0f;
     remap(x) = alpha*fx*exp(-fx*fx/2.0f);
 
     // Set a boundary condition
-    Func clamped;
+    Func clamped("clamped");
     clamped(x, y, c) = input(clamp(x, 0, input.global_width() - 1),
                              clamp(y, 0, input.global_height() - 1),
                              clamp(c, 0, input.global_channels() - 1));
 
     // Convert to floating point
-    Func floating;
+    Func floating("floating");
     floating(x, y, c) = clamped(x, y, c) / 65535.0f;
 
     // Get the luminance channel
-    Func gray;
+    Func gray("gray");
     gray(x, y) = 0.299f * floating(x, y, 0) + 0.587f * floating(x, y, 1) + 0.114f * floating(x, y, 2);
 
     // Make the processed Gaussian pyramid.
@@ -177,22 +177,28 @@ int main(int argc, char **argv) {
     Expr level = k * (1.0f / (levels - 1));
     Expr idx = gray(x, y)*cast<float>(levels-1)*256.0f;
     idx = clamp(cast<int>(idx), 0, (levels-1)*256);
+    gPyramid[0] = Func("gPyramid_" + std::to_string(0));
     gPyramid[0](x, y, k) = beta*(gray(x, y) - level) + level + remap(idx - 256*k);
     for (int j = 1; j < J; j++) {
+        gPyramid[j] = Func("gPyramid_" + std::to_string(j));
         gPyramid[j](x, y, k) = downsample(gPyramid[j-1])(x, y, k);
     }
 
     // Get its laplacian pyramid
     Func lPyramid[maxJ];
+    lPyramid[J-1] = Func("lPyramid_" + std::to_string(J-1));
     lPyramid[J-1](x, y, k) = gPyramid[J-1](x, y, k);
     for (int j = J-2; j >= 0; j--) {
+        lPyramid[j] = Func("lPyramid_" + std::to_string(j));
         lPyramid[j](x, y, k) = gPyramid[j](x, y, k) - upsample(gPyramid[j+1])(x, y, k);
     }
 
     // Make the Gaussian pyramid of the input
     Func inGPyramid[maxJ];
+    inGPyramid[0] = Func("inGPyramid_" + std::to_string(0));
     inGPyramid[0](x, y) = gray(x, y);
     for (int j = 1; j < J; j++) {
+        inGPyramid[j] = Func("inGPyramid_" + std::to_string(j));
         inGPyramid[j](x, y) = downsample(inGPyramid[j-1])(x, y);
     }
 
@@ -204,18 +210,21 @@ int main(int argc, char **argv) {
         Expr li = clamp(cast<int>(level), 0, levels-2);
         Expr lf = level - cast<float>(li);
         // Linearly interpolate between the nearest processed pyramid levels
+        outLPyramid[j] = Func("outLPyramid_" + std::to_string(j));
         outLPyramid[j](x, y) = (1.0f - lf) * lPyramid[j](x, y, li) + lf * lPyramid[j](x, y, li+1);
     }
 
     // Make the Gaussian pyramid of the output
     Func outGPyramid[maxJ];
+    outGPyramid[J-1] = Func("outGPyramid_" + std::to_string(J-1));
     outGPyramid[J-1](x, y) = outLPyramid[J-1](x, y);
     for (int j = J-2; j >= 0; j--) {
+        outGPyramid[j] = Func("outGPyramid_" + std::to_string(j));
         outGPyramid[j](x, y) = upsample(outGPyramid[j+1])(x, y) + outLPyramid[j](x, y);
     }
 
     // Reintroduce color (Connelly: use eps to avoid scaling up noise w/ apollo3.png input)
-    Func color;
+    Func color("color");
     float eps = 0.01f;
     color(x, y, c) = outGPyramid[0](x, y) * (floating(x, y, c)+eps) / (gray(x, y)+eps);
 
@@ -227,16 +236,16 @@ int main(int argc, char **argv) {
     Var yi;
     local_laplacian.parallel(y).vectorize(x, 8).distribute(y);
     remap.compute_root();
-    gray.compute_root().parallel(y, 32).vectorize(x, 8).distribute(y);
+    gray.compute_root().parallel(y).vectorize(x, 8).distribute(y);
     for (int j = 0; j < 4; j++) {
         if (j > 0) {
             inGPyramid[j]
-                .compute_root().parallel(y, 32).vectorize(x, 8).distribute(y);
+                .compute_root().parallel(y).vectorize(x, 8).distribute(y);
             gPyramid[j]
                 .compute_root()
-                .reorder(k, y).parallel(y, 8).vectorize(x, 8).distribute(y);
+                .reorder(k, y).parallel(y).vectorize(x, 8).distribute(y);
         }
-        outGPyramid[j].compute_root().parallel(y, 32).vectorize(x, 8).distribute(y);
+        outGPyramid[j].compute_root().parallel(y).vectorize(x, 8).distribute(y);
     }
     for (int j = 4; j < J; j++) {
         inGPyramid[j].compute_root().distribute(y);
