@@ -81,7 +81,7 @@ OPENGL_CXX_FLAGS=$(if $(WITH_OPENGL), -DWITH_OPENGL=1, )
 
 CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
 MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
-MPI_RUN=$(if $(MPI_NODES), srun -N$(MPI_NODES), )
+MPI_RUN=$(if $(MPI_NODES), srun -N$(MPI_NODES) --exclude=lanka11, )
 
 RENDERSCRIPT_CXX_FLAGS=$(if $(WITH_RENDERSCRIPT), -DWITH_RENDERSCRIPT=1, )
 

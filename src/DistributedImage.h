@@ -297,6 +297,10 @@ public:
     const std::string &name() {
         return image.name();
     }
+
+    operator Buffer() const {
+        return (Buffer)image;
+    }
 };
 }
 

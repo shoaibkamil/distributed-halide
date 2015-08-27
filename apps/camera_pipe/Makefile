@@ -1,5 +1,9 @@
 include ../support/Makefile.inc
 
+WITH_MPI ?=
+CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
+MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
+
 ifeq ($(HL_TARGET),ptx)
   SCHEDULE=100
 else
@@ -33,5 +37,9 @@ out.png: process
 camera_pipe.avi: camera_pipe.cpp viz.sh $(HALIDE_TRACE_VIZ) ../../bin/HalideTraceViz
 	bash viz.sh
 
+distributed_camera_pipe: ../../ camera_pipe_distributed.cpp
+	$(MAKE) -C ../../ $(LIB_HALIDE)
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 camera_pipe_distributed.cpp ../../$(LIB_HALIDE) -o distributed_camera_pipe -ldl -lpthread -lz $(LDFLAGS)
+
 clean:
-	rm -f out.png process curved.o camera_pipe fcam/*.o
+	rm -f out.png process curved.o camera_pipe fcam/*.o distributed_camera_pipe
