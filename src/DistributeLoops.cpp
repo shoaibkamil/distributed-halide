@@ -85,6 +85,10 @@ Box offset_box(const Box &b, const vector<Expr> &offset) {
     return result;
 }
 
+Expr round_away_from_zero(Expr e) {
+    return select(e < 0, floor(e), ceil(e));
+}
+
 class ReplaceVariables : public IRMutator {
     const Scope<Expr> &replacements;
 public:
@@ -333,6 +337,21 @@ public:
         }
         return result;
     }
+
+    void merge_footprint(const vector<Expr> &fp) {
+        if (_footprint.empty()) {
+            _footprint.insert(_footprint.begin(), fp.begin(), fp.end());
+        } else {
+            internal_assert(fp.size() == _footprint.size());
+            for (unsigned i = 0; i < fp.size(); i++) {
+                _footprint[i] += max(0, fp[i]);
+            }
+        }
+    }
+
+    const vector<Expr> &footprint() const {
+        return _footprint;
+    }
 private:
     Type _type;
     BufferType _btype;
@@ -344,6 +363,7 @@ private:
     Box _bounds;
     Box _shape;
     map<string, Box> _need_bounds;
+    vector<Expr> _footprint;
 };
 
 // Build a set of all the variables referenced. This traverses through
@@ -1243,6 +1263,29 @@ public:
     }
 };
 
+class SetBufferFootprints : public IRGraphVisitor {
+public:
+    map<string, AbstractBuffer> &buffers;
+    SetBufferFootprints(map<string, AbstractBuffer> &bufs) : buffers(bufs) {}
+
+    using IRGraphVisitor::visit;
+
+    void visit(const Call *op) {
+        map<string, Box> required = boxes_required(op);
+        for (auto it : required) {
+            if (buffers.find(it.first) != buffers.end()) {
+                AbstractBuffer &buf = buffers.at(it.first);
+                vector<Expr> fp;
+                for (unsigned i = 0; i < it.second.size(); i++) {
+                    fp.push_back(simplify(it.second[i].max - it.second[i].min + 1));
+                }
+                buf.merge_footprint(fp);
+            }
+        }
+        IRGraphVisitor::visit(op);
+    }
+};
+
 Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env, bool cap_extents) {
     FindDistributedLoops find;
     s.accept(&find);
@@ -1271,6 +1314,8 @@ Stmt inject_communication(Stmt s, const std::map<std::string, Function> &env) {
     s.accept(&getio);
     SetBufferBounds setb(getio.buffers);
     s.accept(&setb);
+    SetBufferFootprints setfp(getio.buffers);
+    s.accept(&setfp);
     s = InjectCommunication(getio.buffers).mutate(s);
     s = ChangeDistributedFor().mutate(s);
     s = LetStmt::make("Rank", rank(), s);
