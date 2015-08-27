@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
     }
 
     {
-        DistributedImage<int> in(10, 20);
+        DistributedImage<int> in(50, 60);
         in.set_domain(x, y);
         in.placement().distribute(y);
         in.allocate();
@@ -338,7 +338,7 @@ int main(int argc, char **argv) {
         f.distribute(xo);
         g.distribute(fused);
 
-        DistributedImage<int> out(10, 20);
+        DistributedImage<int> out(50, 60);
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
