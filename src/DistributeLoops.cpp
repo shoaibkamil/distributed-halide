@@ -57,6 +57,18 @@ string first_token(const string &str) {
     }
 }
 
+// Return second token of the string delimited by '.'
+string second_token(const string &str) {
+    size_t firstdot = str.find_first_of(".");
+    if (firstdot != std::string::npos) {
+        size_t seconddot = str.find_first_of(".", firstdot + 1);
+        if (seconddot != std::string::npos) {
+            size_t len = seconddot - (firstdot + 1);
+            return str.substr(firstdot + 1, len);
+        }
+    }
+    return str;
+}
 
 // Return a string representation of the given box.
 string box2str(const Box &b) {
@@ -1055,7 +1067,7 @@ public:
         if (distributed_bounds.find(let->name) != distributed_bounds.end()) {
             string loop_var = remove_suffix(let->name);
             string funcname = first_token(let->name);
-            string stage_prefix = funcname + ".s0";
+            string stage_prefix = funcname + "." + second_token(let->name);
             Expr oldmin = distributed_bounds.at(loop_var + ".loop_min"),
                 oldmax = distributed_bounds.at(loop_var + ".loop_max"),
                 oldextent = distributed_bounds.at(loop_var + ".loop_extent");
