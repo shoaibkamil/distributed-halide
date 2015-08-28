@@ -31,6 +31,10 @@ distributed_blur: ../../ halide_blur_distributed.cpp
 	$(MAKE) -C ../../ $(LIB_HALIDE)
 	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 halide_blur_distributed.cpp ../../$(LIB_HALIDE) -o distributed_blur -ldl -lpthread -lz $(LDFLAGS)
 
+nondistributed_blur: ../../ halide_blur_distributed.cpp
+	$(MAKE) -C ../../ $(LIB_HALIDE)
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 halide_blur_distributed.cpp -DNON_DISTRIBUTED ../../$(LIB_HALIDE) -o nondistributed_blur -ldl -lpthread -lz $(LDFLAGS)
+
 test_distributed: ../../ distributed_blur
 	$(MPI_RUN) ./distributed_blur
 
