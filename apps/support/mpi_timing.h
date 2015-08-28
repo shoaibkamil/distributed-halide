@@ -83,6 +83,8 @@ private:
         case Mean:
             return compute_mean(values);
         }
+        assert(false && "Unknown statistic.");
+        return 0.0;
     }
 
     float compute_min(const vector<float> &values) const {
