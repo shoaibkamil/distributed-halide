@@ -80,8 +80,10 @@ def run(config):
             result = get_time(execute(cmd))
             results[nranks] = Result(cmd, num_nodes, result)
     if config.baseline:
-        assert 1 not in results.keys()
-        results[1] = Result("Baseline specified on command line", 1, config.baseline)
+        results["baseline"] = Result("Baseline specified on command line", 1, config.baseline)
+    else:
+        assert "baseline" not in results.keys()
+        results["baseline"] = results[1]
     return results
 
 def calc_speedup(singlerank, numranks, runtime):
@@ -90,27 +92,14 @@ def calc_speedup(singlerank, numranks, runtime):
     except ZeroDivisionError:
         return numranks
 
-def calculate_slope(results):
-    x = []
-    y = []
-    singlerank = results[1].value
-    for k, v in results.items():
-        speedup = calc_speedup(singlerank, k, v.value)
-        x.append(k)
-        y.append(speedup)
-    line = np.polyfit(x, y, 1)
-    return line[0]
-
 def calculate_highest_speedup(results):
-    ranks = max(results.keys())
-    singlerank = results[1].value
+    ranks = max(filter(lambda x: isinstance(x, int), results.keys()))
+    singlerank = results["baseline"].value
     return (ranks, calc_speedup(singlerank, ranks, results[ranks].value))
 
 def report(config, results):
-    slope = calculate_slope(results)
-    print "Best fit speedup slope: %.3f" % slope
     best = calculate_highest_speedup(results)
-    print "Single rank runtime: %.3f sec" % results[1].value
+    print "Baseline runtime: %.3f sec" % results["baseline"].value
     print "%d rank runtime: %.3f" % (best[0], results[best[0]].value)
     print "%d rank speedup: %.3f (%.1f%% of linear)" % (best[0], best[1], (best[1]/best[0])*100.0)
     if config.output_dir == None:
@@ -122,10 +111,9 @@ def report(config, results):
     contents += "Invocation commands:\n"
     for k, v in results.items():
         contents += " %d: %s\n" % (k, " ".join(v.cmd))
-    contents += "Best fit speedup slope: %.3f\n" % slope
     contents += "Runtime and speedup per rank count (in seconds):\n"
     contents += "--BEGIN DATA--\n"
-    singlerank = results[1].value
+    singlerank = results["baseline"].value
     for k, v in results.items():
         speedup = calc_speedup(singlerank, k, v.value)
         contents += "%d: %.3f\t%.3f\n" % (k, v.value, speedup)
@@ -147,7 +135,7 @@ def report(config, results):
         f.write("%% %s\n" % config.exe[0])
         f.write("%% Speedup versus number of ranks (%s image)\n" % config.input_size)
         f.write("% Img size, Number of ranks, runtime (sec), speedup:\n")
-        singlerank = results[1].value
+        singlerank = results["baseline"].value
         for k, v in results.items():
             speedup = calc_speedup(singlerank, k, v.value)
             f.write("%s,%s,%s,%s\n" % (config.input_size, str(k), str(v.value), str(speedup)))
