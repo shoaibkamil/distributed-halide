@@ -1,5 +1,6 @@
 #include "DistributedImage.h"
 #include "IRMutator.h"
+#include "Substitute.h"
 
 using std::string;
 using std::map;
@@ -79,31 +80,38 @@ Stmt partial_lower(Func f, bool cap_extents) {
     FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
     s = distribute_loops_only(s, env, cap_extents);
     s = bounds_inference(s, outputs, order, env, func_bounds);
+    s = allocation_bounds_inference(s, env, func_bounds);
+    s = uniquify_variable_names(s);
+
     return s;
 }
 
-vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
+vector<int> get_buffer_bounds(const string &name, Func f, const vector<int> &output_extents, const vector<int> &full_extents,
                               vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
                               vector<int> &mins, vector<int> &capped_local_extents) {
     vector<int> bounds;
     Stmt s = partial_lower(f);
     GetBoxes get;
     s.accept(&get);
-    internal_assert(get.boxes.size() == 1);
 
     int rank = 0, num_processors = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
-    const Box &b = get.boxes.begin()->second;
+    const Box &b = get.boxes.at(name);
+    map<string, Expr> env;
     for (int i = 0; i < (int)b.size(); i++) {
         Expr sz = b[i].max - b[i].min + 1;
         symbolic_extents.push_back(sz);
         symbolic_mins.push_back(b[i].min);
-        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
+        int output_extent = output_extents.empty() ? full_extents[i] : output_extents[i];
+        env[f.name() + ".extent." + std::to_string(i)] = output_extent;
+        env[f.name() + ".min." + std::to_string(i)] = 0;
+        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, substitute(env, sz))));
+
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL) << sz;
         bounds.push_back(*dim);
-        const int *min = as_const_int(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min))));
+        const int *min = as_const_int(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, substitute(env, b[i].min)))));
         internal_assert(min != NULL);
         mins.push_back(*min);
     }
@@ -111,11 +119,10 @@ vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
     s = partial_lower(f, true);
     GetBoxes get_capped;
     s.accept(&get_capped);
-    internal_assert(get_capped.boxes.size() == 1);
-    const Box &b_capped = get_capped.boxes.begin()->second;
+    const Box &b_capped = get_capped.boxes.at(name);
     for (int i = 0; i < (int)b_capped.size(); i++) {
         Expr sz = b_capped[i].max - b_capped[i].min + 1;
-        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
+        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, substitute(env, sz))));
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL) << sz;
         capped_local_extents.push_back(*dim);

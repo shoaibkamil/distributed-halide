@@ -35,7 +35,7 @@ namespace Internal {
 // input buffers with respect to rank and number of MPI
 // processors.
 Stmt partial_lower(Func f, bool cap_extents=false);
-vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
+vector<int> get_buffer_bounds(const string &name, Func f, const vector<int> &output_extents, const vector<int> &full_extents,
                               vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
                               vector<int> &mins, vector<int> &capped_local_extents);
 
@@ -43,17 +43,18 @@ vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
 
 template<typename T>
 class DistributedImage {
+    bool _allocated;
     vector<int> full_extents;
     vector<int> local_extents, capped_local_extents;
     vector<Expr> symbolic_extents, symbolic_mins;
-    vector<int> mins;
+    vector<int> global_mins, local_mins;
     ImageParam param;
     Image<T> image;
     Func wrapper;
 
 public:
     /** Construct an undefined image handle */
-    DistributedImage() {}
+    DistributedImage() { _allocated = false; }
 
     /** Define a distributed image with the given dimensions. */
     // @{
@@ -67,6 +68,7 @@ public:
         } else {
             param = ImageParam(type_of<T>(), full_extents.size(), name);
         }
+        _allocated = false;
     }
     DistributedImage(int x, const std::string &name) :
         DistributedImage(x, 0, 0, 0, name) {}
@@ -120,7 +122,8 @@ public:
      * jitting. */
     void allocate() {
         internal_assert(!image.defined());
-        local_extents = Internal::get_buffer_bounds(wrapper, full_extents, symbolic_extents, symbolic_mins, mins,
+        vector<int> empty;
+        local_extents = Internal::get_buffer_bounds(param.name(), wrapper, empty, full_extents, symbolic_extents, symbolic_mins, global_mins,
                                                     capped_local_extents);
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
         b.set_distributed(local_extents, symbolic_extents, symbolic_mins);
@@ -129,6 +132,26 @@ public:
 
         // Remove the explicit bounds from the wrapper function.
         wrapper.function().schedule().bounds().clear();
+
+        _allocated = true;
+    }
+
+    void allocate(Func pipeline, const vector<int> &output_extents) {
+        internal_assert(!image.defined());
+        Internal::LoopLevel compute_level = pipeline.function().schedule().compute_level();
+        pipeline.compute_root();
+        local_extents = Internal::get_buffer_bounds(param.name(), pipeline, output_extents, full_extents, symbolic_extents, symbolic_mins, global_mins,
+                                                    capped_local_extents);
+        Buffer b(type_of<T>(), full_extents, NULL, param.name());
+        b.set_distributed(local_extents, symbolic_extents, symbolic_mins);
+        param.set(b);
+        image = Image<T>(b);
+
+        // Remove the explicit bounds from the wrapper function.
+        wrapper.function().schedule().bounds().clear();
+        // Restore the compute level if we changed it.
+        pipeline.function().schedule().compute_level() = compute_level;
+        _allocated = true;
     }
 
     /** Return the underlying buffer. Only relevant for jitting. */
@@ -137,10 +160,14 @@ public:
     }
 
     int dimensions() const { return image.dimensions(); }
-    int global_extent(int dim) const { return image.extent(dim); }
-    int global_width() const { return image.width(); }
-    int global_height() const { return image.height(); }
-    int global_channels() const { return image.channels(); }
+    const vector<int> &global_extents() const { return full_extents; }
+    int global_extent(int dim) const {
+        internal_assert(dim < full_extents.size());
+        return full_extents[dim];
+    }
+    int global_width() const { return global_extent(0); }
+    int global_height() const { return global_extent(1); }
+    int global_channels() const { return global_extent(2); }
 
     int extent(int dim) const {
         internal_assert(!capped_local_extents.empty());
@@ -166,38 +193,38 @@ public:
     /** Return the global coordinate of dimension 'dim' corresponding
      * to the local coordinate value c. */
     int global(int dim, int c) const {
-        internal_assert(!mins.empty());
-        return mins[dim] + c;
+        internal_assert(!global_mins.empty());
+        return global_mins[dim] + c;
     }
 
     /** Return the local coordinate of dimension 'dim' corresponding
      * to the global coordinate value c. */
     int local(int dim, int c) const {
-        internal_assert(!mins.empty());
-        return c - mins[dim];
+        internal_assert(!global_mins.empty());
+        return c - global_mins[dim];
     }
 
     /** Return true if the global x coordinate resides on this
      * rank. */
     bool mine(int x) const {
-        internal_assert(!mins.empty() && !local_extents.empty());
-        return x >= mins[0] && x < (mins[0] + local_extents[0]);
+        internal_assert(!global_mins.empty() && !local_extents.empty());
+        return x >= global_mins[0] && x < (global_mins[0] + local_extents[0]);
     }
 
     bool mine(int x, int y) const {
-        internal_assert(!mins.empty() && !local_extents.empty());
-        internal_assert(mins.size() == 2);
-        bool myx = x >= mins[0] && x < (mins[0] + local_extents[0]);
-        bool myy = y >= mins[1] && y < (mins[1] + local_extents[1]);
+        internal_assert(!global_mins.empty() && !local_extents.empty());
+        internal_assert(global_mins.size() == 2);
+        bool myx = x >= global_mins[0] && x < (global_mins[0] + local_extents[0]);
+        bool myy = y >= global_mins[1] && y < (global_mins[1] + local_extents[1]);
         return myx && myy;
     }
 
     bool mine(int x, int y, int z) const {
-        internal_assert(!mins.empty() && !local_extents.empty());
-        internal_assert(mins.size() == 3);
-        bool myx = x >= mins[0] && x < (mins[0] + local_extents[0]);
-        bool myy = y >= mins[1] && y < (mins[1] + local_extents[1]);
-        bool myz = z >= mins[2] && z < (mins[2] + local_extents[2]);
+        internal_assert(!global_mins.empty() && !local_extents.empty());
+        internal_assert(global_mins.size() == 3);
+        bool myx = x >= global_mins[0] && x < (global_mins[0] + local_extents[0]);
+        bool myy = y >= global_mins[1] && y < (global_mins[1] + local_extents[1]);
+        bool myz = z >= global_mins[2] && z < (global_mins[2] + local_extents[2]);
         return myx && myy && myz;
     }
 
@@ -209,65 +236,69 @@ public:
     /** Assuming this image is one-dimensional, get the value of the
      * element at position x */
     const T &operator()(int x) const {
-        return image(x);
+        return param(x);
     }
 
     /** Assuming this image is two-dimensional, get the value of the
      * element at position (x, y) */
     const T &operator()(int x, int y) const {
-        return image(x, y);
+        return param(x, y);
     }
 
     /** Assuming this image is three-dimensional, get the value of the
      * element at position (x, y, z) */
     const T &operator()(int x, int y, int z) const {
-        return image(x, y, z);
+        return param(x, y, z);
     }
 
     /** Assuming this image is four-dimensional, get the value of the
      * element at position (x, y, z, w) */
     const T &operator()(int x, int y, int z, int w) const {
-        return image(x, y, z, w);
+        return param(x, y, z, w);
     }
 
     /** Assuming this image is one-dimensional, get a reference to the
      * element at position x */
     T &operator()(int x) {
+        internal_assert(_allocated);
         return image(x);
     }
 
     /** Assuming this image is two-dimensional, get a reference to the
      * element at position (x, y) */
     T &operator()(int x, int y) {
+        internal_assert(_allocated);
         return image(x, y);
     }
 
     /** Assuming this image is three-dimensional, get a reference to the
      * element at position (x, y, z) */
     T &operator()(int x, int y, int z) {
+        internal_assert(_allocated);
         return image(x, y, z);
     }
 
     /** Assuming this image is four-dimensional, get a reference to the
      * element at position (x, y, z, w) */
     T &operator()(int x, int y, int z, int w) {
+        internal_assert(_allocated);
         return image(x, y, z, w);
     }
 
     Expr operator()(Expr x) const {
-        return image(x);
+        return param(x);
     }
 
     Expr operator()(Expr x, Expr y) const {
-        return image(x, y);
+        return param(x, y);
     }
 
     Expr operator()(Expr x, Expr y, Expr z) const {
-        return image(x, y, z);
+        return param(x, y, z);
     }
 
     Expr operator()(Expr x, Expr y, Expr z, Expr w) const {
-        return image(x, y, z, w);
+        return param(x, y, z, w);
     }
 
     /** Convert this image to an argument to a halide pipeline. */
