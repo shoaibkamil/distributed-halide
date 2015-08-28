@@ -19,6 +19,13 @@ public:
     MPITiming(MPI_Comm c) : _comm(c) {
         MPI_Comm_rank(_comm, &_rank);
         MPI_Comm_size(_comm, &_numprocs);
+        _usempi = true;
+        _reduced = -1.0;
+        _gathered = -1.0;
+    }
+
+    MPITiming() {
+        _usempi = false;
         _reduced = -1.0;
         _gathered = -1.0;
     }
@@ -30,6 +37,12 @@ public:
     void report() const {
         if (_rank == 0) {
             printf("Timing: <%d> ranks <%.3f> seconds\n", _numprocs, gathered());
+        }
+    }
+
+    void nondistributed_report() const {
+        if (_rank == 0) {
+            printf("Timing: non-distributed <%.3f> seconds\n", _reduced);
         }
     }
 
@@ -46,6 +59,7 @@ public:
     // Gather reduced values from all ranks to rank 0, and reduce the
     // gathered values by the given statistic.
     void gather(Stat stat) {
+        assert(_usempi);
         const int tag = 0;
         if (_rank == 0) {
             vector<float> results;
@@ -63,9 +77,11 @@ public:
 
     // Return the gathered result.
     float gathered() const {
+        assert(_usempi);
         return _gathered;
     }
 private:
+    bool _usempi;
     int _rank, _numprocs;
     MPI_Comm _comm;
     vector<float> _timings;
