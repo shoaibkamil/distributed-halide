@@ -178,14 +178,14 @@ public:
 // Also provides a wrapper for Provide nodes which do not have buffer references.
 class AbstractBuffer {
 public:
-    typedef enum { Halide, Image } BufferType;
+    typedef enum { Halide, InputImage, OutputImage } BufferType;
 
     AbstractBuffer() : _dimensions(-1), _distributed(false) {}
     AbstractBuffer(Type type, BufferType btype, const string &name) :
         _type(type), _btype(btype), _name(name), _dimensions(-1), _distributed(false) {}
     AbstractBuffer(Type type, BufferType btype, const string &name, const Buffer &buffer) :
         _type(type), _btype(btype), _name(name) {
-        internal_assert(btype == Image);
+        internal_assert(btype == InputImage);
         internal_assert(buffer.defined());
         internal_assert(buffer.distributed());
         _distributed = buffer.distributed();
@@ -247,6 +247,10 @@ public:
         return _btype;
     }
 
+    bool is_image() const {
+        return _btype == InputImage || _btype == OutputImage;
+    }
+
     void set_buffer_type(BufferType t) {
         _btype = t;
     }
@@ -260,7 +264,7 @@ public:
     }
 
     string extended_name() const {
-        return _btype == Image ? _name + "_extended" : _name;
+        return is_image() ? _name + "_extended" : _name;
     }
 
     // Return the size of the given box in bytes according to the type
@@ -302,7 +306,7 @@ public:
     // Set the shape of this buffer.
     void set_shape(const Box &b) {
         internal_assert(_shape.empty());
-        internal_assert(_btype != Image);
+        internal_assert(!is_image());
         internal_assert(_dimensions == -1);
         internal_assert(b.size() > 0);
         set_dimensions(b.size());
@@ -335,7 +339,7 @@ public:
     Box local_region(const Box &b, const string &func = "") const {
         Box result(b.size());
         Box local_origin;
-        if (_btype == AbstractBuffer::Image) {
+        if (is_image()) {
             if (func.empty()) {
                 local_origin = shape();
             } else {
@@ -425,9 +429,9 @@ class FindBuffersUsingVariable : public IRVisitor {
             // These are the only two call types that can be buffer references.
             if (call->call_type == Call::Image) {
                 if (call->image.defined()) {
-                    buffers.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::Image, call->image.name(), (Buffer)call->image));
+                    buffers.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::InputImage, call->image.name(), (Buffer)call->image));
                 } else {
-                    buffers.push_back(AbstractBuffer(call->param.type(), AbstractBuffer::Image, call->param.name(), call->param.get_buffer()));
+                    buffers.push_back(AbstractBuffer(call->param.type(), AbstractBuffer::InputImage, call->param.name(), call->param.get_buffer()));
                 }
             } else if (call->call_type == Call::Halide) {
                 internal_assert(call->func.outputs() == 1);
@@ -463,7 +467,7 @@ map<string, AbstractBuffer> buffers_used(const For *for_loop) {
     map<string, AbstractBuffer> result;
 
     for (AbstractBuffer buf : buffers) {
-        if (buf.buffer_type() == AbstractBuffer::Image) {
+        if (buf.is_image()) {
             internal_assert(!buf.have().empty());
         }
         result[buf.name()] = buf;
@@ -757,7 +761,7 @@ Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &require
         const Box &have = in.have();
         const Box &need = it.need(func);
 
-        if (in.buffer_type() != AbstractBuffer::Image) continue;
+        if (!in.is_image()) continue;
 
         BoxIntersection I(have, need);
         Box dest_box = in.local_region(I.box(), func);
@@ -839,7 +843,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
             Expr msgsize = local_have[0].max - local_have[0].min + 1;
             commstmt = IfThenElse::make(cond, Evaluate::make(irecv(addr, buf.type(), msgsize, Var("r"))));
         } else {
-            Box shape = buf.buffer_type() == AbstractBuffer::Image ? need : buf.shape();
+            Box shape = buf.is_image() ? need : buf.shape();
             commstmt = irecv_subarray(buf, shape, local_need, Var("r"));
         }
         break;
@@ -937,7 +941,7 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
     for (const auto it : required) {
         const AbstractBuffer &in = it;
         const Box &b = in.need(func);
-        if (in.buffer_type() != AbstractBuffer::Image) continue;
+        if (!in.is_image()) continue;
         ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b, true);
         loop = change.mutate(loop);
     }
@@ -945,7 +949,7 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
     for (const auto it : provided) {
         const AbstractBuffer &out = it;
         const Box &b = out.have();
-        if (out.buffer_type() != AbstractBuffer::Image) continue;
+        if (!out.is_image()) continue;
         ChangeDistributedLoopBuffers change(out.name(), out.name(), b, false);
         loop = change.mutate(loop);
     }
@@ -958,7 +962,7 @@ Stmt allocate_extended_buffers(Stmt body, const string &func, const vector<Abstr
     for (const auto it : required) {
         const AbstractBuffer &in = it;
         const Box &b = in.need(func);
-        if (in.buffer_type() != AbstractBuffer::Image) continue;
+        if (!in.is_image()) continue;
         allocates = allocate_scratch(in.extended_name(), in.type(), b, allocates);
     }
     return allocates;
@@ -967,20 +971,13 @@ Stmt allocate_extended_buffers(Stmt body, const string &func, const vector<Abstr
 }
 
 class InjectCommunication : public IRMutator {
-public:
-    const map<string, AbstractBuffer> &buffers;
-    InjectCommunication(const map<string, AbstractBuffer> &bufs) : buffers(bufs) {}
-
-    using IRMutator::visit;
-
-    void visit(const ProducerConsumer *op) {
-        string current_function = op->name;
+    Stmt inject_communication(const string &name, Stmt s) const {
         map<string, Box> r, p;
         vector<AbstractBuffer> required, provided;
-        Stmt newproduce = op->produce;
+        Stmt newstmt = s;
 
-        r = boxes_required(op->produce);
-        p = boxes_provided(op->produce);
+        r = boxes_required(s);
+        p = boxes_provided(s);
 
         for (auto it : r) {
             internal_assert(buffers.find(it.first) != buffers.end());
@@ -991,46 +988,44 @@ public:
             provided.push_back(buffers.at(it.first));
         }
 
-        Stmt copy = copy_on_node_data(current_function, required);
+        Stmt copy = copy_on_node_data(name, required);
         if (copy.defined()) {
-            newproduce = Block::make(copy, newproduce);
+            newstmt = Block::make(copy, newstmt);
         }
         if (trace_progress) {
-            Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+            Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
                             string("before copy_on_node_data")}));
-            newproduce = Block::make(p, newproduce);
-            p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+            newstmt = Block::make(p, newstmt);
+            p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
                             string("after copy_on_node_data")}));
-            newproduce = Block::make(newproduce, p);
+            newstmt = Block::make(newstmt, p);
         }
 
-        Stmt border_exchange = exchange_data(current_function, required);
+        Stmt border_exchange = exchange_data(name, required);
         if (border_exchange.defined()) {
             // TODO: move the isend waitall after computation.
-            newproduce = Block::make(border_exchange, newproduce);
+            newstmt = Block::make(border_exchange, newstmt);
         }
 
         // if (trace_progress) {
-        //     Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+        //     Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
         //                     string("before exchange_data")}));
-        //     newproduce = Block::make(p, newproduce);
-        //     p = Evaluate::make(print({string("rank"), rank(), string("stage"), op->name,
+        //     newstmt = Block::make(p, newstmt);
+        //     p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
         //                     string("after exchange_data")}));
-        //     newproduce = Block::make(newproduce, p);
+        //     newstmt = Block::make(newstmt, p);
         // }
 
-        newproduce = update_io_buffers(newproduce, current_function, required, provided);
-        newproduce = allocate_extended_buffers(newproduce, current_function, required);
-
-        stmt = ProducerConsumer::make(op->name, newproduce, mutate(op->update), mutate(op->consume));
+        newstmt = update_io_buffers(newstmt, name, required, provided);
+        newstmt = allocate_extended_buffers(newstmt, name, required);
 
         if (trace_have_needs) {
             Stmt p;
             for (const auto &in : required) {
-                Box have = in.have(), need = in.need(current_function);
+                Box have = in.have(), need = in.need(name);
                 if (in.name() == "f") continue;
                 Stmt pp = Evaluate::make(print_when(rank() == 1, {string("rank"), rank(),
-                                string("function " + current_function + " requires"),
+                                string("function " + name + " requires"),
                                 string("buffer " + in.name() + ":\n"),
                                 string("have size"),
                                 have[0].max - have[0].min + 1, string("x"), have[1].max - have[1].min + 1, string("\n"),
@@ -1047,8 +1042,24 @@ public:
                     p = pp;
                 }
             }
-            stmt = Block::make(p, stmt);
+            newstmt = Block::make(p, newstmt);
         }
+
+        return newstmt;
+    }
+
+public:
+    const map<string, AbstractBuffer> &buffers;
+    InjectCommunication(const map<string, AbstractBuffer> &bufs) : buffers(bufs) {}
+
+    using IRMutator::visit;
+
+    void visit(const ProducerConsumer *op) {
+        string current_function = op->name;
+        Stmt newproduce = inject_communication(op->name, op->produce);
+        stmt = ProducerConsumer::make(op->name, newproduce,
+                                      op->update.defined() ? inject_communication(op->name, op->update) : mutate(op->update),
+                                      mutate(op->consume));
     }
 };
 
@@ -1215,6 +1226,22 @@ public:
 // global values.
 class SetBufferBounds : public IRGraphVisitor {
     Scope<Expr> shallow_env;
+
+    void set_bounds(const string &name, Stmt s) {
+        map<string, Box> required = boxes_required(s);
+        Box provided = box_provided(s, name);
+        internal_assert(buffers.find(name) != buffers.end());
+        AbstractBuffer &buf = buffers.at(name);
+        internal_assert(!buf.is_image());
+        buf.set_have_bounds(simplify_box(provided, env));
+
+        for (auto it : required) {
+            if (buffers.find(it.first) != buffers.end()) {
+                AbstractBuffer &buf = buffers.at(it.first);
+                buf.set_need_bounds(name, simplify_box(it.second, env));
+            }
+        }
+    }
 public:
     Scope<Expr> env;
     map<string, AbstractBuffer> &buffers;
@@ -1243,32 +1270,23 @@ public:
 
     void visit(const Realize *op) {
         AbstractBuffer &buf = buffers.at(op->name);
-        internal_assert(buf.buffer_type() != AbstractBuffer::Image);
+        internal_assert(!buf.is_image());
         Box b = box_touched(op->body, op->name);
         buf.set_shape(b);
         IRGraphVisitor::visit(op);
     }
 
     void visit(const ProducerConsumer *op) {
-        map<string, Box> required = boxes_required(op->produce);
-        Box provided = box_provided(op->produce, op->name);
-        internal_assert(buffers.find(op->name) != buffers.end());
-        AbstractBuffer &buf = buffers.at(op->name);
-        internal_assert(buf.buffer_type() != AbstractBuffer::Image);
-        buf.set_have_bounds(simplify_box(provided, env));
+        set_bounds(op->name, op->produce);
+        if (op->update.defined()) set_bounds(op->name, op->update);
 
+        AbstractBuffer &buf = buffers.at(op->name);
+        internal_assert(!buf.is_image());
         // We say that a producer with no consumer (i.e. the end of
         // the pipeline) is an image, because we will need to manually
         // correct load/store indices.
         if (is_no_op((Stmt)op->consume)) {
-            buf.set_buffer_type(AbstractBuffer::Image);
-        }
-
-        for (auto it : required) {
-            if (buffers.find(it.first) != buffers.end()) {
-                AbstractBuffer &buf = buffers.at(it.first);
-                buf.set_need_bounds(op->name, simplify_box(it.second, env));
-            }
+            buf.set_buffer_type(AbstractBuffer::OutputImage);
         }
 
         IRGraphVisitor::visit(op);
