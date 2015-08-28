@@ -142,10 +142,14 @@ public:
     int global_height() const { return image.height(); }
     int global_channels() const { return image.channels(); }
 
-    int extent(int dim) const { return capped_local_extents[dim]; }
-    int width() const { return capped_local_extents[0]; }
-    int height() const { return capped_local_extents[1]; }
-    int channels() const { return capped_local_extents[2]; }
+    int extent(int dim) const {
+        internal_assert(!capped_local_extents.empty());
+        internal_assert(dim < capped_local_extents.size());
+        return capped_local_extents[dim];
+    }
+    int width() const { return extent(0); }
+    int height() const { return extent(1); }
+    int channels() const { return extent(2); }
 
     /** Return the global x coordinate corresponding to the local x
      * coordinate. */
