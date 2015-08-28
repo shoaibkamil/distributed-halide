@@ -7,7 +7,8 @@ using namespace Halide;
 
 std::default_random_engine generator(0);
 std::uniform_real_distribution<float> distribution(10, 500);
-Var x("x"), y("y");
+Var x("x"), y("y"), xi("xi"), xo("xo"), yo("yo"), yi("yo"), yii("yii"), xii("xii");
+const int block_size = 32;
 int matrix_size;
 
 float rndflt() {
@@ -20,8 +21,6 @@ bool float_eq(float a, float b) {
 }
 
 Func build(Func A, Func B, bool distributed) {
-    const int block_size = 32;
-    //Var x("x"), xi("xi"), xo("xo"), y("y"), yo("yo"), yi("yo"), yii("yii"), xii("xii");
     Func matrix_mul("matrix_mul");
 
     RDom k(0, matrix_size);
@@ -30,23 +29,26 @@ Func build(Func A, Func B, bool distributed) {
     matrix_mul(x, y) = 0.0f;
     matrix_mul(x, y) += A(k, y) * B(x, k);
 
-    if (distributed) {
-        matrix_mul.distribute(y);
-        matrix_mul.update().distribute(y);
-    }
+    matrix_mul.split(x, x, xi, block_size).split(xi, xi, xii, 8)
+        .split(y, y, yi, block_size).split(yi, yi, yii, 4)
+        .reorder(xii, yii, xi, yi, x, y)
+        .parallel(y).vectorize(xii).unroll(xi).unroll(yii);
 
-    // matrix_mul.vectorize(x, 8);
-
-    // matrix_mul.update(0)
-    //     .split(x, x, xi, block_size).split(xi, xi, xii, 8)
-    //     .split(y, y, yi, block_size).split(yi, yi, yii, 4)
-    //     .split(k, k, ki, block_size)
-    //     .reorder(xii, yii, xi, ki, yi, k, x, y)
-    //     .parallel(y).vectorize(xii).unroll(xi).unroll(yii);
+    matrix_mul.update()
+        .split(x, x, xi, block_size).split(xi, xi, xii, 8)
+        .split(y, y, yi, block_size).split(yi, yi, yii, 4)
+        .split(k, k, ki, block_size)
+        .reorder(xii, yii, xi, ki, yi, k, x, y)
+        .parallel(y).vectorize(xii).unroll(xi).unroll(yii);
 
     // matrix_mul
     //     .bound(x, 0, matrix_size)
     //     .bound(y, 0, matrix_size);
+
+    if (distributed) {
+        matrix_mul.distribute(y);
+        matrix_mul.update().distribute(y);
+    }
 
     return matrix_mul;
 }
@@ -70,7 +72,9 @@ int main(int argc, char **argv) {
     B.placement();
     B.allocate();
     C.set_domain(x, y);
-    C.placement().distribute(y);
+    C.placement().split(x, x, xi, block_size).split(xi, xi, xii, 8)
+        .split(y, y, yi, block_size).split(yi, yi, yii, 4)
+        .distribute(y);
     C.allocate();
 
     matrix_size = w;
