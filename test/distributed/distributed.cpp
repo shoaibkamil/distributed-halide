@@ -721,6 +721,47 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        DistributedImage<int> in(50, 50);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
+
+        RDom k(0, in.global_height());
+        Func f;
+        f(x, y) = 2 * in(x, y);
+        f(x, y) += in(x, k) + 1;
+
+        f.distribute(y);
+        f.update().distribute(y);
+
+        DistributedImage<int> out(50, 50);
+        out.set_domain(x, y);
+        out.placement().distribute(y);
+        out.allocate();
+        f.realize(out.get_buffer());
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                int gx = out.global(0, x), gy = out.global(1, y);
+                int correct = 2 * (gx + gy);
+                for (int k = 0; k < out.global_height(); k++) {
+                    correct += (gx + k) + 1;
+                }
+                if (out(x,y) != correct) {
+                    mpi_printf("out(%d,%d) = %d instead of %d\n", x, y,out(x,y), correct);
+                    MPI_Finalize();
+                    return -1;
+                }
+            }
+        }
+    }
+
     printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();

@@ -251,6 +251,14 @@ public:
         return _btype == InputImage || _btype == OutputImage;
     }
 
+    bool is_input_image() const {
+        return _btype == InputImage;
+    }
+
+    bool is_output_image() const {
+        return _btype == OutputImage;
+    }
+
     void set_buffer_type(BufferType t) {
         _btype = t;
     }
@@ -326,11 +334,20 @@ public:
     }
 
     // Set the region required of this buffer by a function.
-    void set_need_bounds(const string &func, const Box &b) {
-        internal_assert(_need_bounds.find(func) == _need_bounds.end());
-        _need_bounds[func] = Box(b.size());
-        for (unsigned i = 0; i < b.size(); i++) {
-            _need_bounds[func][i] = Interval(b[i].min, b[i].max);
+    void set_need_bounds(const string &func, const Box &b, bool is_update) {
+        auto it = _need_bounds.find(func);
+        if (it == _need_bounds.end()) {
+            _need_bounds[func] = Box(b.size());
+            for (unsigned i = 0; i < b.size(); i++) {
+                _need_bounds[func][i] = Interval(b[i].min, b[i].max);
+            }
+        } else {
+            // Update step accessing the same buffer as its pure
+            // step. That's fine, but merge the 'need' region to
+            // encompass both.
+            internal_assert(is_update);
+            merge_boxes(it->second, b);
+            _need_bounds[func] = it->second;
         }
     }
 
@@ -761,7 +778,9 @@ Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &require
         const Box &have = in.have();
         const Box &need = it.need(func);
 
-        if (!in.is_image()) continue;
+        // Only need to copy input images (not output images, which
+        // don't have extended buffers).
+        if (!in.is_input_image()) continue;
 
         BoxIntersection I(have, need);
         Box dest_box = in.local_region(I.box(), func);
@@ -905,7 +924,9 @@ Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required) {
     Stmt sendwait, recvwait;
     for (const auto it : required) {
         const AbstractBuffer &in = it;
-        if (!in.distributed()) continue;
+        // No border exchanges needed for non-distributed buffers or
+        // output images.
+        if (!in.distributed() || in.is_output_image()) continue;
 
         if (sendloop.defined()) {
             sendloop = Block::make(sendloop, communicate_intersection(Send, in, func));
@@ -942,8 +963,17 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
         const AbstractBuffer &in = it;
         const Box &b = in.need(func);
         if (!in.is_image()) continue;
-        ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b, true);
-        loop = change.mutate(loop);
+        if (in.is_input_image()) {
+            ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b, true);
+            loop = change.mutate(loop);
+        } else {
+            // Note that output images being used as inputs do not
+            // have an extended buffer, but we still need to correct
+            // the indices.
+            internal_assert(in.is_output_image());
+            ChangeDistributedLoopBuffers change(in.name(), in.name(), b, true);
+            loop = change.mutate(loop);
+        }
     }
 
     for (const auto it : provided) {
@@ -962,7 +992,7 @@ Stmt allocate_extended_buffers(Stmt body, const string &func, const vector<Abstr
     for (const auto it : required) {
         const AbstractBuffer &in = it;
         const Box &b = in.need(func);
-        if (!in.is_image()) continue;
+        if (!in.is_input_image()) continue;
         allocates = allocate_scratch(in.extended_name(), in.type(), b, allocates);
     }
     return allocates;
@@ -1227,18 +1257,23 @@ public:
 class SetBufferBounds : public IRGraphVisitor {
     Scope<Expr> shallow_env;
 
-    void set_bounds(const string &name, Stmt s) {
+    void set_bounds(const string &name, Stmt s, bool is_update = false) {
         map<string, Box> required = boxes_required(s);
         Box provided = box_provided(s, name);
         internal_assert(buffers.find(name) != buffers.end());
         AbstractBuffer &buf = buffers.at(name);
         internal_assert(!buf.is_image());
-        buf.set_have_bounds(simplify_box(provided, env));
+        if (!is_update) {
+            // "have" bounds for an update will by definition be the
+            // same as the pure stage, so we don't need to do anything
+            // here.
+            buf.set_have_bounds(simplify_box(provided, env));
+        }
 
         for (auto it : required) {
             if (buffers.find(it.first) != buffers.end()) {
                 AbstractBuffer &buf = buffers.at(it.first);
-                buf.set_need_bounds(name, simplify_box(it.second, env));
+                buf.set_need_bounds(name, simplify_box(it.second, env), is_update);
             }
         }
     }
@@ -1278,13 +1313,15 @@ public:
 
     void visit(const ProducerConsumer *op) {
         set_bounds(op->name, op->produce);
-        if (op->update.defined()) set_bounds(op->name, op->update);
+        if (op->update.defined()) set_bounds(op->name, op->update, true);
 
         AbstractBuffer &buf = buffers.at(op->name);
         internal_assert(!buf.is_image());
         // We say that a producer with no consumer (i.e. the end of
-        // the pipeline) is an image, because we will need to manually
-        // correct load/store indices.
+        // the pipeline) is an output image, because we will need to
+        // manually correct load/store indices. Note that output
+        // images can be used as input buffers, if the last stage in
+        // the pipeline has an update step.
         if (is_no_op((Stmt)op->consume)) {
             buf.set_buffer_type(AbstractBuffer::OutputImage);
         }
