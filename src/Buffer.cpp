@@ -35,57 +35,65 @@ struct BufferContents {
     std::string name;
 
     bool distributed;
-    int local_min[4], local_extent[4], local_stride[4];
-    Expr symbolic_min[4], symbolic_extent[4], symbolic_stride[4];
+    int allocated_min[4], allocated_extent[4];
+    Expr symbolic_allocated_min[4], symbolic_allocated_extent[4];
+    Expr symbolic_local_min[4], symbolic_local_extent[4];
 
-    void set_distributed(int x_size_local, int y_size_local,
-                         int z_size_local, int w_size_local,
-                         Expr x_size_symbolic, Expr y_size_symbolic,
-                         Expr z_size_symbolic, Expr w_size_symbolic,
-                         Expr x_min_symbolic, Expr y_min_symbolic,
-                         Expr z_min_symbolic, Expr w_min_symbolic) {
+    void set_distributed(int x_size_allocated, int y_size_allocated,
+                         int z_size_allocated, int w_size_allocated,
+                         Expr x_size_allocated_symbolic, Expr y_size_allocated_symbolic,
+                         Expr z_size_allocated_symbolic, Expr w_size_allocated_symbolic,
+                         Expr x_min_allocated_symbolic, Expr y_min_allocated_symbolic,
+                         Expr z_min_allocated_symbolic, Expr w_min_allocated_symbolic,
+                         Expr x_size_local_symbolic, Expr y_size_local_symbolic,
+                         Expr z_size_local_symbolic, Expr w_size_local_symbolic,
+                         Expr x_min_local_symbolic, Expr y_min_local_symbolic,
+                         Expr z_min_local_symbolic, Expr w_min_local_symbolic) {
+
         uint64_t size = 1;
-        if (x_size_local) size *= x_size_local;
-        if (y_size_local) size *= y_size_local;
-        if (z_size_local) size *= z_size_local;
-        if (w_size_local) size *= w_size_local;
+        if (x_size_allocated) size *= x_size_allocated;
+        if (y_size_allocated) size *= y_size_allocated;
+        if (z_size_allocated) size *= z_size_allocated;
+        if (w_size_allocated) size *= w_size_allocated;
         size *= buf.elem_size;
 
-        local_extent[0] = x_size_local;
-        local_extent[1] = y_size_local;
-        local_extent[2] = z_size_local;
-        local_extent[3] = w_size_local;
-        local_stride[0] = 1;
-        local_stride[1] = x_size_local;
-        local_stride[2] = x_size_local*y_size_local;
-        local_stride[3] = x_size_local*y_size_local*z_size_local;
+        allocated_min[0] = 0;
+        allocated_min[1] = 0;
+        allocated_min[2] = 0;
+        allocated_min[3] = 0;
+        allocated_extent[0] = x_size_allocated;
+        allocated_extent[1] = y_size_allocated;
+        allocated_extent[2] = z_size_allocated;
+        allocated_extent[3] = w_size_allocated;
 
-        // TODO: This is a bit of a hack. The proper way to do this
-        // would be to make StorageFlattening aware of distributed
-        // buffers so that it can use local strides instead of global
-        // strides. For now, this does the trick.
-        buf.stride[0] = local_stride[0];
-        buf.stride[1] = local_stride[1];
-        buf.stride[2] = local_stride[2];
-        buf.stride[3] = local_stride[3];
+        // TODO: This is a bit of a hack, because the buffer extent
+        // values are global, but now we are making the stride values
+        // local. The proper way to do this would be to make
+        // StorageFlattening aware of distributed buffers so that it
+        // can use local strides instead of global strides. For now,
+        // this does the trick.
+        buf.stride[0] = 1;
+        buf.stride[1] = x_size_allocated;
+        buf.stride[2] = x_size_allocated*y_size_allocated;
+        buf.stride[3] = x_size_allocated*y_size_allocated*z_size_allocated;
 
-        local_min[0] = 0;
-        local_min[1] = 0;
-        local_min[2] = 0;
-        local_min[3] = 0;
+        symbolic_allocated_extent[0] = x_size_allocated_symbolic;
+        symbolic_allocated_extent[1] = y_size_allocated_symbolic;
+        symbolic_allocated_extent[2] = z_size_allocated_symbolic;
+        symbolic_allocated_extent[3] = w_size_allocated_symbolic;
+        symbolic_allocated_min[0] = x_min_allocated_symbolic;
+        symbolic_allocated_min[1] = y_min_allocated_symbolic;
+        symbolic_allocated_min[2] = z_min_allocated_symbolic;
+        symbolic_allocated_min[3] = w_min_allocated_symbolic;
 
-        symbolic_extent[0] = x_size_symbolic;
-        symbolic_extent[1] = y_size_symbolic;
-        symbolic_extent[2] = z_size_symbolic;
-        symbolic_extent[3] = w_size_symbolic;
-        symbolic_stride[0] = 1;
-        symbolic_stride[1] = x_size_symbolic;
-        symbolic_stride[2] = x_size_symbolic*y_size_symbolic;
-        symbolic_stride[3] = x_size_symbolic*y_size_symbolic*z_size_symbolic;
-        symbolic_min[0] = x_min_symbolic;
-        symbolic_min[1] = y_min_symbolic;
-        symbolic_min[2] = z_min_symbolic;
-        symbolic_min[3] = w_min_symbolic;
+        symbolic_local_extent[0] = x_size_local_symbolic;
+        symbolic_local_extent[1] = y_size_local_symbolic;
+        symbolic_local_extent[2] = z_size_local_symbolic;
+        symbolic_local_extent[3] = w_size_local_symbolic;
+        symbolic_local_min[0] = x_min_local_symbolic;
+        symbolic_local_min[1] = y_min_local_symbolic;
+        symbolic_local_min[2] = z_min_local_symbolic;
+        symbolic_local_min[3] = w_min_local_symbolic;
 
         distributed = true;
 
@@ -321,43 +329,60 @@ bool Buffer::distributed() const {
     return contents.ptr->distributed;
 }
 
-void Buffer::set_distributed(const std::vector<int> &local_sizes,
-                             const std::vector<Expr> &symbolic_extents,
-                             const std::vector<Expr> &symbolic_mins) {
+void Buffer::set_distributed(const std::vector<int> &allocated_sizes,
+                             const std::vector<Expr> &symbolic_allocated_extents,
+                             const std::vector<Expr> &symbolic_allocated_mins,
+                             const std::vector<Expr> &symbolic_local_extents,
+                             const std::vector<Expr> &symbolic_local_mins) {
     user_assert(defined()) << "Buffer is undefined\n";
-    contents.ptr->set_distributed(size_or_zero(local_sizes, 0),
-                                  size_or_zero(local_sizes, 1),
-                                  size_or_zero(local_sizes, 2),
-                                  size_or_zero(local_sizes, 3),
-                                  expr_or_zero(symbolic_extents, 0),
-                                  expr_or_zero(symbolic_extents, 1),
-                                  expr_or_zero(symbolic_extents, 2),
-                                  expr_or_zero(symbolic_extents, 3),
-                                  expr_or_zero(symbolic_mins, 0),
-                                  expr_or_zero(symbolic_mins, 1),
-                                  expr_or_zero(symbolic_mins, 2),
-                                  expr_or_zero(symbolic_mins, 3));
+    contents.ptr->set_distributed(size_or_zero(allocated_sizes, 0),
+                                  size_or_zero(allocated_sizes, 1),
+                                  size_or_zero(allocated_sizes, 2),
+                                  size_or_zero(allocated_sizes, 3),
+                                  expr_or_zero(symbolic_allocated_extents, 0),
+                                  expr_or_zero(symbolic_allocated_extents, 1),
+                                  expr_or_zero(symbolic_allocated_extents, 2),
+                                  expr_or_zero(symbolic_allocated_extents, 3),
+                                  expr_or_zero(symbolic_allocated_mins, 0),
+                                  expr_or_zero(symbolic_allocated_mins, 1),
+                                  expr_or_zero(symbolic_allocated_mins, 2),
+                                  expr_or_zero(symbolic_allocated_mins, 3),
+                                  expr_or_zero(symbolic_local_extents, 0),
+                                  expr_or_zero(symbolic_local_extents, 1),
+                                  expr_or_zero(symbolic_local_extents, 2),
+                                  expr_or_zero(symbolic_local_extents, 3),
+                                  expr_or_zero(symbolic_local_mins, 0),
+                                  expr_or_zero(symbolic_local_mins, 1),
+                                  expr_or_zero(symbolic_local_mins, 2),
+                                  expr_or_zero(symbolic_local_mins, 3));
+}
+
+Expr Buffer::allocated_extent(int dim) const {
+    user_assert(defined()) << "Buffer is undefined\n";
+    user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
+    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
+    return contents.ptr->symbolic_allocated_extent[dim];
+}
+
+Expr Buffer::allocated_min(int dim) const {
+    user_assert(defined()) << "Buffer is undefined\n";
+    user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
+    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
+    return contents.ptr->symbolic_allocated_min[dim];
 }
 
 Expr Buffer::local_extent(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
     user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
-    return contents.ptr->symbolic_extent[dim];
-}
-
-Expr Buffer::local_stride(int dim) const {
-    user_assert(defined()) << "Buffer is undefined\n";
-    user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
-    return contents.ptr->symbolic_stride[dim];
+    return contents.ptr->symbolic_local_extent[dim];
 }
 
 Expr Buffer::local_min(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
     user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
-    return contents.ptr->symbolic_min[dim];
+    return contents.ptr->symbolic_local_min[dim];
 }
 
 }

@@ -82,7 +82,9 @@ Stmt partial_lower(Func f, bool cap_extents) {
     return s;
 }
 
-vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
+vector<int> get_buffer_bounds(Func f,
+                              vector<Expr> &allocated_extents_parameterized, vector<Expr> &allocated_mins_parameterized,
+                              vector<Expr> &local_extents_parameterized, vector<Expr> &local_mins_parameterized,
                               vector<int> &global_mins, vector<int> &local_mins, vector<int> &local_extents) {
     vector<int> allocated_extents;
     Stmt s = partial_lower(f);
@@ -94,10 +96,11 @@ vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Exp
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
     const Box &b = get.boxes.begin()->second;
+    // Get global/allocated dimensions.
     for (int i = 0; i < (int)b.size(); i++) {
         Expr sz = b[i].max - b[i].min + 1;
-        symbolic_extents.push_back(sz);
-        symbolic_mins.push_back(b[i].min);
+        allocated_extents_parameterized.push_back(sz);
+        allocated_mins_parameterized.push_back(b[i].min);
         sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL) << sz;
@@ -105,9 +108,9 @@ vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Exp
         const int *min = as_const_int(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min))));
         internal_assert(min != NULL);
         global_mins.push_back(*min);
-        local_mins.push_back(0);
     }
 
+    // Get local/used dimensions.
     s = partial_lower(f, true);
     GetBoxes get_capped;
     s.accept(&get_capped);
@@ -115,10 +118,14 @@ vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Exp
     const Box &b_capped = get_capped.boxes.begin()->second;
     for (int i = 0; i < (int)b_capped.size(); i++) {
         Expr sz = b_capped[i].max - b_capped[i].min + 1;
+        local_extents_parameterized.push_back(sz);
+        local_mins_parameterized.push_back(b_capped[i].min);
         sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL) << sz;
         local_extents.push_back(*dim);
+        // TODO: make these actual local mins.
+        local_mins.push_back(0);
     }
 
     return allocated_extents;

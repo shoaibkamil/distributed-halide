@@ -191,10 +191,14 @@ public:
         _distributed = buffer.distributed();
         _dimensions = buffer.dimensions();
         for (int i = 0; i < buffer.dimensions(); i++) {
-            Expr min = buffer.local_min(i);
-            Expr max = min + buffer.local_extent(i) - 1;
-            _bounds.push_back(Interval(min, max));
+            Expr min = buffer.allocated_min(i);
+            Expr max = min + buffer.allocated_extent(i) - 1;
             _shape.push_back(Interval(min, max));
+
+            // These are parameterized by rank and number of processors.
+            Expr havemin = buffer.local_min(i);
+            Expr havemax = havemin + buffer.local_extent(i) - 1;
+            _bounds.push_back(Interval(havemin, havemax));
         }
     }
 

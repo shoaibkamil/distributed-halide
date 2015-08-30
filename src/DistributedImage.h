@@ -35,7 +35,8 @@ namespace Internal {
 // input buffers with respect to rank and number of MPI
 // processors.
 Stmt partial_lower(Func f, bool cap_extents=false);
-vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
+vector<int> get_buffer_bounds(Func f, vector<Expr> &allocated_extents_parameterized, vector<Expr> &allocated_mins_parameterized,
+                              vector<Expr> &local_extents_parameterized, vector<Expr> &local_mins_parameterized,
                               vector<int> &global_mins, vector<int> &local_mins, vector<int> &local_extents);
 
 }
@@ -134,13 +135,15 @@ public:
         // mins/extents of this buffer in parameterized global
         // coordinates (i.e. parameterized by rank and number of
         // processors).
-        vector<Expr> allocated_extents_parameterized, allocated_mins_parameterized;
+        vector<Expr> allocated_extents_parameterized, allocated_mins_parameterized,
+            local_extents_parameterized, local_mins_parameterized;
         allocated_extents =
-            Internal::get_buffer_bounds(wrapper, allocated_extents_parameterized,
-                                        allocated_mins_parameterized, global_mins,
-                                        local_mins, local_extents);
+            Internal::get_buffer_bounds(wrapper, local_extents_parameterized, local_mins_parameterized,
+                                        allocated_extents_parameterized, allocated_mins_parameterized,
+                                        global_mins, local_mins, local_extents);
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
-        b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized);
+        b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized,
+                          local_extents_parameterized, local_mins_parameterized);
         param.set(b);
         image = Image<T>(b);
 

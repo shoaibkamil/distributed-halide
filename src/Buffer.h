@@ -97,20 +97,30 @@ public:
     /** Return true if the Buffer is distributed. */
     EXPORT bool distributed() const;
 
-    /** Mark this Buffer as distributed with the given local sizes. */
-    EXPORT void set_distributed(const std::vector<int> &local_sizes,
-                                const std::vector<Expr> &symbolic_extents,
-                                const std::vector<Expr> &symbolic_mins);
+    /** Mark this Buffer as distributed with the given allocated and
+        local sizes. */
+    EXPORT void set_distributed(const std::vector<int> &allocated_sizes,
+                                const std::vector<Expr> &symbolic_allocated_extents,
+                                const std::vector<Expr> &symbolic_allocated_mins,
+                                const std::vector<Expr> &symbolic_local_extents,
+                                const std::vector<Expr> &symbolic_local_mins);
 
-    /** Get the local extent of this buffer in the given dimension. */
-    EXPORT Expr local_extent(int dim) const;
-
-    /** Get the number of bytes between adjacent elements of the
-     * local buffer along the given dimension. */
-    EXPORT Expr local_stride(int dim) const;
+    /** Get the allocated extent of this buffer in the given
+        dimension. Only relevant for distributed. */
+    EXPORT Expr allocated_extent(int dim) const;
 
     /** Get the coordinate in the function that this buffer represents
-     * that corresponds to the base address of the local buffer. */
+     * that corresponds to the base address of the allocated
+     * buffer. Only relevant for distributed. */
+    EXPORT Expr allocated_min(int dim) const;
+
+    /** Get the local extent of this buffer in the given
+        dimension. Only relevant for distributed. */
+    EXPORT Expr local_extent(int dim) const;
+
+    /** Get the coordinate in the function that this buffer represents
+     * that corresponds to the base address of the local buffer. Only
+     * relevant for distributed. */
     EXPORT Expr local_min(int dim) const;
 
     /** Get the Halide type of the contents of this buffer. */
