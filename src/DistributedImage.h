@@ -236,52 +236,67 @@ public:
     /** Assuming this image is one-dimensional, get the value of the
      * element at position x */
     const T &operator()(int x) const {
-        return image(x);
+        // We're given a coordinate in local space; convert to allocated space.
+        const int ax = x + local_mins[0];
+        return image(ax);
     }
 
     /** Assuming this image is two-dimensional, get the value of the
      * element at position (x, y) */
     const T &operator()(int x, int y) const {
-        return image(x, y);
+        const int ax = x + local_mins[0], ay = y + local_mins[1];
+        return image(ax, ay);
     }
 
     /** Assuming this image is three-dimensional, get the value of the
      * element at position (x, y, z) */
     const T &operator()(int x, int y, int z) const {
-        return image(x, y, z);
+        const int ax = x + local_mins[0], ay = y + local_mins[1], az = z + local_mins[2];
+        return image(ax, ay, az);
     }
 
     /** Assuming this image is four-dimensional, get the value of the
      * element at position (x, y, z, w) */
     const T &operator()(int x, int y, int z, int w) const {
-        return image(x, y, z, w);
+        const int ax = x + local_mins[0], ay = y + local_mins[1],
+            az = z + local_mins[2], aw = w + local_mins[3];
+        return image(ax, ay, az, aw);
     }
 
     /** Assuming this image is one-dimensional, get a reference to the
      * element at position x */
     T &operator()(int x) {
-        return image(x);
+        // We're given a coordinate in local space; convert to allocated space.
+        const int ax = x + local_mins[0];
+        return image(ax);
     }
 
-    /** Assuming this image is two-dimensional, get a reference to the
+    /** Assuming this image is two-dimensional, get the value of the
      * element at position (x, y) */
     T &operator()(int x, int y) {
-        return image(x, y);
+        const int ax = x + local_mins[0], ay = y + local_mins[1];
+        return image(ax, ay);
     }
 
-    /** Assuming this image is three-dimensional, get a reference to the
+    /** Assuming this image is three-dimensional, get the value of the
      * element at position (x, y, z) */
     T &operator()(int x, int y, int z) {
-        return image(x, y, z);
+        const int ax = x + local_mins[0], ay = y + local_mins[1], az = z + local_mins[2];
+        return image(ax, ay, az);
     }
 
-    /** Assuming this image is four-dimensional, get a reference to the
+    /** Assuming this image is four-dimensional, get the value of the
      * element at position (x, y, z, w) */
     T &operator()(int x, int y, int z, int w) {
-        return image(x, y, z, w);
+        const int ax = x + local_mins[0], ay = y + local_mins[1],
+            az = z + local_mins[2], aw = w + local_mins[3];
+        return image(ax, ay, az, aw);
     }
 
     Expr operator()(Expr x) const {
+        // Note we do not convert these to allocated space: these
+        // expressions need access to the full allocated space for
+        // e.g. ghost zone access.
         return image(x);
     }
 
