@@ -38,6 +38,11 @@ void print_img2d(DistributedImage<T> &img) {
     }
 }
 
+namespace {
+inline int intmin(int a, int b) { return a < b ? a : b; }
+inline int intmax(int a, int b) { return a > b ? a : b; }
+}
+
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
 
@@ -183,6 +188,51 @@ int main(int argc, char **argv) {
             const int xa = x;
             const int xb = out.global(x+1) >= xmax ? out.local(xmax) : x+1;
             const int correct = 2 * out.global(xa) + 2 * out.global(xb) + 1;
+            if (out(x) != correct) {
+                mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
+                MPI_Finalize();
+                return -1;
+            }
+        }
+    }
+
+    {
+        DistributedImage<int> in(20);
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate();
+
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = 2 * in.global(x);
+        }
+
+        Func clamped;
+        clamped(x) = in(clamp(x, 0, in.global_width()-1));
+        Func f;
+        f(x) = clamped(x-1) + clamped(x+1) + 1;
+        f.distribute(x);
+
+        DistributedImage<int> out(20);
+        out.set_domain(x);
+        out.placement().distribute(x);
+        out.allocate();
+        f.realize(out.get_buffer());
+
+        const int slice = (int)ceil(in.global_width() / (float)numprocs);
+        assert(in.global(0, 0) == rank * slice);
+        assert(in.local(0, rank * slice) == 0);
+        assert(in.width() == (intmin((rank + 1) * slice - 1, in.global_width() - 1) - (rank * slice) + 1));
+        assert(in.mine(0) == (rank == 0));
+        assert(in.mine(in.global_width() - 1) == (rank == numprocs - 1));
+        assert(in.mine(-1) == false);
+        assert(in.mine(in.global_width()) == false);
+
+        for (int x = 0; x < out.width(); x++) {
+            const int xmax = out.global_width() - 1;
+            const int gxp1 = out.global(0, x+1) >= xmax ? xmax : out.global(0, x+1),
+                gxm1 = out.global(0, x) == 0 ? 0 : out.global(0, x-1);
+            //const int gx = out.global(0, x), gy = out.global(1, y);
+            const int correct = (2 * gxm1) + (2 * gxp1) + 1;
             if (out(x) != correct) {
                 mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
                 MPI_Finalize();
