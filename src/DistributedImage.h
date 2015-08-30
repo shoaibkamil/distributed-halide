@@ -36,18 +36,24 @@ namespace Internal {
 // processors.
 Stmt partial_lower(Func f, bool cap_extents=false);
 vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
-                              vector<int> &mins, vector<int> &local_extents);
+                              vector<int> &global_mins, vector<int> &local_mins, vector<int> &local_extents);
 
 }
 
 template<typename T>
 class DistributedImage {
+    // Full extents of the global image.
     vector<int> full_extents;
     // The actual buffer allocated may be of a larger size than what
     // is needed, due to boundary conditions, so we must keep track of
     // what was allocated separately from the region used.
     vector<int> allocated_extents, local_extents;
-    vector<int> mins;
+    // The mins of this buffer in global coordinates.
+    vector<int> global_mins;
+    // The mins of this buffer in local coordinates. Similar to
+    // extents, the allocated mins may be different from the local
+    // mins.
+    vector<int> local_mins;
     ImageParam param;
     Image<T> image;
     Func wrapper;
@@ -128,7 +134,8 @@ public:
         vector<Expr> allocated_extents_parameterized, allocated_mins_parameterized;
         allocated_extents =
             Internal::get_buffer_bounds(wrapper, allocated_extents_parameterized,
-                                        allocated_mins_parameterized, mins, local_extents);
+                                        allocated_mins_parameterized, global_mins,
+                                        local_mins, local_extents);
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
         b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized);
         param.set(b);
@@ -144,10 +151,15 @@ public:
     }
 
     int dimensions() const { return image.dimensions(); }
-    int global_extent(int dim) const { return image.extent(dim); }
-    int global_width() const { return image.width(); }
-    int global_height() const { return image.height(); }
-    int global_channels() const { return image.channels(); }
+
+    int global_extent(int dim) const {
+        internal_assert(!full_extents.empty());
+        internal_assert(dim < full_extents.size());
+        return full_extents[dim];
+    }
+    int global_width() const { return global_extent(0); }
+    int global_height() const { return global_extent(1); }
+    int global_channels() const { return global_extent(2); }
 
     int extent(int dim) const {
         internal_assert(!local_extents.empty());
@@ -173,38 +185,38 @@ public:
     /** Return the global coordinate of dimension 'dim' corresponding
      * to the local coordinate value c. */
     int global(int dim, int c) const {
-        internal_assert(!mins.empty());
-        return mins[dim] + c;
+        internal_assert(!global_mins.empty());
+        return global_mins[dim] + c;
     }
 
     /** Return the local coordinate of dimension 'dim' corresponding
      * to the global coordinate value c. */
     int local(int dim, int c) const {
-        internal_assert(!mins.empty());
-        return c - mins[dim];
+        internal_assert(!global_mins.empty());
+        return c - global_mins[dim];
     }
 
     /** Return true if the global x coordinate resides on this
      * rank. */
     bool mine(int x) const {
-        internal_assert(!mins.empty() && !local_extents.empty());
-        return x >= mins[0] && x < (mins[0] + local_extents[0]);
+        internal_assert(!global_mins.empty() && !local_extents.empty());
+        return x >= global_mins[0] && x < (global_mins[0] + local_extents[0]);
     }
 
     bool mine(int x, int y) const {
-        internal_assert(!mins.empty() && !local_extents.empty());
-        internal_assert(mins.size() == 2);
-        bool myx = x >= mins[0] && x < (mins[0] + local_extents[0]);
-        bool myy = y >= mins[1] && y < (mins[1] + local_extents[1]);
+        internal_assert(!global_mins.empty() && !local_extents.empty());
+        internal_assert(global_mins.size() == 2);
+        bool myx = x >= global_mins[0] && x < (global_mins[0] + local_extents[0]);
+        bool myy = y >= global_mins[1] && y < (global_mins[1] + local_extents[1]);
         return myx && myy;
     }
 
     bool mine(int x, int y, int z) const {
-        internal_assert(!mins.empty() && !local_extents.empty());
-        internal_assert(mins.size() == 3);
-        bool myx = x >= mins[0] && x < (mins[0] + local_extents[0]);
-        bool myy = y >= mins[1] && y < (mins[1] + local_extents[1]);
-        bool myz = z >= mins[2] && z < (mins[2] + local_extents[2]);
+        internal_assert(!global_mins.empty() && !local_extents.empty());
+        internal_assert(global_mins.size() == 3);
+        bool myx = x >= global_mins[0] && x < (global_mins[0] + local_extents[0]);
+        bool myy = y >= global_mins[1] && y < (global_mins[1] + local_extents[1]);
+        bool myz = z >= global_mins[2] && z < (global_mins[2] + local_extents[2]);
         return myx && myy && myz;
     }
 

@@ -83,7 +83,7 @@ Stmt partial_lower(Func f, bool cap_extents) {
 }
 
 vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
-                              vector<int> &mins, vector<int> &local_extents) {
+                              vector<int> &global_mins, vector<int> &local_mins, vector<int> &local_extents) {
     vector<int> allocated_extents;
     Stmt s = partial_lower(f);
     GetBoxes get;
@@ -104,7 +104,8 @@ vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Exp
         allocated_extents.push_back(*dim);
         const int *min = as_const_int(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min))));
         internal_assert(min != NULL);
-        mins.push_back(*min);
+        global_mins.push_back(*min);
+        local_mins.push_back(0);
     }
 
     s = partial_lower(f, true);
