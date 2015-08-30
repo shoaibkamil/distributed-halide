@@ -82,10 +82,9 @@ Stmt partial_lower(Func f, bool cap_extents) {
     return s;
 }
 
-vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
-                              vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
-                              vector<int> &mins, vector<int> &capped_local_extents) {
-    vector<int> bounds;
+vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
+                              vector<int> &mins, vector<int> &local_extents) {
+    vector<int> allocated_extents;
     Stmt s = partial_lower(f);
     GetBoxes get;
     s.accept(&get);
@@ -102,7 +101,7 @@ vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
         sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL) << sz;
-        bounds.push_back(*dim);
+        allocated_extents.push_back(*dim);
         const int *min = as_const_int(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min))));
         internal_assert(min != NULL);
         mins.push_back(*min);
@@ -118,10 +117,10 @@ vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
         sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL) << sz;
-        capped_local_extents.push_back(*dim);
+        local_extents.push_back(*dim);
     }
 
-    return bounds;
+    return allocated_extents;
 }
 }
 }

@@ -35,17 +35,18 @@ namespace Internal {
 // input buffers with respect to rank and number of MPI
 // processors.
 Stmt partial_lower(Func f, bool cap_extents=false);
-vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
-                              vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
-                              vector<int> &mins, vector<int> &capped_local_extents);
+vector<int> get_buffer_bounds(Func f, vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
+                              vector<int> &mins, vector<int> &local_extents);
 
 }
 
 template<typename T>
 class DistributedImage {
     vector<int> full_extents;
-    vector<int> local_extents, capped_local_extents;
-    vector<Expr> symbolic_extents, symbolic_mins;
+    // The actual buffer allocated may be of a larger size than what
+    // is needed, due to boundary conditions, so we must keep track of
+    // what was allocated separately from the region used.
+    vector<int> allocated_extents, local_extents;
     vector<int> mins;
     ImageParam param;
     Image<T> image;
@@ -120,10 +121,16 @@ public:
      * jitting. */
     void allocate() {
         internal_assert(!image.defined());
-        local_extents = Internal::get_buffer_bounds(wrapper, full_extents, symbolic_extents, symbolic_mins, mins,
-                                                    capped_local_extents);
+        // Determine size of the buffer to be allocated, and also
+        // mins/extents of this buffer in parameterized global
+        // coordinates (i.e. parameterized by rank and number of
+        // processors).
+        vector<Expr> allocated_extents_parameterized, allocated_mins_parameterized;
+        allocated_extents =
+            Internal::get_buffer_bounds(wrapper, allocated_extents_parameterized,
+                                        allocated_mins_parameterized, mins, local_extents);
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
-        b.set_distributed(local_extents, symbolic_extents, symbolic_mins);
+        b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized);
         param.set(b);
         image = Image<T>(b);
 
@@ -143,9 +150,9 @@ public:
     int global_channels() const { return image.channels(); }
 
     int extent(int dim) const {
-        internal_assert(!capped_local_extents.empty());
-        internal_assert(dim < capped_local_extents.size());
-        return capped_local_extents[dim];
+        internal_assert(!local_extents.empty());
+        internal_assert(dim < local_extents.size());
+        return local_extents[dim];
     }
     int width() const { return extent(0); }
     int height() const { return extent(1); }
