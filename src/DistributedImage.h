@@ -48,11 +48,14 @@ class DistributedImage {
     // is needed, due to boundary conditions, so we must keep track of
     // what was allocated separately from the region used.
     vector<int> allocated_extents, local_extents;
-    // The mins of this buffer in global coordinates.
+    // The mins of this buffer in global coordinates. Note that this
+    // is the min of the allocated region, not the min of the region
+    // used.
     vector<int> global_mins;
     // The mins of this buffer in local coordinates. Similar to
     // extents, the allocated mins may be different from the local
-    // mins.
+    // mins. In particular, the allocated min is always 0, but the
+    // local min may be >= 0.
     vector<int> local_mins;
     ImageParam param;
     Image<T> image;
@@ -186,38 +189,40 @@ public:
      * to the local coordinate value c. */
     int global(int dim, int c) const {
         internal_assert(!global_mins.empty());
-        return global_mins[dim] + c;
+        internal_assert(dim < local_mins.size());
+        internal_assert(local_mins[dim] >= 0);
+        return global_mins[dim] + local_mins[dim] + c;
     }
 
     /** Return the local coordinate of dimension 'dim' corresponding
      * to the global coordinate value c. */
     int local(int dim, int c) const {
         internal_assert(!global_mins.empty());
-        return c - global_mins[dim];
+        internal_assert(dim < local_mins.size());
+        internal_assert(local_mins[dim] >= 0);
+        return c - (global_mins[dim] + local_mins[dim]);
     }
 
     /** Return true if the global x coordinate resides on this
      * rank. */
     bool mine(int x) const {
         internal_assert(!global_mins.empty() && !local_extents.empty());
-        return x >= global_mins[0] && x < (global_mins[0] + local_extents[0]);
+        const int lx = local(0, x);
+        return lx >= 0 && lx < extent(0);
     }
 
     bool mine(int x, int y) const {
         internal_assert(!global_mins.empty() && !local_extents.empty());
         internal_assert(global_mins.size() == 2);
-        bool myx = x >= global_mins[0] && x < (global_mins[0] + local_extents[0]);
-        bool myy = y >= global_mins[1] && y < (global_mins[1] + local_extents[1]);
-        return myx && myy;
+        const int lx = local(0, x), ly = local(1, y);
+        return lx >= 0 && lx < extent(0) && ly >= 0 && ly < extent(1);
     }
 
     bool mine(int x, int y, int z) const {
         internal_assert(!global_mins.empty() && !local_extents.empty());
         internal_assert(global_mins.size() == 3);
-        bool myx = x >= global_mins[0] && x < (global_mins[0] + local_extents[0]);
-        bool myy = y >= global_mins[1] && y < (global_mins[1] + local_extents[1]);
-        bool myz = z >= global_mins[2] && z < (global_mins[2] + local_extents[2]);
-        return myx && myy && myz;
+        const int lx = local(0, x), ly = local(1, y), lz = local(2, z);
+        return lx >= 0 && lx < extent(0) && ly >= 0 && ly < extent(1) && lz >= 0 && lz < extent(2);
     }
 
     /** Get a pointer to the element at the min location. */
