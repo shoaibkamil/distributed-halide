@@ -98,6 +98,12 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(20);
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate();
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = 2 * in.global(x);
+        }
 
         Func f;
         f(x) = in(x) + 1;
@@ -107,14 +113,6 @@ int main(int argc, char **argv) {
         out.set_domain(x);
         out.placement().distribute(x);
         out.allocate();
-
-        in.set_domain(x);
-        in.placement().distribute(x);
-        in.allocate(f, out.global_extents());
-        for (int x = 0; x < in.width(); x++) {
-            in(x) = 2 * in.global(x);
-        }
-
         f.realize(out.get_buffer());
         for (int x = 0; x < out.width(); x++) {
             int correct = 2 * out.global(x) + 1;
@@ -129,6 +127,13 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(20);
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate();
+
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = 2 * in.global(x);
+        }
 
         Func f, g;
         f(x) = in(x) + 1;
@@ -140,14 +145,6 @@ int main(int argc, char **argv) {
         out.set_domain(x);
         out.placement().distribute(x);
         out.allocate();
-
-        in.set_domain(x);
-        in.placement().distribute(x);
-        in.allocate(g, out.global_extents());
-        for (int x = 0; x < in.width(); x++) {
-            in(x) = 2 * in.global(x);
-        }
-
         g.realize(out.get_buffer());
         for (int x = 0; x < out.width(); x++) {
             int correct = 2 * out.global(x) + 2;
@@ -161,6 +158,13 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(20);
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate();
+
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = 2 * in.global(x);
+        }
 
         Expr clamped_x = clamp(x, 0, in.global_width()-1);
         Func clamped;
@@ -173,14 +177,6 @@ int main(int argc, char **argv) {
         out.set_domain(x);
         out.placement().distribute(x);
         out.allocate();
-
-        in.set_domain(x);
-        in.placement().distribute(x);
-        in.allocate(f, out.global_extents());
-        for (int x = 0; x < in.width(); x++) {
-            in(x) = 2 * in.global(x);
-        }
-
         f.realize(out.get_buffer());
         for (int x = 0; x < out.width(); x++) {
             const int xmax = out.global_width() - 1;
@@ -188,7 +184,7 @@ int main(int argc, char **argv) {
             const int xb = out.global(x+1) >= xmax ? out.local(xmax) : x+1;
             const int correct = 2 * out.global(xa) + 2 * out.global(xb) + 1;
             if (out(x) != correct) {
-                printf("[rank %d] out(%d) = %d instead of %d\n", rank, x, out(x), correct);
+                mpi_printf("out(%d) = %d instead of %d\n", x, out(x), correct);
                 MPI_Finalize();
                 return -1;
             }
@@ -197,6 +193,13 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(20);
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate();
+
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = 2 * in.global(x);
+        }
 
         Expr clamped_x = clamp(x, 0, in.global_width()-1);
         Func clamped;
@@ -211,15 +214,6 @@ int main(int argc, char **argv) {
         out.set_domain(x);
         out.placement().distribute(x);
         out.allocate();
-
-        in.set_domain(x);
-        in.placement().distribute(x);
-        in.allocate(g, out.global_extents());
-
-        for (int x = 0; x < in.width(); x++) {
-            in(x) = 2 * in.global(x);
-        }
-
         g.realize(out.get_buffer());
         for (int x = 0; x < out.width(); x++) {
             const int xmax = out.global_width() - 1;
@@ -237,6 +231,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(10, 20);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         Expr clamped_x = clamp(x, 0, in.global_width()-1),
             clamped_y = clamp(y, 0, in.global_height()-1);
@@ -250,16 +253,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(f, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
-
         f.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
@@ -277,6 +270,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(10, 20);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         Expr clamped_x = clamp(x, 0, in.global_width()-1),
             clamped_y = clamp(y, 0, in.global_height()-1);
@@ -292,16 +294,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(g, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
-
         g.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
@@ -321,6 +313,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(50, 60);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         Expr clamped_x = clamp(x, 0, in.global_width()-1),
             clamped_y = clamp(y, 0, in.global_height()-1);
@@ -341,16 +342,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(g, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
-
         g.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
@@ -370,6 +361,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(10, 20);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         Func f, g;
         f(x, y) = in(x, y) + in(x, y) + 1;
@@ -381,16 +381,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(g, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
-
         g.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
@@ -407,6 +397,18 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(10, 20, 30);
+        in.set_domain(x, y, z);
+        in.placement().distribute(z);
+        in.allocate();
+
+        for (int z = 0; z < in.channels(); z++) {
+            for (int y = 0; y < in.height(); y++) {
+                for (int x = 0; x < in.width(); x++) {
+                    int gx = in.global(0, x), gy = in.global(1, y), gz = in.global(2, z);
+                    in(x, y, z) = gx + gy + gz;
+                }
+            }
+        }
 
         Func f, g;
         f(x, y, z) = 2 * in(x, y, z);
@@ -418,19 +420,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y, z);
         out.placement().distribute(z);
         out.allocate();
-        in.set_domain(x, y, z);
-        in.placement().distribute(z);
-        in.allocate(g, out.global_extents());
-
-        for (int z = 0; z < in.channels(); z++) {
-            for (int y = 0; y < in.height(); y++) {
-                for (int x = 0; x < in.width(); x++) {
-                    int gx = in.global(0, x), gy = in.global(1, y), gz = in.global(2, z);
-                    in(x, y, z) = gx + gy + gz;
-                }
-            }
-        }
-
         g.realize(out.get_buffer());
         for (int z = 0; z < out.channels(); z++) {
             for (int y = 0; y < out.height(); y++) {
@@ -449,6 +438,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(10, 20);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         Func f, g;
         f(x, y) = 2 * in(x, y);
@@ -460,16 +458,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(g, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
-
         g.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
@@ -486,6 +474,18 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(10, 20, 30);
+        in.set_domain(x, y, z);
+        in.placement().distribute(z);
+        in.allocate();
+
+        for (int z = 0; z < in.channels(); z++) {
+            for (int y = 0; y < in.height(); y++) {
+                for (int x = 0; x < in.width(); x++) {
+                    int gx = in.global(0, x), gy = in.global(1, y), gz = in.global(2, z);
+                    in(x, y, z) = gx + gy + gz;
+                }
+            }
+        }
 
         Func f, g;
         f(x, y, z) = 2 * in(x, y, z);
@@ -497,19 +497,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y, z);
         out.placement().distribute(z);
         out.allocate();
-        in.set_domain(x, y, z);
-        in.placement().distribute(z);
-        in.allocate(g, out.global_extents());
-
-        for (int z = 0; z < in.channels(); z++) {
-            for (int y = 0; y < in.height(); y++) {
-                for (int x = 0; x < in.width(); x++) {
-                    int gx = in.global(0, x), gy = in.global(1, y), gz = in.global(2, z);
-                    in(x, y, z) = gx + gy + gz;
-                }
-            }
-        }
-
         g.realize(out.get_buffer());
         for (int z = 0; z < out.channels(); z++) {
             for (int y = 0; y < out.height(); y++) {
@@ -528,6 +515,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(10, 20);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         Func f, g, h, i;
         f(x, y) = 2 * in(x, y);
@@ -543,15 +539,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(i, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
         i.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
@@ -568,6 +555,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(10, 20);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         Func f, g;
         f(x, y) = in(x, y) + in(x, y) + 1;
@@ -579,15 +575,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(x);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(g, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
         g.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
@@ -604,6 +591,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(100, 100);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         Expr clamped_x = clamp(x, 0, in.global_width()-1),
             clamped_y = clamp(y, 0, in.global_height()-1);
@@ -619,15 +615,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(blury, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
         blury.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
@@ -651,6 +638,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(11, 113);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         Expr clamped_x = clamp(x, 0, in.global_width()-1),
             clamped_y = clamp(y, 0, in.global_height()-1);
@@ -672,16 +668,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(blury, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
-
         blury.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {
@@ -705,6 +691,13 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(20);
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate();
+
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = 2 * in.global(x);
+        }
 
         Func f, g;
         f(x) = in(x) + 1;
@@ -717,14 +710,6 @@ int main(int argc, char **argv) {
         out.set_domain(x);
         out.placement().distribute(x);
         out.allocate();
-        in.set_domain(x);
-        in.placement().distribute(x);
-        in.allocate(g, out.global_extents());
-
-        for (int x = 0; x < in.width(); x++) {
-            in(x) = 2 * in.global(x);
-        }
-
         g.realize(out.get_buffer());
         for (int x = 0; x < out.width(); x++) {
             int correct = 2 * out.global(x) + 2;
@@ -738,6 +723,15 @@ int main(int argc, char **argv) {
 
     {
         DistributedImage<int> in(50, 50);
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate();
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
 
         RDom k(0, in.global_height());
         Func f;
@@ -751,16 +745,6 @@ int main(int argc, char **argv) {
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
-        in.set_domain(x, y);
-        in.placement().distribute(y);
-        in.allocate(f, out.global_extents());
-
-        for (int y = 0; y < in.height(); y++) {
-            for (int x = 0; x < in.width(); x++) {
-                in(x, y) = in.global(0, x) + in.global(1, y);
-            }
-        }
-
         f.realize(out.get_buffer());
         for (int y = 0; y < out.height(); y++) {
             for (int x = 0; x < out.width(); x++) {

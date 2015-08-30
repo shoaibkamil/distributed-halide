@@ -272,8 +272,7 @@ public:
     }
 
     string extended_name() const {
-        //return is_image() ? _name + "_extended" : _name;
-        return _name;
+        return is_image() ? _name + "_extended" : _name;
     }
 
     // Return the size of the given box in bytes according to the type
@@ -1014,10 +1013,10 @@ class InjectCommunication : public IRMutator {
             provided.push_back(buffers.at(it.first));
         }
 
-        // Stmt copy = copy_on_node_data(name, required);
-        // if (copy.defined()) {
-        //     newstmt = Block::make(copy, newstmt);
-        // }
+        Stmt copy = copy_on_node_data(name, required);
+        if (copy.defined()) {
+            newstmt = Block::make(copy, newstmt);
+        }
         if (trace_progress) {
             Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
                             string("before copy_on_node_data")}));
@@ -1043,7 +1042,7 @@ class InjectCommunication : public IRMutator {
         // }
 
         newstmt = update_io_buffers(newstmt, name, required, provided);
-        // newstmt = allocate_extended_buffers(newstmt, name, required);
+        newstmt = allocate_extended_buffers(newstmt, name, required);
 
         if (trace_have_needs) {
             Stmt p;
