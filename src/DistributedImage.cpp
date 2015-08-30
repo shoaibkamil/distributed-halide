@@ -82,19 +82,16 @@ Stmt partial_lower(Func f, bool cap_extents) {
     return s;
 }
 
-vector<int> get_buffer_bounds(Func f,
-                              vector<Expr> &allocated_extents_parameterized, vector<Expr> &allocated_mins_parameterized,
-                              vector<Expr> &local_extents_parameterized, vector<Expr> &local_mins_parameterized,
-                              vector<int> &global_mins, vector<int> &local_mins, vector<int> &local_extents) {
+vector<int> get_allocate_bounds(Func f, vector<Expr> &allocated_extents_parameterized, vector<Expr> &allocated_mins_parameterized, vector<int> &global_mins) {
     vector<int> allocated_extents;
+    int rank = 0, num_processors = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
+
     Stmt s = partial_lower(f);
     GetBoxes get;
     s.accept(&get);
     internal_assert(get.boxes.size() == 1);
-
-    int rank = 0, num_processors = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
     const Box &b = get.boxes.begin()->second;
     // Get global/allocated dimensions.
     for (int i = 0; i < (int)b.size(); i++) {
@@ -110,16 +107,25 @@ vector<int> get_buffer_bounds(Func f,
         global_mins.push_back(*min);
     }
 
+    return allocated_extents;
+}
+
+vector<int> get_local_bounds(Func f, vector<Expr> &local_extents_parameterized, vector<Expr> &local_mins_parameterized, vector<int> &local_mins) {
+    vector<int> local_extents;
+    int rank = 0, num_processors = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
+
     // Get local/used dimensions.
-    s = partial_lower(f, true);
-    GetBoxes get_capped;
-    s.accept(&get_capped);
-    internal_assert(get_capped.boxes.size() == 1);
-    const Box &b_capped = get_capped.boxes.begin()->second;
-    for (int i = 0; i < (int)b_capped.size(); i++) {
-        Expr sz = b_capped[i].max - b_capped[i].min + 1;
+    Stmt s = partial_lower(f, true);
+    GetBoxes get;
+    s.accept(&get);
+    internal_assert(get.boxes.size() == 1);
+    const Box &b = get.boxes.begin()->second;
+    for (int i = 0; i < (int)b.size(); i++) {
+        Expr sz = b[i].max - b[i].min + 1;
         local_extents_parameterized.push_back(sz);
-        local_mins_parameterized.push_back(b_capped[i].min);
+        local_mins_parameterized.push_back(b[i].min);
         sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
         const int *dim = as_const_int(sz);
         internal_assert(dim != NULL) << sz;
@@ -128,7 +134,7 @@ vector<int> get_buffer_bounds(Func f,
         local_mins.push_back(0);
     }
 
-    return allocated_extents;
+    return local_extents;
 }
 }
 }

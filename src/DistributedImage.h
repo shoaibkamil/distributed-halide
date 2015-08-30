@@ -35,9 +35,8 @@ namespace Internal {
 // input buffers with respect to rank and number of MPI
 // processors.
 Stmt partial_lower(Func f, bool cap_extents=false);
-vector<int> get_buffer_bounds(Func f, vector<Expr> &allocated_extents_parameterized, vector<Expr> &allocated_mins_parameterized,
-                              vector<Expr> &local_extents_parameterized, vector<Expr> &local_mins_parameterized,
-                              vector<int> &global_mins, vector<int> &local_mins, vector<int> &local_extents);
+vector<int> get_allocate_bounds(Func f, vector<Expr> &allocated_extents_parameterized, vector<Expr> &allocated_mins_parameterized, vector<int> &global_mins);
+vector<int> get_local_bounds(Func f, vector<Expr> &local_extents_parameterized, vector<Expr> &local_mins_parameterized, vector<int> &local_mins);
 
 }
 
@@ -137,10 +136,8 @@ public:
         // processors).
         vector<Expr> allocated_extents_parameterized, allocated_mins_parameterized,
             local_extents_parameterized, local_mins_parameterized;
-        allocated_extents =
-            Internal::get_buffer_bounds(wrapper, allocated_extents_parameterized, allocated_mins_parameterized,
-                                        local_extents_parameterized, local_mins_parameterized,
-                                        global_mins, local_mins, local_extents);
+        allocated_extents = Internal::get_allocate_bounds(wrapper, allocated_extents_parameterized, allocated_mins_parameterized, global_mins);
+        local_extents = Internal::get_local_bounds(wrapper, local_extents_parameterized, local_mins_parameterized, local_mins);
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
         b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized,
                           local_extents_parameterized, local_mins_parameterized);
