@@ -158,6 +158,10 @@ public:
 
     int dimensions() const { return image.dimensions(); }
 
+    int allocated_min(int dim) const {
+        return global_mins[dim];
+    }
+    
     int global_extent(int dim) const {
         internal_assert(!full_extents.empty());
         internal_assert(dim < full_extents.size());
@@ -297,19 +301,19 @@ public:
         // Note we do not convert these to allocated space: these
         // expressions need access to the full allocated space for
         // e.g. ghost zone access.
-        return image(x);
+        return param(x);
     }
 
     Expr operator()(Expr x, Expr y) const {
-        return image(x, y);
+        return param(x, y);
     }
 
     Expr operator()(Expr x, Expr y, Expr z) const {
-        return image(x, y, z);
+        return param(x, y, z);
     }
 
     Expr operator()(Expr x, Expr y, Expr z, Expr w) const {
-        return image(x, y, z, w);
+        return param(x, y, z, w);
     }
 
     /** Convert this image to an argument to a halide pipeline. */
