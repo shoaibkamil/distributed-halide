@@ -28,6 +28,7 @@ class Result:
         self.value = value
 
 def make_run_cmd(config, nranks, num_nodes):
+    os.environ["MV2_ENABLE_AFFINITY"] = "0"
     cmd = ["srun", "--exclude=lanka11", "--exclusive"]
     if nranks == num_nodes * 2:
         cmd.extend(["--cpu_bind=verbose,sockets"])
