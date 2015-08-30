@@ -138,8 +138,8 @@ public:
         vector<Expr> allocated_extents_parameterized, allocated_mins_parameterized,
             local_extents_parameterized, local_mins_parameterized;
         allocated_extents =
-            Internal::get_buffer_bounds(wrapper, local_extents_parameterized, local_mins_parameterized,
-                                        allocated_extents_parameterized, allocated_mins_parameterized,
+            Internal::get_buffer_bounds(wrapper, allocated_extents_parameterized, allocated_mins_parameterized,
+                                        local_extents_parameterized, local_mins_parameterized,
                                         global_mins, local_mins, local_extents);
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
         b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized,
