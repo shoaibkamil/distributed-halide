@@ -36,13 +36,13 @@ public:
 
     void report() const {
         if (_rank == 0) {
-            printf("Timing: <%d> ranks <%.3f> seconds\n", _numprocs, gathered());
+            printf("Timing: <%d> ranks <%f> seconds\n", _numprocs, gathered());
         }
     }
 
     void nondistributed_report() const {
         if (_rank == 0) {
-            printf("Timing: non-distributed <%.3f> seconds\n", _reduced);
+            printf("Timing: non-distributed <%f> seconds\n", _reduced);
         }
     }
 
