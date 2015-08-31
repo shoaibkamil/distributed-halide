@@ -31,14 +31,37 @@ namespace Halide {
 
 namespace Internal {
 
-// Lower the given function enough to get bounds information on
-// input buffers with respect to rank and number of MPI
-// processors.
-Stmt partial_lower(Func f, bool cap_extents=false);
-vector<int> get_allocate_bounds(Func f, vector<Expr> &allocated_extents_parameterized, vector<Expr> &allocated_mins_parameterized, vector<int> &global_mins);
-vector<int> get_local_bounds(Func f, vector<Expr> &local_extents_parameterized, vector<Expr> &local_mins_parameterized, vector<int> &local_mins);
+map<string, Box> get_boxes(Func f, bool cap_extents=false);
+
+struct IntInterval {
+    int min, max;
+    IntInterval() : min(0), max(0) {}
+    IntInterval(int mn, int mx) : min(mn), max(mx) {}
+};
+
+struct IntBox {
+    std::vector<IntInterval> bounds;
+
+    IntBox() {}
+    IntBox(size_t sz) : bounds(sz) {}
+    IntBox(const std::vector<IntInterval> &b) : bounds(b) {}
+
+    size_t size() const {return bounds.size();}
+    bool empty() const {return bounds.empty();}
+    IntInterval &operator[](int i) {return bounds[i];}
+    const IntInterval &operator[](int i) const {return bounds[i];}
+    void resize(size_t sz) {bounds.resize(sz);}
+    void push_back(const IntInterval &i) {bounds.push_back(i);}
+};
 
 }
+
+using Internal::Box;
+using Internal::Interval;
+using Internal::IntBox;
+using Internal::IntInterval;
+using Internal::get_boxes;
+using Internal::Let;
 
 template<typename T>
 class DistributedImage {
@@ -134,10 +157,33 @@ public:
         // mins/extents of this buffer in parameterized global
         // coordinates (i.e. parameterized by rank and number of
         // processors).
+
+        Box allocated = get_allocated_bounds(wrapper);
+        Box local = get_local_bounds();
+
+        IntBox allocated_concrete = concretize(allocated),
+            local_concrete = concretize(local);
+
         vector<Expr> allocated_extents_parameterized, allocated_mins_parameterized,
             local_extents_parameterized, local_mins_parameterized;
-        allocated_extents = Internal::get_allocate_bounds(wrapper, allocated_extents_parameterized, allocated_mins_parameterized, global_mins);
-        local_extents = Internal::get_local_bounds(wrapper, local_extents_parameterized, local_mins_parameterized, local_mins);
+
+        internal_assert(allocated.size() > 0);
+        internal_assert(allocated.size() == allocated_concrete.size());
+        internal_assert(allocated.size() == local.size());
+        internal_assert(allocated.size() == local_concrete.size());
+
+        for (unsigned i = 0; i < allocated.size(); i++) {
+            global_mins.push_back(allocated_concrete[i].min);
+            allocated_extents.push_back(allocated_concrete[i].max - allocated_concrete[i].min + 1);
+            allocated_mins_parameterized.push_back(allocated[i].min);
+            allocated_extents_parameterized.push_back(allocated[i].max - allocated[i].min + 1);
+
+            local_mins.push_back(0);
+            local_extents.push_back(local_concrete[i].max - local_concrete[i].min + 1);
+            local_mins_parameterized.push_back(local[i].min);
+            local_extents_parameterized.push_back(local[i].max - local[i].min + 1);
+        }
+
         Buffer b(type_of<T>(), full_extents, NULL, param.name());
         b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized,
                           local_extents_parameterized, local_mins_parameterized);
@@ -146,6 +192,48 @@ public:
 
         // Remove the explicit bounds from the wrapper function.
         wrapper.function().schedule().bounds().clear();
+    }
+
+    Box get_allocated_bounds(Func f) {
+        Box allocated;
+        map<string, Box> boxes = get_boxes(f, false);
+        internal_assert(boxes.size() == 1);
+        const Box &b = boxes.begin()->second;
+        for (int i = 0; i < (int)b.size(); i++) {
+            allocated.push_back(Interval(b[i].min, b[i].max));
+        }
+        return allocated;
+    }
+
+    Box get_local_bounds() {
+        Box local;
+        map<string, Box> boxes = get_boxes(wrapper, true);
+        internal_assert(boxes.size() == 1);
+        const Box &b = boxes.begin()->second;
+        for (int i = 0; i < (int)b.size(); i++) {
+            local.push_back(Interval(b[i].min, b[i].max));
+        }
+        return local;
+    }
+
+    IntBox concretize(const Box &b) {
+        IntBox result;
+        int rank = 0, num_processors = 0;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
+        for (unsigned i = 0; i < b.size(); i++) {
+            Expr min = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min)));
+            Expr max = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].max)));
+            int imin = 0, imax = 0;
+            const int *intmin = as_const_int(min);
+            internal_assert(intmin != NULL);
+            imin = *intmin;
+            const int *intmax = as_const_int(max);
+            internal_assert(intmax != NULL);
+            imax = *intmax;
+            result.push_back(IntInterval(imin, imax));
+        }
+        return result;
     }
 
     /** Return the underlying buffer. Only relevant for jitting. */
@@ -158,7 +246,7 @@ public:
     int allocated_min(int dim) const {
         return global_mins[dim];
     }
-    
+
     int global_extent(int dim) const {
         internal_assert(!full_extents.empty());
         internal_assert(dim < full_extents.size());
@@ -342,7 +430,7 @@ public:
 
     /** Get the name of this image. */
     const std::string &name() {
-        return image.name();
+        return param.name();
     }
 
     operator Buffer() const {

@@ -66,6 +66,9 @@ public:
 };
 }
 
+// Lower the given function enough to get bounds information on
+// input buffers with respect to rank and number of MPI
+// processors.
 Stmt partial_lower(Func f, bool cap_extents) {
     Target t = get_target_from_environment();
     map<string, Function> env;
@@ -82,59 +85,12 @@ Stmt partial_lower(Func f, bool cap_extents) {
     return s;
 }
 
-vector<int> get_allocate_bounds(Func f, vector<Expr> &allocated_extents_parameterized, vector<Expr> &allocated_mins_parameterized, vector<int> &global_mins) {
-    vector<int> allocated_extents;
-    int rank = 0, num_processors = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
-
-    Stmt s = partial_lower(f);
+map<string, Box> get_boxes(Func f, bool cap_extents) {
+    Stmt s = partial_lower(f, cap_extents);
     GetBoxes get;
     s.accept(&get);
-    internal_assert(get.boxes.size() == 1);
-    const Box &b = get.boxes.begin()->second;
-    // Get global/allocated dimensions.
-    for (int i = 0; i < (int)b.size(); i++) {
-        Expr sz = b[i].max - b[i].min + 1;
-        allocated_extents_parameterized.push_back(sz);
-        allocated_mins_parameterized.push_back(b[i].min);
-        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
-        const int *dim = as_const_int(sz);
-        internal_assert(dim != NULL) << sz;
-        allocated_extents.push_back(*dim);
-        const int *min = as_const_int(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min))));
-        internal_assert(min != NULL);
-        global_mins.push_back(*min);
-    }
-
-    return allocated_extents;
+    return get.boxes;
 }
 
-vector<int> get_local_bounds(Func f, vector<Expr> &local_extents_parameterized, vector<Expr> &local_mins_parameterized, vector<int> &local_mins) {
-    vector<int> local_extents;
-    int rank = 0, num_processors = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
-
-    // Get local/used dimensions.
-    Stmt s = partial_lower(f, true);
-    GetBoxes get;
-    s.accept(&get);
-    internal_assert(get.boxes.size() == 1);
-    const Box &b = get.boxes.begin()->second;
-    for (int i = 0; i < (int)b.size(); i++) {
-        Expr sz = b[i].max - b[i].min + 1;
-        local_extents_parameterized.push_back(sz);
-        local_mins_parameterized.push_back(b[i].min);
-        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
-        const int *dim = as_const_int(sz);
-        internal_assert(dim != NULL) << sz;
-        local_extents.push_back(*dim);
-        // TODO: make these actual local mins.
-        local_mins.push_back(0);
-    }
-
-    return local_extents;
-}
 }
 }
