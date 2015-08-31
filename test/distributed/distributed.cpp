@@ -784,7 +784,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-#if 0
+
     {
         DistributedImage<int> in(50, 50);
 
@@ -826,7 +826,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-#endif
+
     printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();

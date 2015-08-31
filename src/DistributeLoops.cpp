@@ -314,7 +314,7 @@ public:
     // Set the shape of this buffer.
     void set_shape(const Box &b) {
         internal_assert(_shape.empty());
-        internal_assert(!is_image());
+        internal_assert(!is_input_image());
         internal_assert(_dimensions == -1);
         internal_assert(b.size() > 0);
         set_dimensions(b.size());
@@ -812,6 +812,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         }
         break;
     }
+
     Box shape = buf.shape();
     if (trace_messages && cmd == Send) {
         Stmt p = Evaluate::make(print_when(cond, {string("rank"), rank(),
@@ -1243,6 +1244,10 @@ public:
         // the pipeline has an update step.
         if (is_no_op((Stmt)op->consume)) {
             buf.set_buffer_type(AbstractBuffer::OutputImage);
+            // An output won't have a Realize node, so we have to set
+            // the shape here.
+            Box b = box_touched(op->produce, op->name);
+            buf.set_shape(b);
         }
 
         IRGraphVisitor::visit(op);
