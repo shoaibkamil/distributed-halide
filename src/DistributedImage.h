@@ -18,6 +18,7 @@
 #include "Lower.h"
 #include "Simplify.h"
 #include "Schedule.h"
+#include "Substitute.h"
 #include "UniquifyVariableNames.h"
 #include "Util.h"
 #include <map>
@@ -157,12 +158,17 @@ public:
         // mins/extents of this buffer in parameterized global
         // coordinates (i.e. parameterized by rank and number of
         // processors).
-
         Box allocated = get_allocated_bounds(wrapper);
         Box local = get_local_bounds();
 
-        IntBox allocated_concrete = concretize(allocated),
-            local_concrete = concretize(local);
+        map<string, Expr> env;
+        for (unsigned i = 0; i < allocated.size(); i++) {
+            env[wrapper.name() + ".min." + std::to_string(i)] = 0;
+            env[wrapper.name() + ".extent." + std::to_string(i)] = full_extents[i];
+        }
+
+        IntBox allocated_concrete = concretize(allocated, env),
+            local_concrete = concretize(local, env);
 
         vector<Expr> allocated_extents_parameterized, allocated_mins_parameterized,
             local_extents_parameterized, local_mins_parameterized;
@@ -194,11 +200,66 @@ public:
         wrapper.function().schedule().bounds().clear();
     }
 
+    template <typename S>
+    void allocate(Func pipeline, const DistributedImage<S> &output) {
+        internal_assert(!image.defined());
+        pipeline.compute_root();
+
+        Box allocated = get_allocated_bounds(pipeline); // R
+        Box local = get_local_bounds(); // D
+
+        merge_boxes(allocated, local); // merge(R, D)
+
+        map<string, Expr> env;
+        for (unsigned i = 0; i < allocated.size(); i++) {
+            env[pipeline.name() + ".min." + std::to_string(i)] = 0;
+            env[pipeline.name() + ".extent." + std::to_string(i)] = output.full_extents[i];
+        }
+        IntBox allocated_concrete = concretize(allocated, env),
+            local_concrete = concretize(local, env);
+
+        vector<Expr> allocated_extents_parameterized, allocated_mins_parameterized,
+            local_extents_parameterized, local_mins_parameterized;
+
+        internal_assert(allocated.size() > 0);
+        internal_assert(allocated.size() == allocated_concrete.size());
+        internal_assert(allocated.size() == local.size());
+        internal_assert(allocated.size() == local_concrete.size());
+
+        for (unsigned i = 0; i < allocated.size(); i++) {
+            global_mins.push_back(allocated_concrete[i].min);
+            allocated_extents.push_back(allocated_concrete[i].max - allocated_concrete[i].min + 1);
+            allocated_mins_parameterized.push_back(allocated[i].min);
+            allocated_extents_parameterized.push_back(allocated[i].max - allocated[i].min + 1);
+
+            int Dext = local_concrete[i].max - local_concrete[i].min + 1;
+            int Lmin = local_concrete[i].min - allocated_concrete[i].min;
+            int Lmax = Lmin + Dext - 1;
+            local_mins.push_back(Lmin);
+            local_extents.push_back(Lmax - Lmin + 1);
+
+            // std::cerr << name() << " allocated " << allocated_concrete[i].min << " to " << allocated_concrete[i].max << "\n"
+            //           << "   local " << local_mins[i] << " to " << local_mins[i] + local_extents[i] - 1 << "\n";
+
+            local_mins_parameterized.push_back(local[i].min);
+            local_extents_parameterized.push_back(local[i].max - local[i].min + 1);
+        }
+
+        Buffer b(type_of<T>(), full_extents, NULL, param.name());
+        b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized,
+                          local_extents_parameterized, local_mins_parameterized);
+        param.set(b);
+        image = Image<T>(b);
+
+        // Remove the explicit bounds from the wrapper function.
+        wrapper.function().schedule().bounds().clear();
+    }
+
     Box get_allocated_bounds(Func f) {
         Box allocated;
         map<string, Box> boxes = get_boxes(f, false);
-        internal_assert(boxes.size() == 1);
-        const Box &b = boxes.begin()->second;
+        internal_assert(boxes.find(name()) != boxes.end());
+        const Box &b = boxes.at(name());
         for (int i = 0; i < (int)b.size(); i++) {
             allocated.push_back(Interval(b[i].min, b[i].max));
         }
@@ -208,28 +269,28 @@ public:
     Box get_local_bounds() {
         Box local;
         map<string, Box> boxes = get_boxes(wrapper, true);
-        internal_assert(boxes.size() == 1);
-        const Box &b = boxes.begin()->second;
+        internal_assert(boxes.find(name()) != boxes.end());
+        const Box &b = boxes.at(name());
         for (int i = 0; i < (int)b.size(); i++) {
             local.push_back(Interval(b[i].min, b[i].max));
         }
         return local;
     }
 
-    IntBox concretize(const Box &b) {
+    IntBox concretize(const Box &b, const map<string, Expr> &env) {
         IntBox result;
         int rank = 0, num_processors = 0;
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
         for (unsigned i = 0; i < b.size(); i++) {
-            Expr min = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min)));
-            Expr max = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].max)));
+            Expr min = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, substitute(env, b[i].min))));
+            Expr max = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, substitute(env, b[i].max))));
             int imin = 0, imax = 0;
             const int *intmin = as_const_int(min);
-            internal_assert(intmin != NULL);
+            internal_assert(intmin != NULL) << min;
             imin = *intmin;
             const int *intmax = as_const_int(max);
-            internal_assert(intmax != NULL);
+            internal_assert(intmax != NULL) << max;
             imax = *intmax;
             result.push_back(IntInterval(imin, imax));
         }

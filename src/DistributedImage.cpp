@@ -10,55 +10,41 @@ namespace Internal {
 
 namespace {
 
-class ReplaceVariables : public IRMutator {
-    const Scope<Expr> &replacements;
-public:
-    ReplaceVariables(const Scope<Expr> &r) : replacements(r) {}
-
-    using IRMutator::visit;
-    void visit(const Variable *op) {
-        IRMutator::visit(op);
-        if (replacements.contains(op->name)) {
-            expr = mutate(replacements.get(op->name));
-        }
-    }
-};
-
-// Simplify the given box, using the given environment of variable
-// to value.
-Box simplify_box(const Box &b, const Scope<Expr> &env) {
-    Box result(b.size());
-    ReplaceVariables replace(env);
-    for (unsigned i = 0; i < b.size(); i++) {
-        Expr min = replace.mutate(b[i].min),
-            max = replace.mutate(b[i].max);
-        result[i] = Interval(simplify(min), simplify(max));
-    }
-    return result;
-}
-
 class GetBoxes : public IRVisitor {
+    vector<std::pair<string, Expr> > lets;
 public:
-    Scope<Expr> env;
     using IRVisitor::visit;
 
     void visit(const LetStmt *let) {
-        env.push(let->name, let->value);
+        lets.push_back(std::make_pair(let->name, let->value));
         IRVisitor::visit(let);
-        env.pop(let->name);
+        lets.pop_back();
     }
 
     void visit(const Let *let) {
-        env.push(let->name, let->value);
+        lets.push_back(std::make_pair(let->name, let->value));
         IRVisitor::visit(let);
-        env.pop(let->name);
+        lets.pop_back();
     }
 
     virtual void visit(const For *op) {
         IRVisitor::visit(op);
         map<string, Box> r = boxes_required(op);
         for (auto it : r) {
-            boxes[it.first] = simplify_box(it.second, env);
+            Box b;
+            // TODO: this can be quite slow with large
+            // environments. The goal is to get the Box into terms of
+            // the outermost variables (the global output buffer
+            // variables).
+            for (unsigned i = 0; i < it.second.size(); i++) {
+                Expr min = it.second[i].min, max = it.second[i].max;
+                for (auto let = lets.rbegin(); let != lets.rend(); ++let) {
+                    min = substitute(let->first, let->second, min);
+                    max = substitute(let->first, let->second, max);
+                }
+                b.push_back(Interval(min, max));
+            }
+            boxes[it.first] = b;
         }
     }
 
@@ -82,6 +68,8 @@ Stmt partial_lower(Func f, bool cap_extents) {
     FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
     s = distribute_loops_only(s, env, cap_extents);
     s = bounds_inference(s, outputs, order, env, func_bounds);
+    s = allocation_bounds_inference(s, env, func_bounds);
+    s = uniquify_variable_names(s);
     return s;
 }
 
