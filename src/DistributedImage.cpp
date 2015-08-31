@@ -39,8 +39,8 @@ public:
             for (unsigned i = 0; i < it.second.size(); i++) {
                 Expr min = it.second[i].min, max = it.second[i].max;
                 for (auto let = lets.rbegin(); let != lets.rend(); ++let) {
-                    min = substitute(let->first, let->second, min);
-                    max = substitute(let->first, let->second, max);
+                    min = simplify(substitute(let->first, let->second, min));
+                    max = simplify(substitute(let->first, let->second, max));
                 }
                 b.push_back(Interval(min, max));
             }
