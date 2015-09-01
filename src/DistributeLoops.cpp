@@ -883,7 +883,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
 
 // For each required region, generate communication code between ranks
 // that own data needed by other ranks.
-Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required) {
+Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required, Stmt &sendwait_out) {
     Stmt sendloop, recvloop;
     Stmt sendwait, recvwait;
     for (const auto it : required) {
@@ -913,8 +913,9 @@ Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required) {
         return Stmt();
     } else {
         Stmt comm = Block::make(recvloop, sendloop);
-        Stmt wait = Block::make(recvwait, sendwait);
-        return Block::make(comm, wait);
+        comm = Block::make(comm, recvwait);
+        sendwait_out = sendwait;
+        return comm;
     }
 }
 
@@ -966,10 +967,14 @@ class InjectCommunication : public IRMutator {
             provided.push_back(buffers.at(it.first));
         }
 
-        Stmt border_exchange = exchange_data(name, required);
+        Stmt sendwait;
+        Stmt border_exchange = exchange_data(name, required, sendwait);
         if (border_exchange.defined()) {
-            // TODO: move the isend waitall after computation.
+            // No overlap of communication and computation:
+            border_exchange = Block::make(border_exchange, sendwait);
             newstmt = Block::make(border_exchange, newstmt);
+            // Overlap sends with computation (slower on local_laplacian):
+            //newstmt = Block::make(newstmt, sendwait);
         }
 
         if (trace_progress) {
