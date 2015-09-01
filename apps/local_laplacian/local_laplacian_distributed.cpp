@@ -132,26 +132,6 @@ int main(int argc, char **argv) {
     Image<uint16_t> global_input(w, h, d), global_output(w, h, d);
     DistributedImage<uint16_t> input(w, h, d), output(w, h, d);
 
-    input.set_domain(x, y, c);
-    input.placement().distribute(y);
-    input.allocate();
-    output.set_domain(x, y, c);
-    output.placement().distribute(y);
-    output.allocate();
-
-    for (int c = 0; c < d; c++) {
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                uint16_t v = rand() & 0xfff;
-                if (input.mine(x, y, c)) {
-                    int lx = input.local(0, x), ly = input.local(1, y), lc = input.local(2, c);
-                    input(lx, ly, lc) = v;
-                }
-                global_input(x, y, c) = v;
-            }
-        }
-    }
-
     // Make the remapping function as a lookup table.
     Func remap("remap");
     Expr fx = cast<float>(x) / 256.0f;
@@ -253,6 +233,27 @@ int main(int argc, char **argv) {
         outGPyramid[j].compute_root().distribute(y);
     }
 
+    output.set_domain(x, y, c);
+    output.placement().distribute(y);
+    output.allocate();
+    input.set_domain(x, y, c);
+    input.placement().distribute(y);
+    input.allocate(local_laplacian, output);
+
+    for (int c = 0; c < d; c++) {
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                uint16_t v = rand() & 0xfff;
+                if (input.mine(x, y, c)) {
+                    int lx = input.local(0, x), ly = input.local(1, y), lc = input.local(2, c);
+                    input(lx, ly, lc) = v;
+                }
+                global_input(x, y, c) = v;
+            }
+        }
+    }
+
+
     compute_correct(global_input, global_output);
     local_laplacian.realize(output.get_buffer());
 
@@ -285,7 +286,7 @@ int main(int argc, char **argv) {
     timing.gather(MPITiming::Max);
     timing.report();
     if (rank == 0) {
-        printf("Bilateral grid test succeeded!\n");
+        printf("Local laplacian test succeeded!\n");
     }
     MPI_Finalize();
 
