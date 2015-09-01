@@ -10,62 +10,70 @@ namespace Internal {
 
 namespace {
 
-class ReplaceVariables : public IRMutator {
-    const Scope<Expr> &replacements;
-public:
-    ReplaceVariables(const Scope<Expr> &r) : replacements(r) {}
+class GetBoxes : public IRVisitor {
+    vector<std::pair<string, Expr> > lets;
+    Scope<Interval> loop_var_bounds;
 
-    using IRMutator::visit;
-    void visit(const Variable *op) {
-        IRMutator::visit(op);
-        if (replacements.contains(op->name)) {
-            expr = mutate(replacements.get(op->name));
+    Box simplify_box(const Box &b) {
+        Box result;
+        // TODO: this can be quite slow with large
+        // environments. The goal is to get the Box into terms of
+        // the outermost variables (the global output buffer
+        // variables).
+        for (unsigned i = 0; i < b.size(); i++) {
+            Expr min = b[i].min, max = b[i].max;
+            for (auto let = lets.rbegin(); let != lets.rend(); ++let) {
+                min = simplify(substitute(let->first, let->second, min));
+                max = simplify(substitute(let->first, let->second, max));
+            }
+            result.push_back(Interval(min, max));
+        }
+        return result;
+    }
+
+    void get_bounds(Stmt s) {
+        map<string, Box> required = boxes_required(s, loop_var_bounds);
+        for (auto it : required) {
+            const auto bounds = boxes.find(it.first);
+            if (bounds == boxes.end()) {
+                boxes[it.first] = simplify_box(it.second);
+            } else {
+                Box existing = bounds->second;
+                merge_boxes(existing, it.second);
+                boxes[it.first] = simplify_box(existing);
+             }
         }
     }
-};
-
-// Simplify the given box, using the given environment of variable
-// to value.
-Box simplify_box(const Box &b, const Scope<Expr> &env) {
-    Box result(b.size());
-    ReplaceVariables replace(env);
-    for (unsigned i = 0; i < b.size(); i++) {
-        Expr min = replace.mutate(b[i].min),
-            max = replace.mutate(b[i].max);
-        result[i] = Interval(simplify(min), simplify(max));
-    }
-    return result;
-}
-
-class GetBoxes : public IRVisitor {
 public:
-    Scope<Expr> env;
     using IRVisitor::visit;
 
     void visit(const LetStmt *let) {
-        env.push(let->name, let->value);
+        lets.push_back(std::make_pair(let->name, let->value));
         IRVisitor::visit(let);
-        env.pop(let->name);
+        lets.pop_back();
     }
 
     void visit(const Let *let) {
-        env.push(let->name, let->value);
+        lets.push_back(std::make_pair(let->name, let->value));
         IRVisitor::visit(let);
-        env.pop(let->name);
+        lets.pop_back();
     }
 
     virtual void visit(const For *op) {
-        IRVisitor::visit(op);
-        map<string, Box> r = boxes_required(op);
-        for (auto it : r) {
-            boxes[it.first] = simplify_box(it.second, env);
-        }
+        loop_var_bounds.push(op->name, Interval(op->min, op->min + op->extent - 1));
+        get_bounds(op);
+        // Don't need to recurse on the body because the required
+        // region will be redundant for nested accesses.
+        loop_var_bounds.pop(op->name);
     }
 
     map<string, Box> boxes;
 };
 }
 
+// Lower the given function enough to get bounds information on
+// input buffers with respect to rank and number of MPI
+// processors.
 Stmt partial_lower(Func f, bool cap_extents) {
     Target t = get_target_from_environment();
     map<string, Function> env;
@@ -79,49 +87,17 @@ Stmt partial_lower(Func f, bool cap_extents) {
     FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
     s = distribute_loops_only(s, env, cap_extents);
     s = bounds_inference(s, outputs, order, env, func_bounds);
+    s = allocation_bounds_inference(s, env, func_bounds);
+    s = uniquify_variable_names(s);
     return s;
 }
 
-vector<int> get_buffer_bounds(Func f, const vector<int> &full_extents,
-                              vector<Expr> &symbolic_extents, vector<Expr> &symbolic_mins,
-                              vector<int> &mins, vector<int> &capped_local_extents) {
-    vector<int> bounds;
-    Stmt s = partial_lower(f);
+map<string, Box> get_boxes(Func f, bool cap_extents) {
+    Stmt s = partial_lower(f, cap_extents);
     GetBoxes get;
     s.accept(&get);
-    internal_assert(get.boxes.size() == 1);
-
-    int rank = 0, num_processors = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
-    const Box &b = get.boxes.begin()->second;
-    for (int i = 0; i < (int)b.size(); i++) {
-        Expr sz = b[i].max - b[i].min + 1;
-        symbolic_extents.push_back(sz);
-        symbolic_mins.push_back(b[i].min);
-        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
-        const int *dim = as_const_int(sz);
-        internal_assert(dim != NULL) << sz;
-        bounds.push_back(*dim);
-        const int *min = as_const_int(simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, b[i].min))));
-        internal_assert(min != NULL);
-        mins.push_back(*min);
-    }
-
-    s = partial_lower(f, true);
-    GetBoxes get_capped;
-    s.accept(&get_capped);
-    internal_assert(get_capped.boxes.size() == 1);
-    const Box &b_capped = get_capped.boxes.begin()->second;
-    for (int i = 0; i < (int)b_capped.size(); i++) {
-        Expr sz = b_capped[i].max - b_capped[i].min + 1;
-        sz = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, sz)));
-        const int *dim = as_const_int(sz);
-        internal_assert(dim != NULL) << sz;
-        capped_local_extents.push_back(*dim);
-    }
-
-    return bounds;
+    return get.boxes;
 }
+
 }
 }

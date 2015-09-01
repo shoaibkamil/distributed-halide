@@ -26,24 +26,9 @@ int main(int argc, char **argv) {
 #ifdef DISTRIBUTED
     DistributedImage<int> input(w, h), output(w, h);
     // Set domain and data distribution of input buffer.
-    input.set_domain(x, y);
-    input.placement().split(y, y, yi, 8).distribute(y);
-    input.allocate();
 #else
     Image<int> input(w, h), output(w, h);
 #endif
-
-    // Initialize my (local) input. We use global coordinates so that
-    // it is clear if the data is distributed.
-    for (int y = 0; y < input.height(); y++) {
-        for (int x = 0; x < input.width(); x++) {
-#ifdef DISTRIBUTED
-            input(x, y) = input.global(0, x) + input.global(1, y);
-#else
-            input(x, y) = x + y;
-#endif
-        }
-    }
 
     // Boundary conditions: don't go beyond global image bounds.
     Func clamped;
@@ -70,7 +55,22 @@ int main(int argc, char **argv) {
     output.set_domain(x, y);
     output.placement().split(y, y, yi, 8).distribute(y);
     output.allocate();
+    input.set_domain(x, y);
+    input.placement().split(y, y, yi, 8).distribute(y);
+    input.allocate(blur_y, output);
 #endif
+
+    // Initialize my (local) input. We use global coordinates so that
+    // it is clear if the data is distributed.
+    for (int y = 0; y < input.height(); y++) {
+        for (int x = 0; x < input.width(); x++) {
+#ifdef DISTRIBUTED
+            input(x, y) = input.global(0, x) + input.global(1, y);
+#else
+            input(x, y) = x + y;
+#endif
+        }
+    }
 
     // Realize once to compile
 #ifdef DISTRIBUTED

@@ -15,7 +15,7 @@ std::uniform_real_distribution<float> distribution(0, 1);
 
 DistributedImage<float> input, output;
 Image<float> global_input, global_output;
-Var x("x"), y("y"), c("c");
+Var x("x"), y("y"), c("c"), xi, yi;
 
 bool float_eq(float a, float b) {
     const float thresh = 1e-5;
@@ -45,6 +45,16 @@ Func build(bool distributed) {
                                         clamp(y, 0, global_input.height() - 1),
                                         clamp(c, 0, global_input.channels() - 1));
     }
+
+    Expr width, height;
+    if (distributed) {
+        width = input.global_width();
+        height = input.global_height();
+    } else {
+        width = global_input.width();
+        height = global_input.height();
+    }
+
     // This triggers a bug in llvm 3.3 (3.2 and trunk are fine), so we
     // rewrite it in a way that doesn't trigger the bug. The rewritten
     // form assumes the input alpha is zero or one.
@@ -59,8 +69,8 @@ Func build(bool distributed) {
             // to prevent the footprint of the downsamplings to extend
             // too far off the base image. Otherwise we look 512
             // pixels off each edge.
-            Expr w = input.width()/(1 << l);
-            Expr h = input.height()/(1 << l);
+            Expr w = width/(1 << l);
+            Expr h = height/(1 << l);
             prev = lambda(x, y, c, prev(clamp(x, 0, w), clamp(y, 0, h), c));
         }
 
@@ -120,8 +130,8 @@ Func build(bool distributed) {
         }
         final.reorder(c, x, y).bound(c, 0, 3).parallel(y);
         final.tile(x, y, xi, yi, 2, 2).unroll(xi).unroll(yi);
-        final.bound(x, 0, input.width());
-        final.bound(y, 0, input.height());
+        final.bound(x, 0, width);
+        final.bound(y, 0, height);
         break;
     }
     case 3:
@@ -169,12 +179,15 @@ int main(int argc, char **argv) {
     global_input = Image<float>(w, h, d);
     global_output = Image<float>(ow, oh, od);
 
-    input.set_domain(x, y, c);
-    input.placement().distribute(y);
-    input.allocate();
+    Func interpolated_correct = build(false);
+    Func interpolated_distributed = build(true);
+
     output.set_domain(x, y, c);
     output.placement().distribute(y);
     output.allocate();
+    input.set_domain(x, y, c);
+    input.placement().distribute(y);
+    input.allocate(interpolated_distributed, output);
 
     assert(input.channels() == 4);
 
@@ -191,8 +204,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    Func interpolated_correct = build(false);
-    Func interpolated_distributed = build(true);
 
     // JIT compile the pipeline eagerly, so we don't interfere with timing
     Target target = get_target_from_environment();

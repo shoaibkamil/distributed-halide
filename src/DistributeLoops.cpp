@@ -191,10 +191,14 @@ public:
         _distributed = buffer.distributed();
         _dimensions = buffer.dimensions();
         for (int i = 0; i < buffer.dimensions(); i++) {
-            Expr min = buffer.local_min(i);
-            Expr max = min + buffer.local_extent(i) - 1;
-            _bounds.push_back(Interval(min, max));
+            Expr min = buffer.allocated_min(i);
+            Expr max = min + buffer.allocated_extent(i) - 1;
             _shape.push_back(Interval(min, max));
+
+            // These are parameterized by rank and number of processors.
+            Expr havemin = buffer.local_min(i);
+            Expr havemax = havemin + buffer.local_extent(i) - 1;
+            _bounds.push_back(Interval(havemin, havemax));
         }
     }
 
@@ -271,10 +275,6 @@ public:
         return _name;
     }
 
-    string extended_name() const {
-        return is_image() ? _name + "_extended" : _name;
-    }
-
     // Return the size of the given box in bytes according to the type
     // of this buffer.
     Expr size_of(const Box &b) const {
@@ -314,7 +314,7 @@ public:
     // Set the shape of this buffer.
     void set_shape(const Box &b) {
         internal_assert(_shape.empty());
-        internal_assert(!is_image());
+        internal_assert(!is_input_image());
         internal_assert(_dimensions == -1);
         internal_assert(b.size() > 0);
         set_dimensions(b.size());
@@ -355,16 +355,7 @@ public:
     // 0) corresponding to the given global region.
     Box local_region(const Box &b, const string &func = "") const {
         Box result(b.size());
-        Box local_origin;
-        if (is_image()) {
-            if (func.empty()) {
-                local_origin = shape();
-            } else {
-                local_origin = need(func);
-            }
-        } else {
-            local_origin = shape();
-        }
+        Box local_origin = shape();
         for (unsigned i = 0; i < b.size(); i++) {
             result[i] = Interval(b[i].min - local_origin[i].min, b[i].max - local_origin[i].min);
         }
@@ -593,7 +584,7 @@ Expr irecv(Expr address, Type t, Expr count, Expr rank) {
 }
 
 Stmt irecv_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
-    return communicate_subarray(Recv, buf.extended_name(), buf.type(), shape, b, rank);
+    return communicate_subarray(Recv, buf.name(), buf.type(), shape, b, rank);
 }
 
 // Wait for all outstanding irecvs.
@@ -768,46 +759,6 @@ Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) {
     return Allocate::make(name, type, extents, const_true(), body);
 }
 
-// For each required region, copy the on-node portion into an
-// extended buffer (big enough for required region including
-// ghost zone).
-Stmt copy_on_node_data(const string &func, const vector<AbstractBuffer> &required) {
-    Stmt copy;
-    for (const auto it : required) {
-        const AbstractBuffer &in = it;
-        const Box &have = in.have();
-        const Box &need = it.need(func);
-
-        // Only need to copy input images (not output images, which
-        // don't have extended buffers).
-        if (!in.is_input_image()) continue;
-
-        BoxIntersection I(have, need);
-        Box dest_box = in.local_region(I.box(), func);
-        Box src_box = in.local_region(I.box());
-        Var numbytes = Var("numbytes");
-        Stmt s;
-        if (I.box().size() == 1) {
-            Expr destoff = dest_box[0].min, srcoff = src_box[0].min;
-            Expr destoffbytes = destoff * in.elem_size(), srcoffbytes = srcoff * in.elem_size();
-            Expr dest = address_of(in.extended_name(), destoffbytes), src = address_of(in.name(), srcoffbytes);
-            s = copy_memory(dest, src, numbytes);
-        } else {
-            s = copy_box(in.type(), in.name(), in.shape(), src_box, in.extended_name(), need, dest_box);
-        }
-
-        Expr cond = GT::make(numbytes, 0);
-        s = IfThenElse::make(cond, s);
-        s = LetStmt::make(numbytes.name(), in.size_of(dest_box), s);
-        if (copy.defined()) {
-            copy = Block::make(copy, s);
-        } else {
-            copy = s;
-        }
-    }
-    return copy;
-}
-
 // Generate communication code to send/recv the intersection of the
 // 'have' and 'need' regions of 'buf'.
 Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, const string &func) {
@@ -835,7 +786,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     Stmt commstmt;
 
     // Convert the intersection box to "local" coordinates (the
-    // extended buffer counts from 0). This just means subtracting the
+    // allocated buffer counts from 0). This just means subtracting the
     // min global coordinate from the intersection bounds (which are
     // also global) to get a local coordinate starting from 0.
     Box local_have = buf.local_region(I.box()),
@@ -853,15 +804,15 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
         break;
     case Recv:
         if (local_need.size() == 1) {
-            addr = address_of(buf.extended_name(), local_need[0].min * buf.elem_size());
+            addr = address_of(buf.name(), local_need[0].min * buf.elem_size());
             Expr msgsize = local_have[0].max - local_have[0].min + 1;
             commstmt = IfThenElse::make(cond, Evaluate::make(irecv(addr, buf.type(), msgsize, Var("r"))));
         } else {
-            Box shape = buf.is_image() ? need : buf.shape();
-            commstmt = irecv_subarray(buf, shape, local_need, Var("r"));
+            commstmt = irecv_subarray(buf, buf.shape(), local_need, Var("r"));
         }
         break;
     }
+
     Box shape = buf.shape();
     if (trace_messages && cmd == Send) {
         Stmt p = Evaluate::make(print_when(cond, {string("rank"), rank(),
@@ -870,16 +821,25 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
                         string("size"),
                         I.box()[0].max - I.box()[0].min + 1,
                         string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("x"), I.box()[2].max - I.box()[2].min + 1, string("\n"),
                         string("\n   shape[0].min ="), shape[0].min, string("shape[0].max ="), shape[0].max,
                         string("\n   shape[1].min ="), shape[1].min, string("shape[1].max ="), shape[1].max,
+                        string("\n   shape[2].min ="), shape[2].min, string("shape[2].max ="), shape[2].max,
                         string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
                         string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
+                        string("\n   have[2].min ="), have[2].min, string("have[2].max ="), have[2].max,
+                        string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
+                        string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max,
+                        string("\n   need[2].min ="), need[2].min, string("need[2].max ="), need[2].max,
                         string("\n   need_parameterized[0].min ="), need_parameterized[0].min, string("need_parameterized[0].max ="), need_parameterized[0].max,
                         string("\n   need_parameterized[1].min ="), need_parameterized[1].min, string("need_parameterized[1].max ="), need_parameterized[1].max,
+                        string("\n   need_parameterized[2].min ="), need_parameterized[2].min, string("need_parameterized[2].max ="), need_parameterized[2].max,
                         string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
                         string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
+                        string("\n   I.box()[2].min ="), I.box()[2].min, string("I.box()[2].max ="), I.box()[2].max,
                         string("\n   local_have[0].min ="), local_have[0].min, string("local_have[0].max ="), local_have[0].max,
-                        string("\n   local_have[1].min ="), local_have[1].min, string("local_have[1].max ="), local_have[1].max
+                        string("\n   local_have[1].min ="), local_have[1].min, string("local_have[1].max ="), local_have[1].max,
+                        string("\n   local_have[2].min ="), local_have[2].min, string("local_have[2].max ="), local_have[2].max
                         }));
         commstmt = Block::make(p, commstmt);
     }
@@ -891,16 +851,25 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
                         string("size"),
                         I.box()[0].max - I.box()[0].min + 1,
                         string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("x"), I.box()[2].max - I.box()[2].min + 1, string("\n"),
                         string("\n   shape[0].min ="), shape[0].min, string("shape[0].max ="), shape[0].max,
                         string("\n   shape[1].min ="), shape[1].min, string("shape[1].max ="), shape[1].max,
+                        string("\n   shape[2].min ="), shape[2].min, string("shape[2].max ="), shape[2].max,
                         string("\n   have_parameterized[0].min ="), have_parameterized[0].min, string("have_parameterized[0].max ="), have_parameterized[0].max,
                         string("\n   have_parameterized[1].min ="), have_parameterized[1].min, string("have_parameterized[1].max ="), have_parameterized[1].max,
+                        string("\n   have_parameterized[2].min ="), have_parameterized[2].min, string("have_parameterized[2].max ="), have_parameterized[2].max,
+                        string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
+                        string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
+                        string("\n   have[2].min ="), have[2].min, string("have[2].max ="), have[2].max,
                         string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
                         string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max,
+                        string("\n   need[2].min ="), need[2].min, string("need[2].max ="), need[2].max,
                         string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
                         string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
+                        string("\n   I.box()[2].min ="), I.box()[2].min, string("I.box()[2].max ="), I.box()[2].max,
                         string("\n   local_need[0].min ="), local_need[0].min, string("local_need[0].max ="), local_need[0].max,
-                        string("\n   local_need[1].min ="), local_need[1].min, string("local_need[1].max ="), local_need[1].max
+                        string("\n   local_need[1].min ="), local_need[1].min, string("local_need[1].max ="), local_need[1].max,
+                        string("\n   local_need[2].min ="), local_need[2].min, string("local_need[2].max ="), local_need[2].max
                         }));
         commstmt = Block::make(p, commstmt);
     }
@@ -933,10 +902,10 @@ Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required) {
 
         if (recvloop.defined()) {
             recvloop = Block::make(recvloop, communicate_intersection(Recv, in, func));
-            recvwait = Block::make(recvwait, waitall_irecv(in.extended_name()));
+            recvwait = Block::make(recvwait, waitall_irecv(in.name()));
         } else {
             recvloop = communicate_intersection(Recv, in, func);
-            recvwait = waitall_irecv(in.extended_name());
+            recvwait = waitall_irecv(in.name());
         }
     }
     internal_assert(sendloop.defined() == recvloop.defined());
@@ -949,22 +918,18 @@ Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required) {
     }
 }
 
-// Change all uses of the original input buffers to use the extended
-// buffers, and modify output buffer indices to be "local" indices
-// (instead of global).
+// Change all uses of the original input buffers to use "local"
+// indices (instead of global).
 Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffer> &required,
                        const vector<AbstractBuffer> &provided) {
     for (const auto it : required) {
         const AbstractBuffer &in = it;
-        const Box &b = in.need(func);
+        const Box &b = in.shape();
         if (!in.is_image()) continue;
         if (in.is_input_image()) {
-            ChangeDistributedLoopBuffers change(in.name(), in.extended_name(), b, true);
+            ChangeDistributedLoopBuffers change(in.name(), in.name(), b, true);
             loop = change.mutate(loop);
         } else {
-            // Note that output images being used as inputs do not
-            // have an extended buffer, but we still need to correct
-            // the indices.
             internal_assert(in.is_output_image());
             ChangeDistributedLoopBuffers change(in.name(), in.name(), b, true);
             loop = change.mutate(loop);
@@ -979,18 +944,6 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
         loop = change.mutate(loop);
     }
     return loop;
-}
-
-// Allocate extended buffers for the given body.
-Stmt allocate_extended_buffers(Stmt body, const string &func, const vector<AbstractBuffer> &required) {
-    Stmt allocates = body;
-    for (const auto it : required) {
-        const AbstractBuffer &in = it;
-        const Box &b = in.need(func);
-        if (!in.is_input_image()) continue;
-        allocates = allocate_scratch(in.extended_name(), in.type(), b, allocates);
-    }
-    return allocates;
 }
 
 }
@@ -1013,36 +966,22 @@ class InjectCommunication : public IRMutator {
             provided.push_back(buffers.at(it.first));
         }
 
-        Stmt copy = copy_on_node_data(name, required);
-        if (copy.defined()) {
-            newstmt = Block::make(copy, newstmt);
-        }
-        if (trace_progress) {
-            Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
-                            string("before copy_on_node_data")}));
-            newstmt = Block::make(p, newstmt);
-            p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
-                            string("after copy_on_node_data")}));
-            newstmt = Block::make(newstmt, p);
-        }
-
         Stmt border_exchange = exchange_data(name, required);
         if (border_exchange.defined()) {
             // TODO: move the isend waitall after computation.
             newstmt = Block::make(border_exchange, newstmt);
         }
 
-        // if (trace_progress) {
-        //     Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
-        //                     string("before exchange_data")}));
-        //     newstmt = Block::make(p, newstmt);
-        //     p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
-        //                     string("after exchange_data")}));
-        //     newstmt = Block::make(newstmt, p);
-        // }
+        if (trace_progress) {
+            Stmt p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
+                            string("before exchange_data")}));
+            newstmt = Block::make(p, newstmt);
+            p = Evaluate::make(print({string("rank"), rank(), string("stage"), name,
+                            string("after exchange_data")}));
+            newstmt = Block::make(newstmt, p);
+        }
 
         newstmt = update_io_buffers(newstmt, name, required, provided);
-        newstmt = allocate_extended_buffers(newstmt, name, required);
 
         if (trace_have_needs) {
             Stmt p;
@@ -1054,7 +993,7 @@ class InjectCommunication : public IRMutator {
                                 string("buffer " + in.name() + ":\n"),
                                 string("have size"),
                                 have[0].max - have[0].min + 1, string("x"), have[1].max - have[1].min + 1, string("\n"),
-                                string("need size (" + in.extended_name() + ")"),
+                                string("need size (" + in.name() + ")"),
                                 need[0].max - need[0].min + 1, string("x"), need[1].max - need[1].min + 1, string("\n"),
                                 string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
                                 string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
@@ -1319,6 +1258,10 @@ public:
         // the pipeline has an update step.
         if (is_no_op((Stmt)op->consume)) {
             buf.set_buffer_type(AbstractBuffer::OutputImage);
+            // An output won't have a Realize node, so we have to set
+            // the shape here.
+            Box b = box_touched(op->produce, op->name);
+            buf.set_shape(b);
         }
 
         IRGraphVisitor::visit(op);
