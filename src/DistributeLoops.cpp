@@ -148,8 +148,8 @@ public:
         _box = Box(size);
         for (unsigned i = 0; i < size; i++) {
             if (is_positive_const(b[i].min - a[i].max)) known_empty = true;
-            Expr dim_min = max(a[i].min, b[i].min);
-            Expr dim_max = min(a[i].max, b[i].max);
+            Expr dim_min = simplify(max(a[i].min, b[i].min));
+            Expr dim_max = simplify(min(a[i].max, b[i].max));
             _box[i] = Interval(dim_min, dim_max);
         }
     }
@@ -281,7 +281,7 @@ public:
         internal_assert(b.size() > 0);
         Expr num_elems = 1;
         for (unsigned i = 0; i < b.size(); i++) {
-            num_elems *= b[i].max - b[i].min + 1;
+            num_elems *= simplify(b[i].max - b[i].min) + 1;
         }
         return num_elems * elem_size();
     }
@@ -357,7 +357,8 @@ public:
         Box result(b.size());
         Box local_origin = shape();
         for (unsigned i = 0; i < b.size(); i++) {
-            result[i] = Interval(b[i].min - local_origin[i].min, b[i].max - local_origin[i].min);
+            result[i] = Interval(simplify(b[i].min - local_origin[i].min),
+                                 simplify(b[i].max - local_origin[i].min));
         }
         return result;
     }
