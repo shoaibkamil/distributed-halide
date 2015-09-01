@@ -59,6 +59,15 @@ using std::map;
 using std::pair;
 using std::make_pair;
 
+namespace {
+bool use_distributed() {
+    char *e = getenv("HL_DISABLE_DISTRIBUTED");
+    // disable = 0 => return true
+    // disable != 0 => return false
+    return !e || atoi(e) == 0;
+}
+}
+
 Stmt lower(const vector<Function> &outputs, const Target &t, const vector<IRMutator *> &custom_passes) {
 
     // Compute an environment
@@ -109,10 +118,13 @@ Stmt lower(const vector<Function> &outputs, const Target &t, const vector<IRMuta
     // checks so that the checks are in terms of global image
     // bounds. It should also take place before bounds inference so
     // that inferred bounds are in terms of processor rank.
-    if (t.has_feature(Target::MPI)) {
+    if (t.has_feature(Target::MPI) && use_distributed()) {
         debug(1) << "Converting distributed for loops to MPI calls...\n";
         s = distribute_loops(s, env);
         debug(2) << "Lowering after converting distributed for loops:\n" << s << "\n\n";
+    }
+    if (!use_distributed()) {
+        s = change_distributed_annotation(s);
     }
 
     // This pass injects nested definitions of variable names, so we
@@ -144,7 +156,7 @@ Stmt lower(const vector<Function> &outputs, const Target &t, const vector<IRMuta
     // This pass injects communication to fetch remote regions of
     // buffers. This must happen after bounds inference so that we can
     // determine buffer bounds.
-    if (t.has_feature(Target::MPI)) {
+    if (t.has_feature(Target::MPI) && use_distributed()) {
         debug(1) << "Injecting communication for distributed buffers...\n";
         s = inject_communication(s, env);
         debug(2) << "Lowering after injecting communication:\n" << s << "\n\n";

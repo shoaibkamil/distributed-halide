@@ -1315,6 +1315,10 @@ Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env) {
     return DistributeLoops(find.distributed_bounds, env).mutate(s);
 }
 
+Stmt change_distributed_annotation(Stmt s) {
+    return ChangeDistributedFor().mutate(s);
+}
+
 Stmt inject_communication(Stmt s, const std::map<std::string, Function> &env) {
     FindDistributedLoops find;
     s.accept(&find);

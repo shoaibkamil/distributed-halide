@@ -16,6 +16,7 @@ namespace Internal {
  */
 Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env);
 Stmt inject_communication(Stmt s, const std::map<std::string, Function> &env);
+Stmt change_distributed_annotation(Stmt s);
 
 Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env, bool cap_extents);
 
