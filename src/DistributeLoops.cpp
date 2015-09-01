@@ -821,18 +821,25 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
                         string("size"),
                         I.box()[0].max - I.box()[0].min + 1,
                         string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("x"), I.box()[2].max - I.box()[2].min + 1, string("\n"),
                         string("\n   shape[0].min ="), shape[0].min, string("shape[0].max ="), shape[0].max,
                         string("\n   shape[1].min ="), shape[1].min, string("shape[1].max ="), shape[1].max,
+                        string("\n   shape[2].min ="), shape[2].min, string("shape[2].max ="), shape[2].max,
                         string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
                         string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
+                        string("\n   have[2].min ="), have[2].min, string("have[2].max ="), have[2].max,
                         string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
                         string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max,
+                        string("\n   need[2].min ="), need[2].min, string("need[2].max ="), need[2].max,
                         string("\n   need_parameterized[0].min ="), need_parameterized[0].min, string("need_parameterized[0].max ="), need_parameterized[0].max,
                         string("\n   need_parameterized[1].min ="), need_parameterized[1].min, string("need_parameterized[1].max ="), need_parameterized[1].max,
+                        string("\n   need_parameterized[2].min ="), need_parameterized[2].min, string("need_parameterized[2].max ="), need_parameterized[2].max,
                         string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
                         string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
+                        string("\n   I.box()[2].min ="), I.box()[2].min, string("I.box()[2].max ="), I.box()[2].max,
                         string("\n   local_have[0].min ="), local_have[0].min, string("local_have[0].max ="), local_have[0].max,
-                        string("\n   local_have[1].min ="), local_have[1].min, string("local_have[1].max ="), local_have[1].max
+                        string("\n   local_have[1].min ="), local_have[1].min, string("local_have[1].max ="), local_have[1].max,
+                        string("\n   local_have[2].min ="), local_have[2].min, string("local_have[2].max ="), local_have[2].max
                         }));
         commstmt = Block::make(p, commstmt);
     }
@@ -844,18 +851,25 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
                         string("size"),
                         I.box()[0].max - I.box()[0].min + 1,
                         string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
+                        string("x"), I.box()[2].max - I.box()[2].min + 1, string("\n"),
                         string("\n   shape[0].min ="), shape[0].min, string("shape[0].max ="), shape[0].max,
                         string("\n   shape[1].min ="), shape[1].min, string("shape[1].max ="), shape[1].max,
+                        string("\n   shape[2].min ="), shape[2].min, string("shape[2].max ="), shape[2].max,
                         string("\n   have_parameterized[0].min ="), have_parameterized[0].min, string("have_parameterized[0].max ="), have_parameterized[0].max,
                         string("\n   have_parameterized[1].min ="), have_parameterized[1].min, string("have_parameterized[1].max ="), have_parameterized[1].max,
+                        string("\n   have_parameterized[2].min ="), have_parameterized[2].min, string("have_parameterized[2].max ="), have_parameterized[2].max,
                         string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
                         string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
+                        string("\n   have[2].min ="), have[2].min, string("have[2].max ="), have[2].max,
                         string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
                         string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max,
+                        string("\n   need[2].min ="), need[2].min, string("need[2].max ="), need[2].max,
                         string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
                         string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
+                        string("\n   I.box()[2].min ="), I.box()[2].min, string("I.box()[2].max ="), I.box()[2].max,
                         string("\n   local_need[0].min ="), local_need[0].min, string("local_need[0].max ="), local_need[0].max,
-                        string("\n   local_need[1].min ="), local_need[1].min, string("local_need[1].max ="), local_need[1].max
+                        string("\n   local_need[1].min ="), local_need[1].min, string("local_need[1].max ="), local_need[1].max,
+                        string("\n   local_need[2].min ="), local_need[2].min, string("local_need[2].max ="), local_need[2].max
                         }));
         commstmt = Block::make(p, commstmt);
     }
