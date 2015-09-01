@@ -96,23 +96,6 @@ int main(int argc, char **argv) {
 
     DistributedImage<float> input(w, h), output(w, h);
     Var x("x"), y("y"), z("z"), c("c");
-    input.set_domain(x, y);
-    input.placement().distribute(y);
-    input.allocate();
-    output.set_domain(x, y);
-    output.placement().distribute(y);
-    output.allocate();
-
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            float v = rndflt();
-            if (input.mine(x, y)) {
-                int lx = input.local(0, x), ly = input.local(1, y);
-                input(lx, ly) = v;
-            }
-            global_input(x, y) = v;
-        }
-    }
 
     // Add a boundary condition
     Func clamped;
@@ -166,9 +149,27 @@ int main(int argc, char **argv) {
     Func bilateral_grid("bilateral_grid");
     bilateral_grid(x, y) = interpolated(x, y, 0)/interpolated(x, y, 1);
 
+    output.set_domain(x, y);
+    output.placement().distribute(y);
+    output.allocate();
+    input.set_domain(x, y);
+    input.placement().distribute(y);
+    input.allocate(bilateral_grid, output);
+
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            float v = rndflt();
+            if (input.mine(x, y)) {
+                int lx = input.local(0, x), ly = input.local(1, y);
+                input(lx, ly) = v;
+            }
+            global_input(x, y) = v;
+        }
+    }
+
     // CPU schedule
     Var yin;
-    bilateral_grid.compute_root().split(y, y, yin, 256).parallel(y).distribute(y).vectorize(x, 4);
+    bilateral_grid.compute_root().parallel(y).distribute(y).vectorize(x, 4);
     histogram.compute_at(blurz, y);
     histogram.update().reorder(c, r.x, r.y, x, y).unroll(c);
     blurz.compute_at(bilateral_grid, y).reorder(c, z, x, y).vectorize(x, 4).unroll(c);
@@ -180,9 +181,9 @@ int main(int argc, char **argv) {
     // blury.compute_root().reorder(c, x, y, z).parallel(z).vectorize(x, 4).unroll(c).distribute(z);
     //bilateral_grid.compute_root().parallel(y).vectorize(x, 4).distribute(y);
 
-    //compute_correct(global_input, global_output);
-
+    compute_correct(global_input, global_output);
     bilateral_grid.realize(output.get_buffer());
+
     const int niters = 10;
     MPITiming timing(MPI_COMM_WORLD);
     timing.barrier();
