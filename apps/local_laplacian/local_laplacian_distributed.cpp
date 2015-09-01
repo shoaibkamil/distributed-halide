@@ -227,10 +227,15 @@ int main(int argc, char **argv) {
         }
         outGPyramid[j].compute_root().parallel(y).vectorize(x, 8).distribute(y);
     }
-    for (int j = 4; j < J; j++) {
+    for (int j = 4; j < 6; j++) {
         inGPyramid[j].compute_root().distribute(y);
         gPyramid[j].compute_root().parallel(k).distribute(y);
         outGPyramid[j].compute_root().distribute(y);
+    }
+    for (int j = 6; j < J; j++) {
+        inGPyramid[j].compute_root();
+        gPyramid[j].compute_root().parallel(k);
+        outGPyramid[j].compute_root();
     }
 
     output.set_domain(x, y, c);
