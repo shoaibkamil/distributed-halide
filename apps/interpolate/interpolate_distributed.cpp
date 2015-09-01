@@ -96,7 +96,7 @@ Func build(bool distributed) {
     Func final("final");
     final(x, y, c) = normalize(x, y, c);
 
-    const int sched = 0;
+    const int sched = 2;
 
     switch (sched) {
     case 0:
@@ -124,8 +124,11 @@ Func build(bool distributed) {
         Var xi, yi;
         std::cout << "Flat schedule with parallelization + vectorization." << std::endl;
         for (int l = 1; l < levels-1; ++l) {
-            if (l > 0) downsampled[l].compute_root().parallel(y).reorder(c, x, y).reorder_storage(c, x, y).vectorize(c, 4);
-            interpolated[l].compute_root().parallel(y).reorder(c, x, y).reorder_storage(c, x, y).vectorize(c, 4);
+            // if (l > 0) downsampled[l].compute_root().parallel(y).reorder(c, x, y).reorder_storage(c, x, y).vectorize(c, 4);
+            // interpolated[l].compute_root().parallel(y).reorder(c, x, y).reorder_storage(c, x, y).vectorize(c, 4);
+            // interpolated[l].unroll(x, 2).unroll(y, 2);
+            if (l > 0) downsampled[l].compute_root().parallel(y).reorder(c, x, y).vectorize(c, 4);
+            interpolated[l].compute_root().parallel(y).reorder(c, x, y).vectorize(c, 4);
             interpolated[l].unroll(x, 2).unroll(y, 2);
         }
         final.reorder(c, x, y).bound(c, 0, 3).parallel(y);
@@ -155,9 +158,9 @@ Func build(bool distributed) {
     }
 
     if (distributed) {
-        for (int l = 0; l < levels; ++l) {
-            downsampled[l].compute_root().distribute(y);
-            interpolated[l].compute_root().distribute(y);
+        for (int l = 1; l < 5; ++l) {
+            downsampled[l].distribute(y);
+            interpolated[l].distribute(y);
         }
         final.distribute(y);
     }
@@ -183,7 +186,7 @@ int main(int argc, char **argv) {
     Func interpolated_distributed = build(true);
 
     output.set_domain(x, y, c);
-    output.placement().distribute(y);
+    output.placement().tile(x, y, xi, yi, 2, 2).distribute(y);
     output.allocate();
     input.set_domain(x, y, c);
     input.placement().distribute(y);
