@@ -15,7 +15,7 @@ std::uniform_real_distribution<float> distribution(0, 1);
 
 DistributedImage<float> input, output;
 Image<float> global_input, global_output;
-Var x("x"), y("y"), c("c");
+Var x("x"), y("y"), c("c"), xi, yi;
 
 bool float_eq(float a, float b) {
     const float thresh = 1e-5;
@@ -155,7 +155,7 @@ Func build(bool distributed) {
     }
 
     if (distributed) {
-        for (int l = 1; l < levels-3; ++l) {
+        for (int l = 0; l < levels; ++l) {
             downsampled[l].compute_root().distribute(y);
             interpolated[l].compute_root().distribute(y);
         }
