@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
     interpolated_distributed.compile_jit(target);
     interpolated_correct.realize(global_output);
 
-    const int niters = 10;
+    const int niters = 100;
     MPITiming timing(MPI_COMM_WORLD);
     timing.barrier();
     timeval t1, t2;
