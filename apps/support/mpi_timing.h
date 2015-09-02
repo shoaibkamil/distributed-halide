@@ -170,7 +170,6 @@ private:
         if (values.size() == 1) return values[0];
         float result = 0;
         vector<float> tmp(values.begin(), values.end());
-        int midpoint = tmp.size() / 2;
         std::sort(tmp.begin(), tmp.end());
         float left = 0, right = 0;
         unsigned k = 0;
