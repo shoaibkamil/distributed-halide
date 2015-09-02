@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
 #endif
 
     // Run the program and test output for correctness
-    const int niters = 10;
+    const int niters = 100;
     MPITiming timing;
 #ifdef DISTRIBUTED
         timing = MPITiming(MPI_COMM_WORLD);
