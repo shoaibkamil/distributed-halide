@@ -330,24 +330,6 @@ int main(int argc, char **argv) {
     DistributedImage<uint16_t> input(w, h);
     DistributedImage<uint8_t> output(ow, oh, 3);
 
-    input.set_domain(x, y);
-    input.placement().distribute(y);
-    input.allocate();
-    output.set_domain(tx, ty, c);
-    output.placement().tile(tx, ty, xi, yi, 32, 32).distribute(ty);
-    output.allocate();
-
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            uint16_t v = (x + y) & 0xfff;
-            if (input.mine(x, y)) {
-                int lx = input.local(0, x), ly = input.local(1, y);
-                input(lx, ly) = v;
-            }
-            global_input(x, y) = v;
-        }
-    }
-
     // shift things inwards to give us enough padding on the
     // boundaries so that we don't need to check bounds. We're going
     // to make a 2560x1920 output image, just like the FCam pipe, so
@@ -362,6 +344,24 @@ int main(int argc, char **argv) {
     Func processed_correct = process(shifted_global, result_type, matrix_3200, matrix_7000, color_temp, gamma, contrast, false);
     Func processed_distributed = process(shifted, result_type, matrix_3200, matrix_7000, color_temp, gamma, contrast, true);
 
+    output.set_domain(tx, ty, c);
+    output.placement().tile(tx, ty, xi, yi, 32, 32).distribute(ty);
+    output.allocate();
+    input.set_domain(x, y);
+    input.placement().distribute(y);
+    input.allocate(processed_distributed, output);
+
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            uint16_t v = (x + y) & 0xfff;
+            if (input.mine(x, y)) {
+                int lx = input.local(0, x), ly = input.local(1, y);
+                input(lx, ly) = v;
+            }
+            global_input(x, y) = v;
+        }
+    }
+
     // We can generate slightly better code if we know the output is a whole number of tiles.
     Expr out_width = processed_correct.output_buffer().width();
     Expr out_height = processed_correct.output_buffer().height();
@@ -371,7 +371,7 @@ int main(int argc, char **argv) {
     processed_correct.realize(global_output);
 
     processed_distributed.realize(output.get_buffer());
-    const int niters = 10;
+    const int niters = 100;
     MPITiming timing(MPI_COMM_WORLD);
     timing.barrier();
     timeval t1, t2;
