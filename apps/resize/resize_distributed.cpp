@@ -75,7 +75,7 @@ static KernelInfo kernelInfo[] = {
 
 
 InterpolationType interpolationType = CUBIC;
-const float scaleFactor = 2.0f;
+const float scaleFactor = 1.3f;
 const int schedule = 3;
 
 Func build(bool distributed) {
@@ -127,20 +127,20 @@ Func build(bool distributed) {
     Func final("final");
     final(x, y, c) = clamp(resized_y(x, y, c), 0.0f, 1.0f);
 
-    std::cout << "Finished function setup." << std::endl;
-
     // Scheduling
     bool parallelize = (schedule >= 2);
     bool vectorize = (schedule == 1 || schedule == 3);
 
     kernelx.compute_root();
     kernely.compute_at(final, y);
+
     if (vectorize) {
         resized_x.vectorize(x, 4);
         final.vectorize(x, 4);
     }
+
     if (parallelize) {
-        final.split(y, yo, y, 32).parallel(yo);
+        final.split(y, yo, y, 8).parallel(yo);
         resized_x.store_at(final, yo).compute_at(final, y);
     } else {
         resized_x.store_at(final, c).compute_at(final, y);
@@ -148,7 +148,6 @@ Func build(bool distributed) {
 
     if (distributed) {
         final.distribute(yo);
-        kernelx.distribute(x);
     }
 
     return final;
@@ -172,7 +171,7 @@ int main(int argc, char **argv) {
     Func resize_distributed = build(true);
 
     output.set_domain(x, y, c);
-    output.placement().split(y, yo, y, 32).distribute(yo);
+    output.placement().split(y, yo, y, 8).distribute(yo);
     output.allocate();
     input.set_domain(x, y, c);
     input.placement().distribute(y);
