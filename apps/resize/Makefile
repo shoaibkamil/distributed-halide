@@ -1,5 +1,9 @@
 include ../support/Makefile.inc
 
+WITH_MPI ?=
+CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
+MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
+
 CXXFLAGS += -g -Wall
 
 .PHONY: clean
@@ -7,6 +11,10 @@ CXXFLAGS += -g -Wall
 resize: ../../ resize.cpp
 	$(MAKE) -C ../../ $(LIB_HALIDE)
 	$(CXX) $(CXXFLAGS) resize.cpp ../../$(LIB_HALIDE) -o resize -lpthread -ldl -lz $(PNGFLAGS) $(LDFLAGS)
+
+distributed_resize: ../../ resize_distributed.cpp
+	$(MAKE) -C ../../ $(LIB_HALIDE)
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) resize_distributed.cpp ../../$(LIB_HALIDE) -o distributed_resize -lpthread -ldl -lz $(PNGFLAGS) $(LDFLAGS)
 
 out.png: resize
 	./resize ../images/rgba.png out.png -f 2.0 -t cubic -s 3
