@@ -18,11 +18,17 @@ class Config:
         self.exe = args
         self.input_size = "%sx%s" % (args[-2], args[-1])
 
+class Timing:
+    def __init__(self, runtime, percentile20, percentile80):
+        self.runtime = runtime
+        self.percentile20 = percentile20
+        self.percentile80 = percentile80
+
 class Result:
     def __init__(self, cmd, num_nodes, value):
         self.cmd = cmd
         self.num_nodes = num_nodes
-        self.value = value
+        self.timing = value
 
 def make_run_cmd(config, num_nodes, baseline=False):
     os.environ["MV2_ENABLE_AFFINITY"] = "0"
@@ -37,7 +43,7 @@ def make_run_cmd(config, num_nodes, baseline=False):
     #     cmd.extend(["--cpu_bind=verbose,cores"])
     # else:
     #     cmd.extend(["--cpu_bind=verbose"])
-    if baseline:
+    if baseline or num_nodes == 1:
         nranks = num_nodes
         cmd.extend(["--cpu_bind=verbose"])
     else:
@@ -50,7 +56,7 @@ def make_run_cmd(config, num_nodes, baseline=False):
     return cmd
 
 def execute(cmd):
-    print "Executing %s..." % " ".join(cmd)
+    print "Executing HL_DISABLE_DISTRIBUTED=%s %s..." % (os.environ["HL_DISABLE_DISTRIBUTED"], " ".join(cmd))
     try:
         return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
@@ -63,10 +69,14 @@ def readall(path):
     return contents
 
 def get_time(output):
-    exp = "Timing: <\d+> ranks <(\d*\.\d+)> seconds"
+    # Timing: <16> ranks <0.000128> seconds, 20/80 percentile <0.000070,0.000240>
+    exp = "Timing: <\d+> ranks <(\d*?\.\d+?)> seconds, 20/80 percentile <(\d*?\.\d+?),(\d*?\.\d+?)>"
     m = re.search(exp, output)
     if m:
-        return float(m.groups()[0])
+        runtime = float(m.groups()[0])
+        percentile20 = float(m.groups()[1])
+        percentile80 = float(m.groups()[2])
+        return Timing(runtime, percentile20, percentile80)
     else:
         return -1
 
@@ -85,39 +95,42 @@ def run(config):
         # Run baseline of a single node
         cmd = make_run_cmd(config, 1, baseline=True)
         result = get_time(execute(cmd))
-        results[1] = Result(cmd, 1, result)
+        print "Result was: %f sec" % result.runtime
+        results["baseline"] = Result(["HL_DISABLE_DISTRIBUTED=1"] + cmd, 1, result)
+    else:
+        results["baseline"] = Result("Baseline specified on command line", 1, config.baseline)
     # Run all other tests.
     for num_nodes in config.nodes:
-        nranks = num_nodes * config.tasks_per_node
+        nranks = num_nodes * config.tasks_per_node if num_nodes > 1 else 1
         cmd = make_run_cmd(config, num_nodes)
         result = get_time(execute(cmd))
+        print "Result was: %f sec" % result.runtime
         results[nranks] = Result(cmd, num_nodes, result)
-    if config.baseline:
-        results["baseline"] = Result("Baseline specified on command line", 1, config.baseline)
-    else:
-        assert "baseline" not in results.keys()
-        results["baseline"] = results[1]
-        del results[1]
     return results
 
-def calc_speedup(singlerank, numranks, runtime):
+def calc_speedup(singlerank, numranks, timing):
     try:
-        return singlerank/runtime
+        rt = singlerank / timing.runtime
+        # Swap the percentiles because we're calculating percentiles
+        # of speedup, not runtime.
+        pct20 = singlerank / (timing.percentile80)
+        pct80 = singlerank / (timing.percentile20)
+        return Timing(rt, pct20, pct80)
     except ZeroDivisionError:
-        return numranks
+        return Timing(numranks, numranks, numranks)
 
 def calculate_highest_speedup(config, results):
     ranks = max(filter(lambda x: isinstance(x, int), results.keys()))
-    singlerank = results["baseline"].value
-    speedup = calc_speedup(singlerank, ranks, results[ranks].value)
+    singlerank = results["baseline"].timing.runtime
+    speedup = calc_speedup(singlerank, ranks, results[ranks].timing)
     linear_speedup = (ranks * config.cores_per_socket) / float(2 * config.cores_per_socket)
-    pct_of_linear = (float(speedup) / linear_speedup) * 100
-    return (ranks, speedup, pct_of_linear)
+    pct_of_linear = (float(speedup.runtime) / linear_speedup) * 100
+    return (ranks, speedup.runtime, pct_of_linear)
 
 def report(config, results):
     best = calculate_highest_speedup(config, results)
-    print "Baseline (%d cores) runtime: %f sec" % (2 * config.cores_per_socket, results["baseline"].value)
-    print "%d rank (%d cores) runtime: %f" % (best[0], best[0] * config.cores_per_socket, results[best[0]].value)
+    print "Baseline (%d cores) runtime: %f sec" % (2 * config.cores_per_socket, results["baseline"].timing.runtime)
+    print "%d rank (%d cores) runtime: %f" % (best[0], best[0] * config.cores_per_socket, results[best[0]].timing.runtime)
     print "%d rank speedup: %.3f (%.1f%% of linear)" % (best[0], best[1], best[2])
     if config.output_dir == None:
         return
@@ -128,15 +141,16 @@ def report(config, results):
     contents += "Binding to sockets, meaning 1 rank = %d cores\n" % config.cores_per_socket
     contents += "Invocation commands:\n"
     for k, v in results.items():
-        nranks = 1 if k == "baseline" else k
-        contents += " %d: %s\n" % (nranks, " ".join(v.cmd))
+        nranks = str(k)
+        contents += " %s: %s\n" % (nranks, " ".join(v.cmd))
     contents += "Runtime and speedup per rank count (in seconds):\n"
     contents += "--BEGIN DATA--\n"
-    singlerank = results["baseline"].value
+    singlerank = results["baseline"].timing.runtime
     for k, v in results.items():
-        nranks = 1 if k == "baseline" else k
-        speedup = calc_speedup(singlerank, nranks, v.value)
-        contents += "%d: %f\t%.3f\n" % (nranks, v.value, speedup)
+        nranks = str(k)
+        speedup = calc_speedup(singlerank, nranks, v.timing)
+        # speedup.runtime is actually a speedup, not a runtime.
+        contents += "%s: %f\t%.3f\n" % (nranks, v.timing.runtime, speedup.runtime)
     contents += "--END DATA--\n"
     contents += "Raw source dump:\n"
     contents += "// File name %s\n" % config.srcfile
@@ -154,16 +168,24 @@ def report(config, results):
     with open(datpath, "w") as f:
         f.write("%% %s\n" % config.exe[0])
         f.write("%% Speedup versus number of cores (%s image)\n" % config.input_size)
-        f.write("% Img size, Number of cores, runtime (sec), speedup:\n")
-        singlerank = results["baseline"].value
+        f.write("% Img size, Number of cores, runtime (sec), 20th percentile runtime, 80th pctile runtime, speedup, 20th pctile speedup, 80th pctile speedup:\n")
+        singlerank = results["baseline"].timing.runtime
         for k, v in results.items():
-            speedup = calc_speedup(singlerank, k, v.value)
-            nranks = 1 if k == "baseline" else k
-            if nranks == 1:
+            speedup = calc_speedup(singlerank, k, v.timing)
+            nranks = str(k)
+            if nranks == "baseline" or nranks == "1":
                 cores = 2 * config.cores_per_socket
             else:
-                cores = nranks * config.cores_per_socket
-            f.write("%s,%s,%s,%s\n" % (config.input_size, str(cores), str(v.value), str(speedup)))
+                cores = k * config.cores_per_socket
+            if nranks == "baseline":
+                # We want the baseline data in the file for safe
+                # keeping, but putting it as an actual row screws up
+                # the ncores datatype when parsing. So comment it out.
+                cores = "baseline"
+                f.write("% ")
+            f.write("%s,%s,%s,%s,%s,%s,%s,%s\n" % (config.input_size, str(cores), str(v.timing.runtime),
+                                                   str(v.timing.percentile20), str(v.timing.percentile80), str(speedup.runtime),
+                                                   str(speedup.percentile20), str(speedup.percentile80)))
 
 def parse_config_argv():
     parser = OptionParser("Usage: %prog [options] exe [args]")
