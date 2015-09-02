@@ -8,7 +8,7 @@ using namespace Halide;
 
 std::default_random_engine generator(0);
 std::uniform_real_distribution<float> distribution(10, 500);
-Var x("x"), y("y");
+Var x("x"), y("y"), xi, yi;
 
 float rndflt() {
     return distribution(generator);
@@ -25,16 +25,13 @@ Func build(Func input, bool distributed) {
     block_transpose(x, y) = block(y, x);
     output(x, y) = block_transpose(x, y);
 
-    Var xi, yi;
+    // Do 8 vectorized loads from the input.
+    block.compute_at(output, x).vectorize(x).unroll(y);
+    block_transpose.compute_at(output, x).vectorize(y).unroll(x);
+    output.tile(x, y, xi, yi, 8, 8).vectorize(xi).unroll(yi);
 
     if (distributed) {
-        block.compute_root().distribute(y);
-        block_transpose.compute_root().distribute(y);
-    } else {
-        // Do 8 vectorized loads from the input.
-        block.compute_at(output, x).vectorize(x).unroll(y);
-        block_transpose.compute_at(output, x).vectorize(y).unroll(x);
-        output.tile(x, y, xi, yi, 8, 8).vectorize(xi).unroll(yi);
+        output.distribute(y);
     }
 
     return output;
@@ -50,12 +47,22 @@ int main(int argc, char **argv) {
 
     Image<float> global_input(w, h), global_output(w, h);
     DistributedImage<float> input(w, h), output(w, h);
-    input.set_domain(x, y);
-    input.placement().distribute(y);
-    input.allocate();
+
+    Func accessor, global_accessor;
+    accessor(x, y) = input(x, y);
+    global_accessor(x, y) = global_input(x, y);
+
+    Func transpose_correct = build(global_accessor, false);
+    Func transpose_distributed = build(accessor, true);
+
+    transpose_distributed.distribute(y);
+
     output.set_domain(x, y);
-    output.placement().distribute(y);
+    output.placement().tile(x, y, xi, yi, 8, 8).distribute(y);
     output.allocate();
+    input.set_domain(x, y);
+    input.placement().distribute(x);
+    input.allocate(transpose_distributed, output);
 
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
@@ -68,19 +75,11 @@ int main(int argc, char **argv) {
         }
     }
 
-    Func accessor, global_accessor;
-    accessor(x, y) = input(x, y);
-    global_accessor(x, y) = global_input(x, y);
-
-    Func transpose_correct = build(global_accessor, false);
-    Func transpose_distributed = build(accessor, true);
-
-    transpose_distributed.distribute(y);
 
     transpose_correct.realize(global_output);
     transpose_distributed.realize(output.get_buffer());
 
-    const int niters = 10;
+    const int niters = 100;
     MPITiming timing(MPI_COMM_WORLD);
     timing.barrier();
     timeval t1, t2;
