@@ -1,5 +1,9 @@
 include ../support/Makefile.inc
 
+WITH_MPI ?=
+CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
+MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
+
 HL_MODULES = daubechies_x.o inverse_daubechies_x.o haar_x.o inverse_haar_x.o
 
 all: filter
@@ -7,6 +11,10 @@ all: filter
 wavelet: ../../ wavelet.cpp
 	$(MAKE) -C ../../ $(LIB_HALIDE)
 	$(CXX) $(CXXFLAGS) wavelet.cpp -g ../../$(LIB_HALIDE) -o wavelet -lpthread -ldl -lz $(LDFLAGS)
+
+distributed_wavelet: ../../ wavelet_distributed.cpp
+	$(MAKE) -C ../../ $(LIB_HALIDE)
+	$(CXX) $(CXXFLAGS) wavelet_distributed.cpp -g ../../$(LIB_HALIDE) -o distributed_wavelet -lpthread -ldl -lz $(LDFLAGS)
 
 $(HL_MODULES): wavelet
 	./wavelet
