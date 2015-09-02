@@ -26,6 +26,10 @@ class Result:
 
 def make_run_cmd(config, num_nodes, baseline=False):
     os.environ["MV2_ENABLE_AFFINITY"] = "0"
+    if baseline:
+        os.environ["HL_DISABLE_DISTRIBUTED"] = "1"
+    else:
+        os.environ["HL_DISABLE_DISTRIBUTED"] = "0"
     cmd = ["srun", "--exclude=lanka11", "--exclusive"]
     # if nranks == num_nodes * 2:
     #     cmd.extend(["--cpu_bind=verbose,sockets"])
