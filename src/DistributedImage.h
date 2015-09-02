@@ -213,7 +213,7 @@ public:
         map<string, Expr> env;
         for (unsigned i = 0; i < allocated.size(); i++) {
             env[pipeline.name() + ".min." + std::to_string(i)] = 0;
-            env[pipeline.name() + ".extent." + std::to_string(i)] = output.full_extents[i];
+            env[pipeline.name() + ".extent." + std::to_string(i)] = output.global_extent(i);
         }
         IntBox allocated_concrete = concretize(allocated, env),
             local_concrete = concretize(local, env);
