@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
     compute_correct(global_input, global_output);
     bilateral_grid.realize(output.get_buffer());
 
-    const int niters = 10;
+    const int niters = 100;
     MPITiming timing(MPI_COMM_WORLD);
     timing.barrier();
     timeval t1, t2;
