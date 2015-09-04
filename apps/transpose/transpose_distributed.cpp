@@ -29,6 +29,7 @@ Func build(Func input, bool distributed) {
     block.compute_at(output, x).vectorize(x).unroll(y);
     block_transpose.compute_at(output, x).vectorize(y).unroll(x);
     output.tile(x, y, xi, yi, 8, 8).vectorize(xi).unroll(yi);
+    output.parallel(y);
 
     if (distributed) {
         output.distribute(y);
