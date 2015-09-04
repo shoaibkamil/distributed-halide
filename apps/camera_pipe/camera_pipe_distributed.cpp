@@ -325,8 +325,8 @@ int main(int argc, char **argv) {
     const int w = std::stoi(argv[1]), h = std::stoi(argv[2]);
     const int ow = ((w - 32)/32)*32, oh = ((h - 24)/32)*32;
 
-    Image<uint16_t> global_input(w, h);
-    Image<uint8_t> global_output(ow, oh, 3);
+    // Image<uint16_t> global_input(w, h);
+    // Image<uint8_t> global_output(ow, oh, 3);
     DistributedImage<uint16_t> input(w, h);
     DistributedImage<uint8_t> output(ow, oh, 3);
 
@@ -336,12 +336,12 @@ int main(int argc, char **argv) {
     // shift by 16, 12
     Func shifted, shifted_global;
     shifted(x, y) = input(x+16, y+12);
-    shifted_global(x, y) = global_input(x+16, y+12);
+    // shifted_global(x, y) = global_input(x+16, y+12);
 
     Type result_type = UInt(bit_width);
 
     // Build the pipeline
-    Func processed_correct = process(shifted_global, result_type, matrix_3200, matrix_7000, color_temp, gamma, contrast, false);
+    // Func processed_correct = process(shifted_global, result_type, matrix_3200, matrix_7000, color_temp, gamma, contrast, false);
     Func processed_distributed = process(shifted, result_type, matrix_3200, matrix_7000, color_temp, gamma, contrast, true);
 
     output.set_domain(tx, ty, c);
@@ -358,17 +358,17 @@ int main(int argc, char **argv) {
                 int lx = input.local(0, x), ly = input.local(1, y);
                 input(lx, ly) = v;
             }
-            global_input(x, y) = v;
+            // global_input(x, y) = v;
         }
     }
 
     // We can generate slightly better code if we know the output is a whole number of tiles.
-    Expr out_width = processed_correct.output_buffer().width();
-    Expr out_height = processed_correct.output_buffer().height();
-    processed_correct
-        .bound(tx, 0, (out_width/32)*32)
-        .bound(ty, 0, (out_height/32)*32);
-    processed_correct.realize(global_output);
+    // Expr out_width = processed_correct.output_buffer().width();
+    // Expr out_height = processed_correct.output_buffer().height();
+    // processed_correct
+    //     .bound(tx, 0, (out_width/32)*32)
+    //     .bound(ty, 0, (out_height/32)*32);
+    //processed_correct.realize(global_output);
 
     processed_distributed.realize(output.get_buffer());
     const int niters = 50;
@@ -384,19 +384,19 @@ int main(int argc, char **argv) {
     }
     timing.reduce(MPITiming::Median);
 
-    for (int c = 0; c < output.channels(); c++) {
-        for (int y = 0; y < output.height(); y++) {
-            for (int x = 0; x < output.width(); x++) {
-                int gx = output.global(0, x), gy = output.global(1, y), gc = output.global(2, c);
-                if (output(x, y, c) != global_output(gx, gy, gc)) {
-                    printf("[rank %d] output(%d,%d,%d) = %u instead of %u\n", rank, x, y, c, output(x, y, c), global_output(gx, gy, gc));
-                    MPI_Abort(MPI_COMM_WORLD, 1);
-                    MPI_Finalize();
-                    return -1;
-                }
-            }
-        }
-    }
+    // for (int c = 0; c < output.channels(); c++) {
+    //     for (int y = 0; y < output.height(); y++) {
+    //         for (int x = 0; x < output.width(); x++) {
+    //             int gx = output.global(0, x), gy = output.global(1, y), gc = output.global(2, c);
+    //             if (output(x, y, c) != global_output(gx, gy, gc)) {
+    //                 printf("[rank %d] output(%d,%d,%d) = %u instead of %u\n", rank, x, y, c, output(x, y, c), global_output(gx, gy, gc));
+    //                 MPI_Abort(MPI_COMM_WORLD, 1);
+    //                 MPI_Finalize();
+    //                 return -1;
+    //             }
+    //         }
+    //     }
+    // }
 
     timing.gather(MPITiming::Max);
     timing.report();

@@ -179,8 +179,8 @@ int main(int argc, char **argv) {
 
     input = DistributedImage<float>(w, h, d);
     output = DistributedImage<float>(ow, oh, od);
-    global_input = Image<float>(w, h, d);
-    global_output = Image<float>(ow, oh, od);
+    // global_input = Image<float>(w, h, d);
+    // global_output = Image<float>(ow, oh, od);
 
     Func interpolated_correct = build(false);
     Func interpolated_distributed = build(true);
@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
                     int lx = input.local(0, x), ly = input.local(1, y), lc = input.local(2, c);
                     input(lx, ly, lc) = v;
                 }
-                global_input(x, y, c) = v;
+                // global_input(x, y, c) = v;
             }
         }
     }
@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
     // JIT compile the pipeline eagerly, so we don't interfere with timing
     Target target = get_target_from_environment();
     interpolated_distributed.compile_jit(target);
-    interpolated_correct.realize(global_output);
+    // interpolated_correct.realize(global_output);
 
     const int niters = 50;
     MPITiming timing(MPI_COMM_WORLD);
@@ -226,19 +226,19 @@ int main(int argc, char **argv) {
     }
     timing.reduce(MPITiming::Median);
 
-    for (int c = 0; c < output.channels(); c++) {
-        for (int y = 0; y < output.height(); y++) {
-            for (int x = 0; x < output.width(); x++) {
-                int gx = output.global(0, x), gy = output.global(1, y), gc = output.global(2, c);
-                if (!float_eq(output(x, y, c), global_output(gx, gy, gc))) {
-                    printf("[rank %d] output(%d,%d,%d) = %f instead of %f\n", rank, x, y, c, output(x, y, c), global_output(gx, gy, gc));
-                    MPI_Abort(MPI_COMM_WORLD, 1);
-                    MPI_Finalize();
-                    return -1;
-                }
-            }
-        }
-    }
+    // for (int c = 0; c < output.channels(); c++) {
+    //     for (int y = 0; y < output.height(); y++) {
+    //         for (int x = 0; x < output.width(); x++) {
+    //             int gx = output.global(0, x), gy = output.global(1, y), gc = output.global(2, c);
+    //             if (!float_eq(output(x, y, c), global_output(gx, gy, gc))) {
+    //                 printf("[rank %d] output(%d,%d,%d) = %f instead of %f\n", rank, x, y, c, output(x, y, c), global_output(gx, gy, gc));
+    //                 MPI_Abort(MPI_COMM_WORLD, 1);
+    //                 MPI_Finalize();
+    //                 return -1;
+    //             }
+    //         }
+    //     }
+    // }
 
     timing.gather(MPITiming::Max);
     timing.report();

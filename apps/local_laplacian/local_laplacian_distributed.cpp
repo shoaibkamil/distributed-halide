@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
     const int w = std::stoi(argv[1]), h = std::stoi(argv[2]), d = 4;
 
     // For correctness testing:
-    Image<uint16_t> global_input(w, h, d), global_output(w, h, d);
+    // Image<uint16_t> global_input(w, h, d), global_output(w, h, d);
     DistributedImage<uint16_t> input(w, h, d), output(w, h, d);
 
     // Make the remapping function as a lookup table.
@@ -253,13 +253,13 @@ int main(int argc, char **argv) {
                     int lx = input.local(0, x), ly = input.local(1, y), lc = input.local(2, c);
                     input(lx, ly, lc) = v;
                 }
-                global_input(x, y, c) = v;
+                //global_input(x, y, c) = v;
             }
         }
     }
 
 
-    compute_correct(global_input, global_output);
+    // compute_correct(global_input, global_output);
     local_laplacian.realize(output.get_buffer());
 
     const int niters = 50;
@@ -275,19 +275,19 @@ int main(int argc, char **argv) {
     }
     timing.reduce(MPITiming::Median);
 
-    for (int c = 0; c < output.channels(); c++) {
-        for (int y = 0; y < output.height(); y++) {
-            for (int x = 0; x < output.width(); x++) {
-                int gx = output.global(0, x), gy = output.global(1, y), gc = output.global(2, c);
-                if (output(x, y, c) != global_output(gx, gy, gc)) {
-                    printf("[rank %d] output(%d,%d) = %u instead of %u\n", rank, x, y, output(x, y, c), global_output(gx, gy, gc));
-                    MPI_Abort(MPI_COMM_WORLD, 1);
-                    MPI_Finalize();
-                    return -1;
-                }
-            }
-        }
-    }
+    // for (int c = 0; c < output.channels(); c++) {
+    //     for (int y = 0; y < output.height(); y++) {
+    //         for (int x = 0; x < output.width(); x++) {
+    //             int gx = output.global(0, x), gy = output.global(1, y), gc = output.global(2, c);
+    //             if (output(x, y, c) != global_output(gx, gy, gc)) {
+    //                 printf("[rank %d] output(%d,%d) = %u instead of %u\n", rank, x, y, output(x, y, c), global_output(gx, gy, gc));
+    //                 MPI_Abort(MPI_COMM_WORLD, 1);
+    //                 MPI_Finalize();
+    //                 return -1;
+    //             }
+    //         }
+    //     }
+    // }
     timing.gather(MPITiming::Max);
     timing.report();
     if (rank == 0) {

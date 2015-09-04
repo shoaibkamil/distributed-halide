@@ -101,25 +101,25 @@ int main(int argc, char **argv) {
     timing.reduce(MPITiming::Median);
 
 #ifdef DISTRIBUTED
-    for (int y = 0; y < output.height(); y++) {
-        for (int x = 0; x < output.width(); x++) {
-            const int xmax = output.global_width() - 1, ymax = output.global_height() - 1;
-            const int gxp1 = output.global(0, x+1) >= xmax ? xmax : output.global(0, x+1),
-                gxm1 = output.global(0, x) == 0 ? 0 : output.global(0, x-1);
-            const int gyp1 = output.global(1, y+1) >= ymax ? ymax : output.global(1, y+1),
-                gym1 = output.global(1, y) == 0 ? 0 : output.global(1, y-1);
-            const int gx = output.global(0, x), gy = output.global(1, y);
-            const int correct = (((gxm1 + gym1 + gx + gym1 + gxp1 + gym1)/3) +
-                                 ((gxm1 + gy + gx + gy + gxp1 + gy)/3) +
-                                 ((gxm1 + gyp1 + gx + gyp1 + gxp1 + gyp1)/3)) / 3;
-            if (output(x, y) != correct) {
-                printf("[rank %d] output(%d,%d) = %d instead of %d\n", rank, x, y, output(x, y), correct);
-                MPI_Abort(MPI_COMM_WORLD, 1);
-                MPI_Finalize();
-                return -1;
-            }
-        }
-    }
+    // for (int y = 0; y < output.height(); y++) {
+    //     for (int x = 0; x < output.width(); x++) {
+    //         const int xmax = output.global_width() - 1, ymax = output.global_height() - 1;
+    //         const int gxp1 = output.global(0, x+1) >= xmax ? xmax : output.global(0, x+1),
+    //             gxm1 = output.global(0, x) == 0 ? 0 : output.global(0, x-1);
+    //         const int gyp1 = output.global(1, y+1) >= ymax ? ymax : output.global(1, y+1),
+    //             gym1 = output.global(1, y) == 0 ? 0 : output.global(1, y-1);
+    //         const int gx = output.global(0, x), gy = output.global(1, y);
+    //         const int correct = (((gxm1 + gym1 + gx + gym1 + gxp1 + gym1)/3) +
+    //                              ((gxm1 + gy + gx + gy + gxp1 + gy)/3) +
+    //                              ((gxm1 + gyp1 + gx + gyp1 + gxp1 + gyp1)/3)) / 3;
+    //         if (output(x, y) != correct) {
+    //             printf("[rank %d] output(%d,%d) = %d instead of %d\n", rank, x, y, output(x, y), correct);
+    //             MPI_Abort(MPI_COMM_WORLD, 1);
+    //             MPI_Finalize();
+    //             return -1;
+    //         }
+    //     }
+    // }
     timing.gather(MPITiming::Max);
     timing.report();
     if (rank == 0) {

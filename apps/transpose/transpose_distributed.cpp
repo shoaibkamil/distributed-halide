@@ -45,14 +45,14 @@ int main(int argc, char **argv) {
 
     const int w = std::stoi(argv[1]), h = std::stoi(argv[2]);
 
-    Image<float> global_input(w, h), global_output(w, h);
+    // Image<float> global_input(w, h), global_output(w, h);
     DistributedImage<float> input(w, h), output(w, h);
 
     Func accessor, global_accessor;
     accessor(x, y) = input(x, y);
-    global_accessor(x, y) = global_input(x, y);
+    // global_accessor(x, y) = global_input(x, y);
 
-    Func transpose_correct = build(global_accessor, false);
+    // Func transpose_correct = build(global_accessor, false);
     Func transpose_distributed = build(accessor, true);
 
     transpose_distributed.distribute(y);
@@ -71,12 +71,12 @@ int main(int argc, char **argv) {
                 int lx = input.local(0, x), ly = input.local(1, y);
                 input(lx, ly) = v;
             }
-            global_input(x, y) = v;
+            // global_input(x, y) = v;
         }
     }
 
 
-    transpose_correct.realize(global_output);
+    // transpose_correct.realize(global_output);
     transpose_distributed.realize(output.get_buffer());
 
     const int niters = 50;
@@ -92,17 +92,17 @@ int main(int argc, char **argv) {
     }
     timing.reduce(MPITiming::Median);
 
-    for (int y = 0; y < output.height(); y++) {
-        for (int x = 0; x < output.width(); x++) {
-            int gx = output.global(0, x), gy = output.global(1, y);
-            if (!float_eq(output(x, y), global_output(gx, gy))) {
-                printf("[rank %d] output(%d,%d) = %f instead of %f\n", rank, x, y, output(x, y), global_output(gx, gy));
-                MPI_Abort(MPI_COMM_WORLD, 1);
-                MPI_Finalize();
-                return -1;
-            }
-        }
-    }
+    // for (int y = 0; y < output.height(); y++) {
+    //     for (int x = 0; x < output.width(); x++) {
+    //         int gx = output.global(0, x), gy = output.global(1, y);
+    //         if (!float_eq(output(x, y), global_output(gx, gy))) {
+    //             printf("[rank %d] output(%d,%d) = %f instead of %f\n", rank, x, y, output(x, y), global_output(gx, gy));
+    //             MPI_Abort(MPI_COMM_WORLD, 1);
+    //             MPI_Finalize();
+    //             return -1;
+    //         }
+    //     }
+    // }
 
     timing.gather(MPITiming::Max);
     timing.report();
