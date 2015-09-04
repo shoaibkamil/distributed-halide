@@ -80,6 +80,7 @@ Func build(bool distributed) {
     }
 
     Func final = daubechies_x(clamped);
+    final.parallel(y);
 
     if (distributed) {
         final.distribute(y);
@@ -102,7 +103,7 @@ int main(int argc, char **argv) {
     // global_input = Image<float>(w, h);
     // global_output = Image<float>(ow, oh, od);
 
-    Func daubechies_correct = build(false);
+    // Func daubechies_correct = build(false);
     Func daubechies_distributed = build(true);
 
     output.set_domain(x, y, c);
