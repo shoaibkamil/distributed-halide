@@ -371,7 +371,7 @@ int main(int argc, char **argv) {
     processed_correct.realize(global_output);
 
     processed_distributed.realize(output.get_buffer());
-    const int niters = 100;
+    const int niters = 50;
     MPITiming timing(MPI_COMM_WORLD);
     timing.barrier();
     timeval t1, t2;
