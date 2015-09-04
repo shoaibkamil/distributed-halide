@@ -41,6 +41,10 @@ Func build(bool distributed) {
     Func sobel;
     sobel(x, y) = sqrt(sobelx(x, y) * sobelx(x, y) + sobely(x, y) * sobely(x, y));
 
+    sobelx.vectorize(x, 8).compute_at(sobel, y);
+    sobely.vectorize(x, 8).compute_at(sobel, y);
+    sobel.parallel(y);
+
     if (distributed) {
         sobel.distribute(y);
     }
@@ -67,7 +71,7 @@ int main(int argc, char **argv) {
     // global_output = Image<float>(w, h);
 
     Func sobel_distributed = build(true);
-    Func sobel_correct = build(false);
+    // Func sobel_correct = build(false);
 
     output.set_domain(x, y);
     output.placement().distribute(y);
