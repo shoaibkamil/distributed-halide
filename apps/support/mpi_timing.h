@@ -29,6 +29,7 @@ public:
     }
 
     MPITiming() {
+        //tests();
         _usempi = false;
         _reduced = -1.0;
         _percentile_lower = -1.0;
@@ -171,25 +172,19 @@ private:
         float result = 0;
         vector<float> tmp(values.begin(), values.end());
         std::sort(tmp.begin(), tmp.end());
-        float left = 0, right = 0;
-        unsigned k = 0;
-        for (unsigned i = 0; i < tmp.size(); i++) {
-            float rank = (100.0f/tmp.size()) * (i + 0.5);
-            if (percentile > rank) {
-                left = rank;
-            } else if (percentile < rank) {
-                right = rank;
-                k = i;
-                break;
-            } else {
-                return tmp[i];
-            }
+        if (percentile == 100) {
+            return tmp[tmp.size() - 1];
         }
-        if (k == tmp.size() - 1) {
-            return tmp[k];
+        float index = (percentile / 100.0f) * (tmp.size() - 1);
+        int lower = floor(index), upper = ceil(index);
+        assert(0 <= lower && lower < tmp.size() && 0 <= upper && upper < tmp.size());
+        if (lower == upper) {
+            return tmp[upper];
+        } else {
+            float frac, integ;
+            frac = modff(index, &integ);
+            return tmp[lower] + (tmp[upper] - tmp[lower]) * frac;
         }
-        result = tmp[k] + tmp.size() * ((percentile - left) / (right - left)) * (tmp[k+1] - tmp[k]);
-        return result;
     }
 
     bool eq(float a, float b) const {
@@ -205,6 +200,15 @@ private:
         assert(eq(compute_median(values), 5));
         values.push_back(12);
         assert(eq(compute_median(values), 8.5));
+
+        values = {0.003239, 0.003759, 0.002697, 0.001911, 0.004127, 0.003448, 0.001934, 0.002531, 0.001885, 0.002112};
+        assert(eq(compute_min(values), 0.001885));
+        assert(eq(compute_max(values), 0.004127));
+        assert(eq(compute_mean(values), 0.0027643));
+        assert(eq(compute_median(values), 0.002614));
+        assert(eq(compute_percentile(values, 20), 0.0019294));
+        assert(eq(compute_percentile(values, 50), 0.002614));
+        assert(eq(compute_percentile(values, 80), 0.0035102));
     }
 };
 
