@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <limits>
 #include <vector>
-#include <sys/time.h>
+#include <time.h>
 #include "mpi.h"
 
 using std::numeric_limits;
@@ -15,6 +15,8 @@ using std::vector;
 class MPITiming {
 public:
     typedef enum {Min, Max, Median, Mean} Stat;
+    typedef double timing_t;
+    static const int MPI_TIMING_T = MPI_DOUBLE;
 
     MPITiming(MPI_Comm c) : _comm(c) {
         MPI_Comm_rank(_comm, &_rank);
@@ -57,7 +59,17 @@ public:
         }
     }
 
-    void record(float sec) {
+    void start() {
+        clock_gettime(CLOCK_MONOTONIC, &_start_time);
+    }
+
+    timing_t stop() {
+        clock_gettime(CLOCK_MONOTONIC, &_stop_time);
+        timing_t sec = (_stop_time.tv_sec - _start_time.tv_sec) + (_stop_time.tv_nsec - _start_time.tv_nsec) / 1e9;
+        return sec;
+    }
+
+    void record(timing_t sec) {
         _timings.push_back(sec);
     }
 
@@ -75,32 +87,32 @@ public:
         assert(_usempi);
         const int tag = 0;
         if (_rank == 0) {
-            vector<float> results;
-            vector<float> percentilelower, percentileupper;
+            vector<timing_t> results;
+            vector<timing_t> percentilelower, percentileupper;
             results.push_back(_reduced);
             percentilelower.push_back(_percentile_lower);
             percentileupper.push_back(_percentile_upper);
             for (int i = 1; i < _numprocs; i++) {
-                float t;
-                MPI_Recv(&t, 1, MPI_FLOAT, i, tag, _comm, MPI_STATUS_IGNORE);
+                timing_t t;
+                MPI_Recv(&t, 1, MPI_TIMING_T, i, tag, _comm, MPI_STATUS_IGNORE);
                 results.push_back(t);
-                MPI_Recv(&t, 1, MPI_FLOAT, i, tag, _comm, MPI_STATUS_IGNORE);
+                MPI_Recv(&t, 1, MPI_TIMING_T, i, tag, _comm, MPI_STATUS_IGNORE);
                 percentilelower.push_back(t);
-                MPI_Recv(&t, 1, MPI_FLOAT, i, tag, _comm, MPI_STATUS_IGNORE);
+                MPI_Recv(&t, 1, MPI_TIMING_T, i, tag, _comm, MPI_STATUS_IGNORE);
                 percentileupper.push_back(t);
             }
             _gathered = compute_stat(results, stat);
             _gathered_percentile_lower = compute_stat(percentilelower, Min);
             _gathered_percentile_upper = compute_stat(percentileupper, Max);
         } else {
-            MPI_Send(&_reduced, 1, MPI_FLOAT, 0, tag, _comm);
-            MPI_Send(&_percentile_lower, 1, MPI_FLOAT, 0, tag, _comm);
-            MPI_Send(&_percentile_upper, 1, MPI_FLOAT, 0, tag, _comm);
+            MPI_Send(&_reduced, 1, MPI_TIMING_T, 0, tag, _comm);
+            MPI_Send(&_percentile_lower, 1, MPI_TIMING_T, 0, tag, _comm);
+            MPI_Send(&_percentile_upper, 1, MPI_TIMING_T, 0, tag, _comm);
         }
     }
 
     // Return the gathered result.
-    float gathered() const {
+    timing_t gathered() const {
         assert(_usempi);
         return _gathered;
     }
@@ -108,13 +120,14 @@ private:
     bool _usempi;
     int _rank, _numprocs;
     MPI_Comm _comm;
-    vector<float> _timings;
-    float _reduced;
-    float _percentile_lower, _percentile_upper;
-    float _gathered;
-    float _gathered_percentile_lower, _gathered_percentile_upper;
+    vector<timing_t> _timings;
+    timing_t _reduced;
+    timing_t _percentile_lower, _percentile_upper;
+    timing_t _gathered;
+    timing_t _gathered_percentile_lower, _gathered_percentile_upper;
+    struct timespec _start_time, _stop_time;
 
-    float compute_stat(const vector<float> &values, Stat stat) const {
+    timing_t compute_stat(const vector<timing_t> &values, Stat stat) const {
         switch (stat) {
         case Min:
             return compute_min(values);
@@ -129,25 +142,25 @@ private:
         return 0.0;
     }
 
-    float compute_min(const vector<float> &values) const {
-        float min = numeric_limits<float>::max();
-        for (float v : values) {
+    timing_t compute_min(const vector<timing_t> &values) const {
+        timing_t min = numeric_limits<timing_t>::max();
+        for (timing_t v : values) {
             min = v <= min ? v : min;
         }
         return min;
     }
 
-    float compute_max(const vector<float> &values) const {
-        float max = -numeric_limits<float>::max();
-        for (float v : values) {
+    timing_t compute_max(const vector<timing_t> &values) const {
+        timing_t max = -numeric_limits<timing_t>::max();
+        for (timing_t v : values) {
             max = v >= max ? v : max;
         }
         return max;
     }
 
-    float compute_median(const vector<float> &values) const {
-        float median = 0;
-        vector<float> tmp(values.begin(), values.end());
+    timing_t compute_median(const vector<timing_t> &values) const {
+        timing_t median = 0;
+        vector<timing_t> tmp(values.begin(), values.end());
         int midpoint = tmp.size() / 2;
         std::sort(tmp.begin(), tmp.end());
         if (tmp.size() % 2 == 0) {
@@ -158,42 +171,42 @@ private:
         return median;
     }
 
-    float compute_mean(const vector<float> &values) const {
-        float sum = 0;
-        for (float v : values) {
+    timing_t compute_mean(const vector<timing_t> &values) const {
+        timing_t sum = 0;
+        for (timing_t v : values) {
             sum += v;
         }
         return sum / values.size();
     }
 
-    float compute_percentile(const vector<float> &values, int percentile) const {
+    timing_t compute_percentile(const vector<timing_t> &values, int percentile) const {
         assert(0 < percentile && percentile <= 100);
         if (values.size() == 1) return values[0];
-        float result = 0;
-        vector<float> tmp(values.begin(), values.end());
+        timing_t result = 0;
+        vector<timing_t> tmp(values.begin(), values.end());
         std::sort(tmp.begin(), tmp.end());
         if (percentile == 100) {
             return tmp[tmp.size() - 1];
         }
-        float index = (percentile / 100.0f) * (tmp.size() - 1);
+        timing_t index = (percentile / 100.0) * (tmp.size() - 1);
         int lower = floor(index), upper = ceil(index);
         assert(0 <= lower && lower < tmp.size() && 0 <= upper && upper < tmp.size());
         if (lower == upper) {
             return tmp[upper];
         } else {
-            float frac, integ;
-            frac = modff(index, &integ);
+            timing_t frac, integ;
+            frac = modf(index, &integ);
             return tmp[lower] + (tmp[upper] - tmp[lower]) * frac;
         }
     }
 
-    bool eq(float a, float b) const {
-        const float thresh = 0.00001;
+    bool eq(timing_t a, timing_t b) const {
+        const timing_t thresh = 0.00001;
         return a == b || (std::abs(a - b) / b) < thresh;
     }
 
     void tests() const {
-        vector<float> values({5, 2, -16, 104, 22});
+        vector<timing_t> values({5, 2, -16, 104, 22});
         assert(eq(compute_min(values), -16));
         assert(eq(compute_max(values), 104));
         assert(eq(compute_mean(values), 23.4));

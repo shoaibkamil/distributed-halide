@@ -86,16 +86,14 @@ int main(int argc, char **argv) {
         timing = MPITiming(MPI_COMM_WORLD);
         timing.barrier();
 #endif
-    timeval t1, t2;
     for (int i = 0; i < niters; i++) {
-        gettimeofday(&t1, NULL);
+        timing.start();
 #ifdef DISTRIBUTED
         blur_y.realize(output.get_buffer());
 #else
         blur_y.realize(output);
 #endif
-        gettimeofday(&t2, NULL);
-        float t = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0f;
+        MPITiming::timing_t t = timing.stop();
         timing.record(t);
     }
     timing.reduce(MPITiming::Median);
