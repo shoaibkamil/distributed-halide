@@ -182,7 +182,6 @@ private:
     timing_t compute_percentile(const vector<timing_t> &values, int percentile) const {
         assert(0 < percentile && percentile <= 100);
         if (values.size() == 1) return values[0];
-        timing_t result = 0;
         vector<timing_t> tmp(values.begin(), values.end());
         std::sort(tmp.begin(), tmp.end());
         if (percentile == 100) {
@@ -190,7 +189,8 @@ private:
         }
         timing_t index = (percentile / 100.0) * (tmp.size() - 1);
         int lower = floor(index), upper = ceil(index);
-        assert(0 <= lower && lower < tmp.size() && 0 <= upper && upper < tmp.size());
+        assert(0 <= lower && lower < (int)tmp.size() &&
+               0 <= upper && upper < (int)tmp.size());
         if (lower == upper) {
             return tmp[upper];
         } else {

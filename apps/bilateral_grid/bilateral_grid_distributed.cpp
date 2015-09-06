@@ -187,12 +187,10 @@ int main(int argc, char **argv) {
     const int niters = 50;
     MPITiming timing(MPI_COMM_WORLD);
     timing.barrier();
-    timeval t1, t2;
     for (int i = 0; i < niters; i++) {
-        gettimeofday(&t1, NULL);
+        timing.start();
         bilateral_grid.realize(output.get_buffer());
-        gettimeofday(&t2, NULL);
-        float t = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.0f;
+        MPITiming::timing_t t = timing.stop();
         timing.record(t);
     }
     timing.reduce(MPITiming::Median);
