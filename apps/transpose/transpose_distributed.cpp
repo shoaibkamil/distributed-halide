@@ -8,7 +8,7 @@ using namespace Halide;
 
 std::default_random_engine generator(0);
 std::uniform_real_distribution<float> distribution(10, 500);
-Var x("x"), y("y"), xi, yi;
+Var x("x"), y("y"), xi, yi, tile;
 
 float rndflt() {
     return distribution(generator);
@@ -19,20 +19,28 @@ bool float_eq(float a, float b) {
     return a == b || (std::abs(a - b) / b) < thresh;
 }
 
+// Hack to make sure we use the best non-distributed schedule for the
+// baseline when running scalability tests.
+bool actually_distributed() {
+    char *e = getenv("HL_DISABLE_DISTRIBUTED");
+    // disable = 0 => return true
+    // disable != 0 => return false
+    return !e || atoi(e) == 0;
+}
+
 Func build(Func input, bool distributed) {
     Func block, block_transpose, output;
     block(x, y) = input(x, y);
     block_transpose(x, y) = block(y, x);
     output(x, y) = block_transpose(x, y);
 
-    // Do 8 vectorized loads from the input.
-    block.compute_at(output, x).vectorize(x).unroll(y);
-    block_transpose.compute_at(output, x).vectorize(y).unroll(x);
-    output.tile(x, y, xi, yi, 8, 8).vectorize(xi).unroll(yi);
-    output.parallel(y);
-
-    if (distributed) {
+    if (distributed && actually_distributed()) {
+        output.split(x, x, xi, 16).vectorize(xi);
+        output.parallel(y);
         output.distribute(y);
+    } else {
+        output.tile(x, y, xi, yi, 16, 16).vectorize(xi).unroll(yi);
+        output.parallel(y);
     }
 
     return output;
@@ -47,7 +55,7 @@ int main(int argc, char **argv) {
     const int w = std::stoi(argv[1]), h = std::stoi(argv[2]);
 
     // Image<float> global_input(w, h), global_output(w, h);
-    DistributedImage<float> input(w, h), output(w, h);
+    DistributedImage<float> input(w, h), output(h, w);
 
     Func accessor, global_accessor;
     accessor(x, y) = input(x, y);
@@ -56,10 +64,9 @@ int main(int argc, char **argv) {
     // Func transpose_correct = build(global_accessor, false);
     Func transpose_distributed = build(accessor, true);
 
-    transpose_distributed.distribute(y);
-
     output.set_domain(x, y);
-    output.placement().tile(x, y, xi, yi, 8, 8).distribute(y);
+    //output.placement().tile(x, y, xi, yi, 16, 16).distribute(y);
+    output.placement().distribute(y);
     output.allocate();
     input.set_domain(x, y);
     input.placement().distribute(x);
