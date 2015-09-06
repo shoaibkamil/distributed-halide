@@ -167,30 +167,32 @@ int main(int argc, char **argv) {
     // global_input = Image<float>(w, h, d);
     // global_output = Image<float>(ow, oh, od);
 
-    Func resize_correct = build(false);
+    //Func resize_correct = build(false);
     Func resize_distributed = build(true);
 
     output.set_domain(x, y, c);
     output.placement().split(y, yo, y, 8).distribute(yo);
     output.allocate();
     input.set_domain(x, y, c);
-    input.placement().distribute(y);
+    input.placement().split(y, yo, y, 8).distribute(yo);
     input.allocate(resize_distributed, output);
 
     for (int c = 0; c < d; c++) {
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
-                float v = rndflt();
-                if (input.mine(x, y, c)) {
-                    int lx = input.local(0, x), ly = input.local(1, y), lc = input.local(2, c);
-                    input(lx, ly, lc) = v;
-                }
+                float v = x+y+c;//rndflt();
+                input(x, y, c) = v;
+                // if (input.mine(x, y, c)) {
+                //     int lx = input.local(0, x), ly = input.local(1, y), lc = input.local(2, c);
+                //     input(lx, ly, lc) = v;
+                // }
                 // global_input(x, y, c) = v;
             }
         }
     }
 
-    resize_distributed.realize(output.get_buffer());
+    resize_distributed.compile_jit();
+
     // resize_correct.realize(global_output);
 
     const int niters = 50;
