@@ -97,6 +97,17 @@ Box offset_box(const Box &b, const vector<Expr> &offset) {
     return result;
 }
 
+Expr same_boxes(const Box &a, const Box &b) {
+    if (a.size() != b.size()) {
+        return const_false();
+    }
+    Expr e = simplify((a[0].min - b[0].min == 0) && (a[0].max - b[0].max == 0));
+    for (unsigned i = 1; i < a.size(); i++) {
+        e = e && simplify((a[i].min - b[i].min == 0) && (a[i].max - b[i].max == 0));
+    }
+    return e;
+}
+
 Expr round_away_from_zero(Expr e) {
     return select(e < 0, floor(e), ceil(e));
 }
@@ -771,19 +782,24 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     Box have_parameterized = simplify_box(have, env);
     Box need_parameterized = simplify_box(need, env);
     BoxIntersection I;
+    Expr ghost_zone_empty;
 
     switch (cmd) {
     case Send:
         I = BoxIntersection(have, need_parameterized);
+        ghost_zone_empty = same_boxes(have_parameterized, need_parameterized);
         break;
     case Recv:
         I = BoxIntersection(have_parameterized, need);
+        ghost_zone_empty = same_boxes(have, need);
         break;
     }
 
+    ghost_zone_empty = const_false();
+
     Expr addr;
     Expr numbytes = Var("msgsize");
-    Expr cond = And::make(NE::make(Var("Rank"), Var("r")), GT::make(numbytes, 0));
+    Expr cond = And::make(NE::make(Var("Rank"), Var("r")), And::make(GT::make(numbytes, 0), Not::make(ghost_zone_empty)));
     Stmt commstmt;
 
     // Convert the intersection box to "local" coordinates (the
