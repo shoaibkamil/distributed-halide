@@ -4,7 +4,7 @@
 
 using namespace Halide;
 
-const int bit_width = 8, schedule = 0;
+const int bit_width = 8, schedule = 1;
 
 Var x, y, tx("tx"), ty("ty"), c("c"), xi, yi;
 

@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
-            float v = rndflt();
+            float v = x+y;//rndflt();
             if (input.mine(x, y)) {
                 int lx = input.local(0, x), ly = input.local(1, y);
                 input(lx, ly) = v;

@@ -36,7 +36,7 @@ def make_run_cmd(config, num_nodes, baseline=False):
         os.environ["HL_DISABLE_DISTRIBUTED"] = "1"
     else:
         os.environ["HL_DISABLE_DISTRIBUTED"] = "0"
-    cmd = ["srun", "--exclude=lanka11", "--exclusive"]
+    cmd = ["srun", "--exclusive"]
     # if nranks == num_nodes * 2:
     #     cmd.extend(["--cpu_bind=verbose,sockets"])
     # elif nranks > num_nodes:
