@@ -16,6 +16,14 @@ distributed_resize: ../../ resize_distributed.cpp
 	$(MAKE) -C ../../ $(LIB_HALIDE)
 	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) resize_distributed.cpp ../../$(LIB_HALIDE) -o distributed_resize -lpthread -ldl -lz $(PNGFLAGS) $(LDFLAGS)
 
+distributed_downsample: ../../ downsample_distributed.cpp
+	$(MAKE) -C ../../ $(LIB_HALIDE)
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) downsample_distributed.cpp ../../$(LIB_HALIDE) -o distributed_downsample -lpthread -ldl -lz $(PNGFLAGS) $(LDFLAGS)
+
+distributed_upsample: ../../ upsample_distributed.cpp
+	$(MAKE) -C ../../ $(LIB_HALIDE)
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) upsample_distributed.cpp ../../$(LIB_HALIDE) -o distributed_upsample -lpthread -ldl -lz $(PNGFLAGS) $(LDFLAGS)
+
 out.png: resize
 	./resize ../images/rgba.png out.png -f 2.0 -t cubic -s 3
 
