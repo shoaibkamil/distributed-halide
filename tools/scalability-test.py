@@ -43,7 +43,7 @@ def make_run_cmd(config, num_nodes, baseline=False):
     #     cmd.extend(["--cpu_bind=verbose,cores"])
     # else:
     #     cmd.extend(["--cpu_bind=verbose"])
-    if baseline or num_nodes == 1:
+    if baseline:
         nranks = num_nodes
         cmd.extend(["--cpu_bind=verbose"])
     else:
