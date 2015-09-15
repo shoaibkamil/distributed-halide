@@ -198,18 +198,23 @@ public:
         _type(type), _btype(btype), _name(name) {
         internal_assert(btype == InputImage);
         internal_assert(buffer.defined());
-        internal_assert(buffer.distributed());
         _distributed = buffer.distributed();
         _dimensions = buffer.dimensions();
         for (int i = 0; i < buffer.dimensions(); i++) {
-            Expr min = buffer.allocated_min(i);
-            Expr max = min + buffer.allocated_extent(i) - 1;
-            _shape.push_back(Interval(min, max));
-
-            // These are parameterized by rank and number of processors.
-            Expr havemin = buffer.local_min(i);
-            Expr havemax = havemin + buffer.local_extent(i) - 1;
-            _bounds.push_back(Interval(havemin, havemax));
+            if (_distributed) {
+                Expr min = buffer.allocated_min(i);
+                Expr max = min + buffer.allocated_extent(i) - 1;
+                _shape.push_back(Interval(min, max));
+                // These are parameterized by rank and number of processors.
+                Expr havemin = buffer.local_min(i);
+                Expr havemax = havemin + buffer.local_extent(i) - 1;
+                _bounds.push_back(Interval(havemin, havemax));
+            } else {
+                Expr min = buffer.min(i);
+                Expr max = min + buffer.extent(i) - 1;
+                _shape.push_back(Interval(min, max));
+                _bounds.push_back(Interval(min, max));
+            }
         }
     }
 
