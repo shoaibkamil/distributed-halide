@@ -32,7 +32,6 @@ using std::set;
 using std::map;
 
 namespace {
-const bool trace_have_needs = false;
 const bool trace_provides = false;
 const bool trace_messages = false;
 const bool trace_progress = false;
@@ -86,6 +85,17 @@ string box2str(const Box &b) {
     mins << ")";
     maxs << ")";
     return mins.str() + " to " + maxs.str();
+}
+
+vector<Expr> dims_to_print(const Box &b, const string &name) {
+    vector<Expr> result;
+    for (unsigned i = 0; i < b.size(); i++) {
+        result.push_back(string("\n   ") + name + "[" + std::to_string(i) + "].min =");
+        result.push_back(b[i].min);
+        result.push_back(name + "[" + std::to_string(i) + "].max =");
+        result.push_back(b[i].max);
+    }
+    return result;
 }
 
 Box offset_box(const Box &b, const vector<Expr> &offset) {
@@ -837,62 +847,42 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
 
     Box shape = buf.shape();
     if (trace_messages && cmd == Send) {
-        Stmt p = Evaluate::make(print_when(cond, {string("rank"), rank(),
-                        string("sending to rank"), Var("r"),
-                        string("buffer " + buf.name() + ":\n"),
-                        string("size"),
-                        I.box()[0].max - I.box()[0].min + 1,
-                        string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
-                        string("x"), I.box()[2].max - I.box()[2].min + 1, string("\n"),
-                        string("\n   shape[0].min ="), shape[0].min, string("shape[0].max ="), shape[0].max,
-                        string("\n   shape[1].min ="), shape[1].min, string("shape[1].max ="), shape[1].max,
-                        string("\n   shape[2].min ="), shape[2].min, string("shape[2].max ="), shape[2].max,
-                        string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
-                        string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
-                        string("\n   have[2].min ="), have[2].min, string("have[2].max ="), have[2].max,
-                        string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
-                        string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max,
-                        string("\n   need[2].min ="), need[2].min, string("need[2].max ="), need[2].max,
-                        string("\n   need_parameterized[0].min ="), need_parameterized[0].min, string("need_parameterized[0].max ="), need_parameterized[0].max,
-                        string("\n   need_parameterized[1].min ="), need_parameterized[1].min, string("need_parameterized[1].max ="), need_parameterized[1].max,
-                        string("\n   need_parameterized[2].min ="), need_parameterized[2].min, string("need_parameterized[2].max ="), need_parameterized[2].max,
-                        string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
-                        string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
-                        string("\n   I.box()[2].min ="), I.box()[2].min, string("I.box()[2].max ="), I.box()[2].max,
-                        string("\n   local_have[0].min ="), local_have[0].min, string("local_have[0].max ="), local_have[0].max,
-                        string("\n   local_have[1].min ="), local_have[1].min, string("local_have[1].max ="), local_have[1].max,
-                        string("\n   local_have[2].min ="), local_have[2].min, string("local_have[2].max ="), local_have[2].max
-                        }));
+        vector<Expr> msg = {string("rank"), rank(), string("sending to rank"), Var("r"),
+                            string("buffer " + buf.name() + ":\n"), string("size")};
+        vector<Expr> boxstr = dims_to_print(I.box(), "I.box()");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(shape, "shape");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(have, "have");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(need, "need");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(need_parameterized, "need_parameterized");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(local_have, "local_have");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+
+        Stmt p = Evaluate::make(print_when(cond, msg));
         commstmt = Block::make(p, commstmt);
     }
 
     if (trace_messages && cmd == Recv) {
-        Stmt p = Evaluate::make(print_when(cond, {string("rank"), rank(),
-                        string("receiving from rank"), Var("r"),
-                        string("buffer " + buf.name() + ":\n"),
-                        string("size"),
-                        I.box()[0].max - I.box()[0].min + 1,
-                        string("x"), I.box()[1].max - I.box()[1].min + 1, string("\n"),
-                        string("x"), I.box()[2].max - I.box()[2].min + 1, string("\n"),
-                        string("\n   shape[0].min ="), shape[0].min, string("shape[0].max ="), shape[0].max,
-                        string("\n   shape[1].min ="), shape[1].min, string("shape[1].max ="), shape[1].max,
-                        string("\n   shape[2].min ="), shape[2].min, string("shape[2].max ="), shape[2].max,
-                        string("\n   have_parameterized[0].min ="), have_parameterized[0].min, string("have_parameterized[0].max ="), have_parameterized[0].max,
-                        string("\n   have_parameterized[1].min ="), have_parameterized[1].min, string("have_parameterized[1].max ="), have_parameterized[1].max,
-                        string("\n   have_parameterized[2].min ="), have_parameterized[2].min, string("have_parameterized[2].max ="), have_parameterized[2].max,
-                        string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
-                        string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
-                        string("\n   have[2].min ="), have[2].min, string("have[2].max ="), have[2].max,
-                        string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
-                        string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max,
-                        string("\n   need[2].min ="), need[2].min, string("need[2].max ="), need[2].max,
-                        string("\n   I.box()[0].min ="), I.box()[0].min, string("I.box()[0].max ="), I.box()[0].max,
-                        string("\n   I.box()[1].min ="), I.box()[1].min, string("I.box()[1].max ="), I.box()[1].max,
-                        string("\n   I.box()[2].min ="), I.box()[2].min, string("I.box()[2].max ="), I.box()[2].max,
-                        string("\n   local_need[0].min ="), local_need[0].min, string("local_need[0].max ="), local_need[0].max,
-                        string("\n   local_need[1].min ="), local_need[1].min, string("local_need[1].max ="), local_need[1].max,
-                        string("\n   local_need[2].min ="), local_need[2].min, string("local_need[2].max ="), local_need[2].max
-                        }));
+        vector<Expr> msg = {string("rank"), rank(), string("receiving from rank"), Var("r"),
+                            string("buffer " + buf.name() + ":\n"), string("size")};
+        vector<Expr> boxstr = dims_to_print(I.box(), "I.box()");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(shape, "shape");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(have, "have");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(need, "need");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(have_parameterized, "have_parameterized");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+        boxstr = dims_to_print(local_need, "local_need");
+        msg.insert(msg.end(), boxstr.begin(), boxstr.end());
+
+        Stmt p = Evaluate::make(print_when(cond, msg));
         commstmt = Block::make(p, commstmt);
     }
 
@@ -1009,33 +999,6 @@ class InjectCommunication : public IRMutator {
         }
 
         newstmt = update_io_buffers(newstmt, name, required, provided);
-
-        if (trace_have_needs) {
-            Stmt p;
-            for (const auto &in : required) {
-                Box have = in.have(), need = in.need(name);
-                if (in.name() == "f") continue;
-                Stmt pp = Evaluate::make(print_when(rank() == 1, {string("rank"), rank(),
-                                string("function " + name + " requires"),
-                                string("buffer " + in.name() + ":\n"),
-                                string("have size"),
-                                have[0].max - have[0].min + 1, string("x"), have[1].max - have[1].min + 1, string("\n"),
-                                string("need size (" + in.name() + ")"),
-                                need[0].max - need[0].min + 1, string("x"), need[1].max - need[1].min + 1, string("\n"),
-                                string("\n   have[0].min ="), have[0].min, string("have[0].max ="), have[0].max,
-                                string("\n   have[1].min ="), have[1].min, string("have[1].max ="), have[1].max,
-                                string("\n   need[0].min ="), need[0].min, string("need[0].max ="), need[0].max,
-                                string("\n   need[1].min ="), need[1].min, string("need[1].max ="), need[1].max
-                                }));
-                if (p.defined()) {
-                    p = Block::make(p, pp);
-                } else {
-                    p = pp;
-                }
-            }
-            newstmt = Block::make(p, newstmt);
-        }
-
         return newstmt;
     }
 
