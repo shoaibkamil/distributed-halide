@@ -83,7 +83,8 @@ Stmt partial_lower(Func f, bool cap_extents) {
         env.insert(more_funcs.begin(), more_funcs.end());
     }
     vector<string> order = realization_order(outputs, env);
-    Stmt s = schedule_functions(outputs, order, env, !t.has_feature(Target::NoAsserts));
+    bool any_memoized = false;
+    Stmt s = schedule_functions(outputs, order, env, any_memoized, !t.has_feature(Target::NoAsserts));
     FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
     s = distribute_loops_only(s, env, cap_extents);
     s = bounds_inference(s, outputs, order, env, func_bounds);

@@ -1477,7 +1477,8 @@ Stmt partial_lower(Func f) {
         env.insert(more_funcs.begin(), more_funcs.end());
     }
     vector<string> order = realization_order(outputs, env);
-    Stmt s = schedule_functions(outputs, order, env, !t.has_feature(Target::NoAsserts));
+    bool any_memoized = false;
+    Stmt s = schedule_functions(outputs, order, env, any_memoized, !t.has_feature(Target::NoAsserts));
     FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
     FindDistributedLoops find;
     s.accept(&find);
