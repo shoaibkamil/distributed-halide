@@ -209,7 +209,8 @@ Expr And::make(Expr a, Expr b) {
     internal_assert(b.defined()) << "And of undefined\n";
     internal_assert(a.type().is_bool()) << "lhs of And is not a bool\n";
     internal_assert(b.type().is_bool()) << "rhs of And is not a bool\n";
-
+    internal_assert(a.type() == b.type()) << "And of mismatched types\n";
+    
     And *node = new And;
     node->type = Bool(a.type().width);
     node->a = a;
@@ -222,7 +223,8 @@ Expr Or::make(Expr a, Expr b) {
     internal_assert(b.defined()) << "Or of undefined\n";
     internal_assert(a.type().is_bool()) << "lhs of Or is not a bool\n";
     internal_assert(b.type().is_bool()) << "rhs of Or is not a bool\n";
-
+    internal_assert(a.type() == b.type()) << "Or of mismatched types\n";
+    
     Or *node = new Or;
     node->type = Bool(a.type().width);
     node->a = a;
@@ -390,7 +392,8 @@ Stmt Provide::make(std::string name, const std::vector<Expr> &values, const std:
 }
 
 Stmt Allocate::make(std::string name, Type type, const std::vector<Expr> &extents,
-                 Expr condition, Stmt body) {
+                    Expr condition, Stmt body,
+                    Expr new_expr, std::string free_function) {
     for (size_t i = 0; i < extents.size(); i++) {
         internal_assert(extents[i].defined()) << "Allocate of undefined extent\n";
         internal_assert(extents[i].type().is_scalar() == 1) << "Allocate of vector extent\n";
@@ -403,6 +406,8 @@ Stmt Allocate::make(std::string name, Type type, const std::vector<Expr> &extent
     node->name = name;
     node->type = type;
     node->extents = extents;
+    node->new_expr = new_expr;
+    node->free_function = free_function;
     node->condition = condition;
     node->body = body;
     return node;
@@ -604,9 +609,9 @@ Call::ConstString Call::absd = "absd";
 Call::ConstString Call::lerp = "lerp";
 Call::ConstString Call::random = "random";
 Call::ConstString Call::rewrite_buffer = "rewrite_buffer";
-Call::ConstString Call::profiling_timer = "profiling_timer";
 Call::ConstString Call::create_buffer_t = "create_buffer_t";
 Call::ConstString Call::copy_buffer_t = "copy_buffer_t";
+Call::ConstString Call::extract_buffer_host = "extract_buffer_host";
 Call::ConstString Call::extract_buffer_min = "extract_buffer_min";
 Call::ConstString Call::extract_buffer_max = "extract_buffer_max";
 Call::ConstString Call::set_host_dirty = "set_host_dirty";
@@ -633,6 +638,7 @@ Call::ConstString Call::copy_memory = "copy_memory";
 Call::ConstString Call::likely = "likely";
 Call::ConstString Call::make_int64 = "make_int64";
 Call::ConstString Call::make_float64 = "make_float64";
+Call::ConstString Call::register_destructor = "register_destructor";
 
 }
 }

@@ -10,6 +10,7 @@
 
 #include "Debug.h"
 #include "Error.h"
+#include "Float16.h"
 #include "Type.h"
 #include "IntrusivePtr.h"
 #include "Util.h"
@@ -139,7 +140,7 @@ struct IntImm : public ExprNode<IntImm> {
 
 private:
     /** ints from -8 to 8 */
-    static IntImm small_int_cache[17];
+    EXPORT static IntImm small_int_cache[17];
 };
 
 /** Floating point constants */
@@ -183,6 +184,11 @@ struct Expr : public Internal::IRHandle {
     EXPORT Expr(int x) : IRHandle(Internal::IntImm::make(x)) {
     }
 
+    /** Make an expression representing a const 16-bit float (IEEE-754 2008
+     * binary32, also know as "half"), given a float16_t.  This is internally
+     * represented as a cast of a FloatImm. */
+    EXPORT Expr(float16_t x);
+
     /** Make an expression representing a const 32-bit float (i.e. a FloatImm) */
     EXPORT Expr(float x) : IRHandle(Internal::FloatImm::make(x)) {
     }
@@ -224,7 +230,9 @@ enum class DeviceAPI {
     CUDA,
     OpenCL,
     GLSL,
-    Renderscript
+    Renderscript,
+    OpenGLCompute,
+    Metal
 };
 
 namespace Internal {

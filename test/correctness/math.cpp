@@ -15,18 +15,23 @@ bool relatively_equal(value_t a, value_t b) {
         double relative_error;
 
         // This test seems a bit high.
-        if (fabs(db - da) < .0001)
-          return true;
+        if (fabs(db - da) < .0001) {
+            return true;
+        }
 
-        if (fabs(da) > fabs(db))
+        if (fabs(da) > fabs(db)) {
             relative_error = fabs((db - da) / da);
-        else
+        } else {
             relative_error = fabs((db - da) / db);
+        }
 
-        if (relative_error < .0000005)
-          return true;
-        std::cerr << "relatively_equal failed for (" << a << ", " << b <<
-          ") with relative error " << relative_error << std::endl;
+        if (relative_error < .000001) {
+            return true;
+        }
+
+        std::cerr
+            << "relatively_equal failed for (" << a << ", " << b
+            << ") with relative error " << relative_error << std::endl;
     } else {
         std::cerr << "relatively_equal failed for (" << (double)a << ", " << (double)b << ")" << std::endl;
     }
@@ -51,9 +56,7 @@ uint32_t absd(uint32_t a, uint32_t b) { return a < b ? b - a : a - b; }
 #define fun_1(type_ret, type, name, c_name)                                   \
     void test_##type##_##name(buffer_t *in_buf) {                             \
         Target target = get_jit_target_from_environment();                    \
-        if (target.has_feature(Target::OpenCL) &&                             \
-            !target.has_feature(Target::CLDoubles) &&                         \
-            type_of<type>() == type_of<double>()) {                           \
+        if (!target.supports_type(type_of<type>())) {                         \
             return;                                                           \
         }                                                                     \
         Func test_##name("test_" #name);                                      \
@@ -68,6 +71,8 @@ uint32_t absd(uint32_t a, uint32_t b) { return a < b ? b - a : a - b; }
         Image<type_ret> result = test_##name.realize(in_buf->extent[0], target);  \
         for (int i = 0; i < in_buf->extent[0]; i++) {                         \
           type_ret c_result = c_name(reinterpret_cast<type *>(in_buf->host)[i]);  \
+	  if (!relatively_equal(c_result, result(i)))			\
+	    printf("For " #name "(%.20f) == %.20f from cpu and %.20f from GPU.\n", (double)reinterpret_cast<type *>(in_buf->host)[i], (double)c_result, (double)result(i)); \
           assert(relatively_equal(c_result, result(i)) &&                     \
                  "Failure on function " #name);                               \
         }                                                                     \
@@ -77,9 +82,7 @@ uint32_t absd(uint32_t a, uint32_t b) { return a < b ? b - a : a - b; }
 #define fun_2(type_ret, type, name, c_name)                                         \
     void test_##type##_##name(buffer_t *in_buf) {                                   \
         Target target = get_jit_target_from_environment();                          \
-        if (target.has_feature(Target::OpenCL) &&                                   \
-            !target.has_feature(Target::CLDoubles) &&                               \
-            type_of<type>() == type_of<double>()) {                                 \
+        if (!target.supports_type(type_of<type>())) {                               \
             return;                                                                 \
         }                                                                           \
         Func test_##name("test_" #name);                                            \
@@ -91,7 +94,7 @@ uint32_t absd(uint32_t a, uint32_t b) { return a < b ? b - a : a - b; }
         if (target.has_gpu_feature()) {                                             \
           test_##name.gpu_tile(x, 8);                                               \
         }                                                                           \
-        Image<type_ret> result = test_##name.realize(in_buf->extent[1], target); \
+        Image<type_ret> result = test_##name.realize(in_buf->extent[1], target);    \
         for (int i = 0; i < in_buf->extent[1]; i++) {                               \
           type_ret c_result = c_name(reinterpret_cast<type *>(in_buf->host)[i * 2],     \
                                      reinterpret_cast<type *>(in_buf->host)[i * 2 + 1]);\

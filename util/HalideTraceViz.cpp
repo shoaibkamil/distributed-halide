@@ -7,7 +7,12 @@
 #include <string>
 #include <queue>
 #include <iostream>
+#ifdef _MSC_VER
+#include <io.h>
+typedef int ssize_t;
+#else
 #include <unistd.h>
+#endif
 #include <string.h>
 
 #include "inconsolata.h"
@@ -42,7 +47,7 @@ struct Packet {
     }
 
     int get_int_arg(int idx) const {
-        return ((int *)(payload + value_bytes()))[idx];
+        return ((const int *)(payload + value_bytes()))[idx];
     }
 
     template<typename T>
@@ -51,13 +56,13 @@ struct Packet {
         case 0: // int
             switch (bits) {
             case 8:
-                return (T)(((int8_t *)payload)[idx]);
+                return (T)(((const int8_t *)payload)[idx]);
             case 16:
-                return (T)(((int16_t *)payload)[idx]);
+                return (T)(((const int16_t *)payload)[idx]);
             case 32:
-                return (T)(((int32_t *)payload)[idx]);
+                return (T)(((const int32_t *)payload)[idx]);
             case 64:
-                return (T)(((int64_t *)payload)[idx]);
+                return (T)(((const int64_t *)payload)[idx]);
             default:
                 bad_type_error();
             }
@@ -65,13 +70,13 @@ struct Packet {
         case 1: // uint
             switch (bits) {
             case 8:
-                return (T)(((uint8_t *)payload)[idx]);
+                return (T)(((const uint8_t *)payload)[idx]);
             case 16:
-                return (T)(((uint16_t *)payload)[idx]);
+                return (T)(((const uint16_t *)payload)[idx]);
             case 32:
-                return (T)(((uint32_t *)payload)[idx]);
+                return (T)(((const uint32_t *)payload)[idx]);
             case 64:
-                return (T)(((uint64_t *)payload)[idx]);
+                return (T)(((const uint64_t *)payload)[idx]);
             default:
                 bad_type_error();
             }
@@ -79,9 +84,9 @@ struct Packet {
         case 2: // float
             switch (bits) {
             case 32:
-                return (T)(((float *)payload)[idx]);
+                return (T)(((const float *)payload)[idx]);
             case 64:
-                return (T)(((double *)payload)[idx]);
+                return (T)(((const double *)payload)[idx]);
             default:
                 bad_type_error();
             }
@@ -99,6 +104,7 @@ struct Packet {
         }
         assert(read_stdin(payload, payload_bytes()) &&
                "Unexpected EOF mid-packet");
+        name[16] = 0;
         return true;
     }
 
@@ -107,7 +113,7 @@ private:
     bool read_stdin(void *d, ssize_t size) {
         uint8_t *dst = (uint8_t *)d;
         if (!size) return true;
-        while (1) {
+        for (;;) {
             ssize_t s = read(0, dst, size);
             if (s == 0) {
                 // EOF
@@ -132,7 +138,7 @@ private:
 // A struct specifying a text label that will appear on the screen at some point.
 struct Label {
     const char *text;
-    int x, y;
+    int x, y, n;
 };
 
 // A struct specifying how a single Func will get visualized.
@@ -147,6 +153,7 @@ struct FuncDrawInfo {
     float min, max;
     vector<Label> labels;
     int first_draw_time;
+    bool blank_on_end_realization;
 
     FuncDrawInfo() {
         memset(this, 0, sizeof(FuncDrawInfo));
@@ -157,6 +164,7 @@ struct FuncDrawInfo {
                 "Func %s:\n"
                 " min: %f max: %f\n"
                 " color_dim: %d\n"
+                " blank: %d\n"
                 " dims: %d\n"
                 " zoom: %d\n"
                 " cost: %d\n"
@@ -166,6 +174,7 @@ struct FuncDrawInfo {
                 name,
                 min, max,
                 color_dim,
+                blank_on_end_realization,
                 dims,
                 zoom, cost, x, y,
                 x_stride[0], x_stride[1], x_stride[2], x_stride[3],
@@ -235,11 +244,15 @@ void usage() {
             "\n"
             " -t timestep: How many Halide computations should be covered by each\n"
             "    frame. Defaults to 10000.\n"
-            " -l func label x y: When func is first touched, the label appears at\n"
-            "    the given coordinates.\n"
+            " -d decay factor: How quickly should the yellow and blue highlights \n"
+            "    decay over time\n"
+            " -h hold frames: How many frames to output after the end of the trace. \n"
+            "    Defaults to 250.\n"
+            " -l func label x y n: When func is first touched, the label appears at\n"
+            "    the given coordinates and fades in over n frames.\n"
             "\n"
             " For each Func you want to visualize, also specify:\n"
-            " -f func_name min_value max_value color_dim zoom cost x y strides\n"
+            " -f func_name min_value max_value color_dim blank zoom cost x y strides\n"
             " where\n"
             "  func_name: The name of the func or input image\n"
             "\n"
@@ -252,6 +265,9 @@ void usage() {
             "  color_dim: Which dimension of the Func corresponds to color\n"
             "    channels. Usually 2. Set it to -1 if you want to visualize the Func\n"
             "    as grayscale\n"
+            "\n"
+            "  blank: Should the output occupied by the Func be set to black on end\n"
+            "    realization events. Zero for no, one for yes.\n"
             "\n"
             "  zoom: Each value of the Func will draw as a zoom x zoom box in the output\n"
             "\n"
@@ -272,13 +288,15 @@ void usage() {
 }
 
 int run(int argc, char **argv) {
-    assert(sizeof(Packet) == 4096);
+    static_assert(sizeof(Packet) == 4096, "");
 
     // State that determines how different funcs get drawn
     int frame_width = 1920, frame_height = 1080;
+    int decay_factor = 2;
     map<string, FuncDrawInfo> draw_info;
 
     int timestep = 10000;
+    int hold_frames = 250;
 
     // Parse command line args
     int i = 1;
@@ -292,7 +310,7 @@ int run(int argc, char **argv) {
             frame_width = atoi(argv[++i]);
             frame_height = atoi(argv[++i]);
         } else if (next == "-f") {
-            if (i + 8 >= argc) {
+            if (i + 9 >= argc) {
                 usage();
                 return -1;
             }
@@ -301,6 +319,7 @@ int run(int argc, char **argv) {
             fdi.min = atof(argv[++i]);
             fdi.max = atof(argv[++i]);
             fdi.color_dim = atoi(argv[++i]);
+            fdi.blank_on_end_realization = atoi(argv[++i]);
             fdi.zoom = atoi(argv[++i]);
             fdi.cost = atoi(argv[++i]);
             fdi.x = atoi(argv[++i]);
@@ -314,7 +333,7 @@ int run(int argc, char **argv) {
             fdi.dump(func);
 
         } else if (next == "-l") {
-            if (i + 4 >= argc) {
+            if (i + 5 >= argc) {
                 usage();
                 return -1;
             }
@@ -322,7 +341,8 @@ int run(int argc, char **argv) {
             char *text = argv[++i];
             int x = atoi(argv[++i]);
             int y = atoi(argv[++i]);
-            Label l = {text, x, y};
+            int n = atoi(argv[++i]);
+            Label l = {text, x, y, n};
             fprintf(stderr, "Adding label %s to func %s\n",
                     text, func);
             draw_info[func].labels.push_back(l);
@@ -333,6 +353,20 @@ int run(int argc, char **argv) {
             }
             assert(i + 1 < argc);
             timestep = atoi(argv[++i]);
+        } else if (next == "-d") {
+            if (i + 1 >= argc) {
+                usage();
+                return -1;
+            }
+            assert(i + 1 < argc);
+            decay_factor = atoi(argv[++i]);
+        } else if (next == "-h") {
+            if (i + 1 >= argc) {
+                usage();
+                return -1;
+            }
+            assert(i + 1 < argc);
+            hold_frames = atoi(argv[++i]);
         } else {
             usage();
             return -1;
@@ -365,17 +399,16 @@ int run(int argc, char **argv) {
     memset(blend, 0, 4 * frame_width * frame_height);
 
     size_t end_counter = 0;
-    while (1) {
-        // Hold for 500 frames once the trace has finished.
+    for (;;) {
+        // Hold for some number of frames once the trace has finished.
         if (end_counter) {
             halide_clock += timestep;
-            end_counter++;
-            if (end_counter == 500) {
+            if (end_counter == (size_t)hold_frames) {
                 return 0;
             }
         }
 
-        if (halide_clock >= video_clock) {
+        while (halide_clock >= video_clock) {
             // Composite text over anim over image
             for (int i = 0; i < frame_width * frame_height; i++) {
                 uint8_t *anim_px  = (uint8_t *)(anim + i);
@@ -387,7 +420,7 @@ int run(int argc, char **argv) {
             }
 
             // Dump the frame
-            size_t bytes = 4 * frame_width * frame_height;
+            ssize_t bytes = 4 * frame_width * frame_height;
             ssize_t bytes_written = write(1, blend, bytes);
             if (bytes_written < bytes) {
                 fprintf(stderr, "Could not write frame to stdout.\n");
@@ -401,7 +434,7 @@ int run(int argc, char **argv) {
                 uint32_t color = anim[i];
                 uint32_t rgb = color & 0x00ffffff;
                 uint8_t alpha = (color >> 24);
-                alpha /= 2;
+                alpha /= decay_factor;
                 anim[i] = (alpha << 24) | rgb;
             }
         }
@@ -429,12 +462,14 @@ int run(int argc, char **argv) {
         case 1: // store
         {
             int frames_since_first_draw = (halide_clock - di.first_draw_time) / timestep;
-            if (frames_since_first_draw <= 10) {
-                uint32_t color = frames_since_first_draw * 26;
-                if (color > 255) color = 255;
-                color *= 0x10101;
-                for (size_t i = 0; i < di.labels.size(); i++) {
-                    const Label &label = di.labels[i];
+
+            for (size_t i = 0; i < di.labels.size(); i++) {
+                const Label &label = di.labels[i];
+                if (frames_since_first_draw <= label.n) {
+                    uint32_t color = ((1 + frames_since_first_draw) * 255) / label.n;
+                    if (color > 255) color = 255;
+                    color *= 0x10101;
+
                     draw_text(label.text, label.x, label.y, color, text, frame_width, frame_height);
                 }
             }
@@ -468,7 +503,7 @@ int run(int argc, char **argv) {
                     // If it's a store, or a load from an input,
                     // update one or more of the color channels of the
                     // image layer.
-                    if (p.event == 1 || p.parent == -1) {
+                    if (p.event == 1 || p.parent == 0xFFFFFFFF) {
                         update_image = true;
                         // Get the old color, in case we're only
                         // updating one of the color channels.
@@ -514,10 +549,28 @@ int run(int argc, char **argv) {
             break;
         }
         case 2: // begin realization
+            break;
         case 3: // end realization
-            // Add a time cost to the beginning and end of realizations
-            //halide_clock += 10000;
-            // TODO: draw a rectangle of some color?
+            if (di.blank_on_end_realization) {
+                assert(p.num_int_args >= 2 * di.dims);
+                int x_min = di.x, y_min = di.y;
+                int x_extent = 0, y_extent = 0;
+                for (int d = 0; d < di.dims; d++) {
+                    int m = p.get_int_arg(d * 2 + 0);
+                    int e = p.get_int_arg(d * 2 + 1);
+                    x_min += di.zoom * di.x_stride[d] * m;
+                    y_min += di.zoom * di.y_stride[d] * m;
+                    x_extent += di.zoom * di.x_stride[d] * e;
+                    y_extent += di.zoom * di.y_stride[d] * e;
+                }
+                if (x_extent == 0) x_extent = di.zoom;
+                if (y_extent == 0) y_extent = di.zoom;
+                for (int y = y_min; y < y_min + y_extent; y++) {
+                    for (int x = x_min; x < x_min + x_extent; x++) {
+                        image[y * frame_width + x] = 0;
+                    }
+                }
+            }
             break;
         case 4: // produce
         case 5: // update
@@ -539,4 +592,3 @@ int run(int argc, char **argv) {
 int main(int argc, char **argv) {
   run(argc, argv);
 }
-

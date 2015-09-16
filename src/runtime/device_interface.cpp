@@ -1,6 +1,7 @@
 #include "runtime_internal.h"
 #include "device_interface.h"
 #include "HalideRuntime.h"
+#include "printer.h"
 #include "scoped_mutex_lock.h"
 
 extern "C" {
@@ -257,7 +258,7 @@ WEAK int halide_device_free(void *user_context, struct buffer_t *buf) {
 }
 
 /** Free any device memory associated with a buffer_t and ignore any
- * error. Used when freeing as a destructor. */
+ * error. Used when freeing as a destructor on an error. */
 WEAK void halide_device_free_as_destructor(void *user_context, void *obj) {
     struct buffer_t *buf = (struct buffer_t *)obj;
     halide_device_free(user_context, buf);

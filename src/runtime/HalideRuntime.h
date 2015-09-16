@@ -59,9 +59,6 @@ extern void halide_print(void *user_context, const char *);
  */
 extern void halide_error(void *user_context, const char *);
 
-/** A macro that calls halide_error if the supplied condition is false. */
-#define halide_assert(user_context, cond) if (!(cond)) halide_error(user_context, #cond);
-
 /** These are allocated statically inside the runtime, hence the fixed
  * size. They must be initialized with zero. The first time
  * halide_mutex_lock is called, the lock must be initialized in a
@@ -98,6 +95,9 @@ extern int halide_do_par_for(void *user_context,
                              int min, int size, uint8_t *closure);
 extern void halide_shutdown_thread_pool();
 //@}
+
+/** Spawn a thread, independent of halide's thread pool. */
+extern void halide_spawn_thread(void *user_context, void (*f)(void *), void *closure);
 
 /** Set the number of threads used by Halide's thread pool. No effect
  * on OS X or iOS. If changed after the first use of a parallel Halide
@@ -266,9 +266,14 @@ extern void halide_memoization_cache_set_size(int64_t size);
  *  represents the outputs of the memoized Func. If the Func does not
  *  return a Tuple, there will only be one buffer_t in the list. The
  *  tuple_count parameters determines the length of the list.
+ *
+ * The return values are:
+ * -1: Signals an error.
+ *  0: Success and cache hit.
+ *  1: Success and cache miss.
  */
-extern bool halide_memoization_cache_lookup(void *user_context, const uint8_t *cache_key, int32_t size,
-                                            buffer_t *realized_bounds, int32_t tuple_count, buffer_t **tuple_buffers);
+extern int halide_memoization_cache_lookup(void *user_context, const uint8_t *cache_key, int32_t size,
+                                           buffer_t *realized_bounds, int32_t tuple_count, buffer_t **tuple_buffers);
 
 /** Given a cache key for a memoized result, currently constructed
  *  from the Func name and top-level Func name plus the arguments of
@@ -280,9 +285,29 @@ extern bool halide_memoization_cache_lookup(void *user_context, const uint8_t *c
  *  memoized Func. If the Func does not return a Tuple, there will
  *  only be one buffer_t in the list. The tuple_count parameters
  *  determines the length of the list.
+ *
+ * If there is a memory allocation failure, the store does not store
+ * the data into the cache.
  */
 extern void halide_memoization_cache_store(void *user_context, const uint8_t *cache_key, int32_t size,
                                            buffer_t *realized_bounds, int32_t tuple_count, buffer_t **tuple_buffers);
+
+/** If halide_memoization_cache_lookup succeeds,
+ * halide_memoization_cache_release must be called to signal the
+ * storage is no longer being used by the caller. It will be passed
+ * the host pointer of one the buffers returned by
+ * halide_memoization_cache_lookup. That is
+ * halide_memoization_cache_release will be called multiple times for
+ * the case where halide_memoization_cache_lookup is handling multiple
+ * buffers.  (This corresponds to memoizing a Tuple in Halide.) Note
+ * that the host pointer must be sufficient to get to all information
+ * the relase operation needs. The default Halide cache impleemntation
+ * accomplishes this by storing extra data before the start of the user
+ * modifiable host storage.
+ *
+ * This call is like free and does not have a failure return.
+  */
+extern void halide_memoization_cache_release(void *user_context, void *host);
 
 /** Free all memory and resources associated with the memoization cache.
  * Must be called at a time when no other threads are accessing the cache.
@@ -382,6 +407,11 @@ enum halide_error_code_t {
 
     /** There is a bug in the Halide compiler. */
     halide_error_code_internal_error = -22,
+
+    /** The Halide runtime encountered an error while trying to launch
+     * a GPU kernel. Turn on -debug in your target string to see more
+     * details. */
+    halide_error_code_device_run_failed = -23,
 };
 
 /** Halide calls the functions below on various error conditions. The
@@ -472,7 +502,9 @@ typedef struct buffer_t {
     /** A device-handle for e.g. GPU memory used to back this buffer. */
     uint64_t dev;
 
-    /** A pointer to the start of the data in main memory. */
+    /** A pointer to the start of the data in main memory. In terms of
+     * the Halide coordinate system, this is the address of the min
+     * coordinates (defined below). */
     uint8_t* host;
 
     /** The size of the buffer in each dimension. */
@@ -481,7 +513,10 @@ typedef struct buffer_t {
     /** Gives the spacing in memory between adjacent elements in the
     * given dimension.  The correct memory address for a load from
     * this buffer at position x, y, z, w is:
-    * host + (x * stride[0] + y * stride[1] + z * stride[2] + w * stride[3]) * elem_size
+    * host + elem_size * ((x - min[0]) * stride[0] +
+    *                     (y - min[1]) * stride[1] +
+    *                     (z - min[2]) * stride[2] +
+    *                     (w - min[3]) * stride[3])
     * By manipulating the strides and extents you can lazily crop,
     * transpose, and even flip buffers without modifying the data.
     */
@@ -619,6 +654,112 @@ typedef int (*enumerate_func_t)(void* enumerate_context,
  * terminate early and return that nonzero result.
  */
 extern int halide_enumerate_registered_filters(void *user_context, void* enumerate_context, enumerate_func_t func);
+
+
+/** The functions below here are relevant for pipelines compiled with
+ * the -profile target flag, which runs a sampling profiler thread
+ * alongside the pipeline. */
+
+/** Per-Func state tracked by the sampling profiler. */
+struct halide_profiler_func_stats {
+    /** Total time taken evaluating this Func (in nanoseconds). */
+    uint64_t time;
+
+    /** The name of this Func. A global constant string. */
+    const char *name;
+};
+
+/** Per-pipeline state tracked by the sampling profiler. These exist
+ * in a linked list. */
+struct halide_profiler_pipeline_stats {
+    /** Total time spent inside this pipeline (in nanoseconds) */
+    uint64_t time;
+
+    /** The name of this pipeline. A global constant string. */
+    const char *name;
+
+    /** An array containing states for each Func in this pipeline. */
+    halide_profiler_func_stats *funcs;
+
+    /** The next pipeline_stats pointer. It's a void * because types
+     * in the Halide runtime may not currently be recursive. */
+    void *next;
+
+    /** The number of funcs in this pipeline. */
+    int num_funcs;
+
+    /** An internal base id used to identify the funcs in this pipeline. */
+    int first_func_id;
+
+    /** The number of times this pipeline has been run. */
+    int runs;
+
+    /** The total number of samples taken inside of this pipeline. */
+    int samples;
+};
+
+/** The global state of the profiler. */
+struct halide_profiler_state {
+    /** Guards access to the fields below. If not locked, the sampling
+     * profiler thread is free to modify things below (including
+     * reordering the linked list of pipeline stats). */
+    halide_mutex lock;
+
+    /** A linked list of stats gathered for each pipeline. */
+    halide_profiler_pipeline_stats *pipelines;
+
+    /** The amount of time the profiler thread sleeps between samples
+     * in milliseconds. Defaults to 1 */
+    int sleep_time;
+
+    /** An internal id used for bookkeeping. */
+    int first_free_id;
+
+    /** The id of the current running Func. Set by the pipeline, read
+     * periodically by the profiler thread. */
+    int current_func;
+
+    /** Is the profiler thread running. */
+    bool started;
+};
+
+/** Profiler func ids with special meanings. */
+enum {
+    /// current_func takes on this value when not inside Halide code
+    halide_profiler_outside_of_halide = -1,
+    /// Set current_func to this value to tell the profiling thread to
+    /// halt. It will start up again next time you run a pipeline with
+    /// profiling enabled.
+    halide_profiler_please_stop = -2
+};
+
+/** Get a pointer to the global profiler state for programmatic
+ * inspection. Lock it before using to pause the profiler. */
+extern halide_profiler_state *halide_profiler_get_state();
+
+/** Reset all profiler state. */
+extern void halide_profiler_reset();
+
+/** Print out timing statistics for everything run since the last
+ * reset. Also happens at process exit. */
+extern void halide_profiler_report(void *user_context);
+
+/// \name "Float16" functions
+/// These functions operate of bits (``uint16_t``) representing a half
+/// precision floating point number (IEEE-754 2008 binary16).
+//{@
+
+/** Read bits representing a half precision floating point number and return
+ *  the float that represents the same value */
+extern float halide_float16_bits_to_float(uint16_t);
+
+/** Read bits representing a half precision floating point number and return
+ *  the double that represents the same value */
+extern double halide_float16_bits_to_double(uint16_t);
+
+// TODO: Conversion functions to half
+
+//@}
 
 #ifdef __cplusplus
 } // End extern "C"

@@ -56,6 +56,7 @@ struct Target {
         CLDoubles,  ///< Enable double support on OpenCL targets
 
         OpenGL,  ///< Enable the OpenGL runtime.
+        OpenGLCompute, ///< Enable OpenGL Compute runtime.
 
         MPI,  ///< Enable the MPI distributed runtime.
 
@@ -66,6 +67,11 @@ struct Target {
         RegisterMetadata,  ///< Generated code registers metadata for use with halide_enumerate_registered_filters
 
         Matlab,  ///< Generate a mexFunction compatible with Matlab mex libraries. See tools/mex_halide.m.
+
+        Profile, ///< Launch a sampling profiler alongside the Halide pipeline that monitors and reports the runtime used by each Func
+        NoRuntime, ///< Do not include a copy of the Halide runtime in any generated object file or assembly
+
+        Metal, ///< Enable the (Apple) Metal runtime.
 
         FeatureEnd
         // NOTE: Changes to this enum must be reflected in the definition of
@@ -138,12 +144,30 @@ struct Target {
         return copy;
     }
 
-    /** Is OpenCL or CUDA enabled in this target? I.e. is
-     * Func::gpu_tile and similar going to work? We do not include
-     * OpenGL, because it is not capable of gpgpu, and is not
-     * scheduled via Func::gpu_tile. */
+    /** Is a fully feature GPU compute runtime enabled? I.e. is
+     * Func::gpu_tile and similar going to work? Currently includes
+     * CUDA, OpenCL, and Metal. We do not include OpenGL, because it
+     * is not capable of gpgpu, and is not scheduled via
+     * Func::gpu_tile.
+     * TODO: Should OpenGLCompute be included here? */
     bool has_gpu_feature() const {
-        return has_feature(CUDA) || has_feature(OpenCL);
+      return has_feature(CUDA) || has_feature(OpenCL) || has_feature(Metal);
+    }
+
+    /** Does this target allow using a certain type. Generally all
+     * types except 64-bit float and int/uint should be supported by
+     * all backends.
+     */
+    bool supports_type(const Type &t) {
+        if (t.bits == 64) {
+            if (t.is_float()) {
+                return !has_feature(Metal) &&
+                       (!has_feature(Target::OpenCL) || has_feature(Target::CLDoubles));
+            } else {
+                return !has_feature(Metal);
+            }
+        }
+        return true;
     }
 
     bool operator==(const Target &other) const {

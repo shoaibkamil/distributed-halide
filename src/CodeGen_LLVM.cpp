@@ -256,7 +256,9 @@ CodeGen_LLVM *CodeGen_LLVM::new_for_target(const Target &target,
     if (target.features_any_of({Target::CUDA,
                                 Target::OpenCL,
                                 Target::OpenGL,
-                                Target::Renderscript})) {
+                                Target::OpenGLCompute,
+                                Target::Renderscript,
+                                Target::Metal})) {
 #ifdef WITH_X86
         if (target.arch == Target::X86) {
             return make_codegen<CodeGen_GPU_Host<CodeGen_X86>>(target, context);
@@ -384,16 +386,6 @@ bool CodeGen_LLVM::llvm_Mips_enabled = false;
 llvm::Module *CodeGen_LLVM::compile(const Module &input) {
     init_module();
 
-    llvm::Triple triple = get_target_triple();
-    llvm::DataLayout dl = get_data_layout();
-    module->setTargetTriple(triple.str());
-
-    #if LLVM_VERSION > 36
-    module->setDataLayout(dl);
-    #else
-    module->setDataLayout(&dl);
-    #endif
-
     debug(1) << "Target triple of initial module: " << module->getTargetTriple() << "\n";
 
     module->setModuleIdentifier(input.name());
@@ -407,12 +399,6 @@ llvm::Module *CodeGen_LLVM::compile(const Module &input) {
     module->addModuleFlag(llvm::Module::Warning, "halide_mcpu", MDString::get(*context, mcpu()));
     module->addModuleFlag(llvm::Module::Warning, "halide_mattrs", MDString::get(*context, mattrs()));
     #endif
-
-    if (target.has_feature(Target::JIT)) {
-        std::vector<JITModule> shared_runtime = JITSharedRuntime::get(module, target);
-
-        JITModule::make_externs(shared_runtime, module);
-    }
 
     internal_assert(module && context && builder)
         << "The CodeGen_LLVM subclass should have made an initial module before calling CodeGen_LLVM::compile\n";
@@ -551,8 +537,7 @@ void CodeGen_LLVM::compile_func(const LoweredFunc &f) {
     // pointing at a brand new basic block. We're good to go.
     f.body.accept(this);
 
-    // Return success
-    builder->CreateRet(ConstantInt::get(i32, 0));
+    return_with_error_code(ConstantInt::get(i32, 0));
 
     // Remove the arguments from the symbol table
     for (size_t i = 0; i < args.size(); i++) {
@@ -607,14 +592,6 @@ BasicBlock *CodeGen_LLVM::get_destructor_block() {
         // The last instruction is the return op that returns it.
         builder->CreateRet(error_code);
 
-        // Create a dead block that branches to the destructor block
-        // so that the phi node has at least one incoming edge even if
-        // there are no destructors.
-        BasicBlock *pre_destructor_block = BasicBlock::Create(*context, "pre_destructor_block", function);
-        builder->SetInsertPoint(pre_destructor_block);
-        builder->CreateBr(destructor_block);
-        error_code->addIncoming(ConstantInt::get(i32, 0), pre_destructor_block);
-
         // Jump back to where we were.
         builder->restoreIP(here);
 
@@ -623,7 +600,7 @@ BasicBlock *CodeGen_LLVM::get_destructor_block() {
     return destructor_block;
 }
 
-Instruction *CodeGen_LLVM::register_destructor(llvm::Function *destructor_fn, Value *obj) {
+Value *CodeGen_LLVM::register_destructor(llvm::Function *destructor_fn, Value *obj, DestructorType when) {
 
     // Create a null-initialized stack slot to track this object
     llvm::Type *void_ptr = i8->getPointerTo();
@@ -635,25 +612,50 @@ Instruction *CodeGen_LLVM::register_destructor(llvm::Function *destructor_fn, Va
     // Put it in the stack slot
     builder->CreateStore(obj, stack_slot);
 
-    // Switch to the destructor block, and add code that cleans up this object.
+    // Passing the constant null as the object means the destructor
+    // will never get called.
+    {
+        llvm::Constant *c = dyn_cast<llvm::Constant>(obj);
+        if (c && c->isNullValue()) {
+            internal_error << "Destructors must take a non-null object\n";
+        }
+    }
+
+    // Switch to the destructor block, and add code that cleans up
+    // this object if the contents of the stack slot is not NULL.
     IRBuilderBase::InsertPoint here = builder->saveIP();
     BasicBlock *dtors = get_destructor_block();
 
     builder->SetInsertPoint(dtors->getFirstNonPHI());
 
+    PHINode *error_code = dyn_cast<PHINode>(dtors->begin());
+    internal_assert(error_code) << "The destructor block is supposed to start with a phi node\n";
+
+    llvm::Value *should_call =
+        (when == Always) ?
+        ConstantInt::get(i1, 1) :
+        builder->CreateIsNotNull(error_code);
+
     llvm::Function *call_destructor = module->getFunction("call_destructor");
     internal_assert(call_destructor);
     internal_assert(destructor_fn);
-    Value *args[] = {get_user_context(), destructor_fn, stack_slot};
-    Instruction *cleanup = builder->CreateCall(call_destructor, args);
+    Value *args[] = {get_user_context(), destructor_fn, stack_slot, should_call};
+    builder->CreateCall(call_destructor, args);
 
     // Switch back to the original location
     builder->restoreIP(here);
 
-    // Return the cleanup instruction so that it can also be cloned to
-    // cleanup the object in the normal course of events (e.g. at a
-    // Free node).
-    return cleanup;
+    // Return the stack slot so that it's possible to cleanup the object early.
+    return stack_slot;
+}
+
+void CodeGen_LLVM::trigger_destructor(llvm::Function *destructor_fn, Value *stack_slot) {
+    llvm::Function *call_destructor = module->getFunction("call_destructor");
+    internal_assert(call_destructor);
+    internal_assert(destructor_fn);
+    Value *should_call = ConstantInt::get(i1, 1);
+    Value *args[] = {get_user_context(), destructor_fn, stack_slot, should_call};
+    builder->CreateCall(call_destructor, args);
 }
 
 void CodeGen_LLVM::compile_buffer(const Buffer &buf) {
@@ -861,7 +863,6 @@ llvm::Type *CodeGen_LLVM::llvm_type_of(Type t) {
 }
 
 void CodeGen_LLVM::optimize_module() {
-
     debug(3) << "Optimizing module\n";
 
     #if LLVM_VERSION < 37
@@ -1515,7 +1516,12 @@ Value *CodeGen_LLVM::codegen_buffer_pointer(string buffer, Halide::Type type, Ex
         index = promote_64(index);
     }
 
-    return codegen_buffer_pointer(buffer, type, codegen(index));
+    // Handles are always indexed as 64-bit.
+    if (type.is_handle()) {
+        return codegen_buffer_pointer(buffer, UInt(64, type.width), index);
+    } else {
+        return codegen_buffer_pointer(buffer, type, codegen(index));
+    }
 }
 
 
@@ -1614,6 +1620,12 @@ void CodeGen_LLVM::add_tbaa_metadata(llvm::Instruction *inst, string buffer, Exp
 void CodeGen_LLVM::visit(const Load *op) {
 
     bool possibly_misaligned = (might_be_misaligned.find(op->name) != might_be_misaligned.end());
+
+    // If it's a Handle, load it as a uint64_t and then cast
+    if (op->type.is_handle()) {
+        codegen(reinterpret(op->type, Load::make(UInt(64, op->type.width), op->name, op->index, op->image, op->param)));
+        return;
+    }
 
     // There are several cases. Different architectures may wish to override some.
     if (op->type.is_scalar()) {
@@ -1992,6 +2004,7 @@ void CodeGen_LLVM::visit(const Call *op) {
     internal_assert((op->call_type == Call::Extern || op->call_type == Call::Intrinsic))
         << "Can only codegen extern calls and intrinsics\n";
 
+
     if (op->call_type == Call::Intrinsic) {
         // Some call nodes are actually injected at various stages as a
         // cue for llvm to generate particular ops. In general these are
@@ -2077,7 +2090,7 @@ void CodeGen_LLVM::visit(const Call *op) {
                 }
 
             } else if (dst.is_handle() && !src.is_handle()) {
-                internal_assert(dst.is_uint() && dst.bits == 64);
+                internal_assert(src.is_uint() && src.bits == 64);
 
                 // UInt64 -> Handle
                 llvm::DataLayout d(module);
@@ -2179,15 +2192,18 @@ void CodeGen_LLVM::visit(const Call *op) {
             builder->CreateStore(host_ptr, buffer_host_ptr(buffer));
 
             // Type check integer arguments
-            for (size_t i = 1; i < op->args.size(); i++) {
+            for (size_t i = 2; i < op->args.size(); i++) {
                 internal_assert(op->args[i].type() == Int(32))
-                    << "All arguments to create_buffer_t beyond the first must have type Int(32)\n";
+                    << "All arguments to create_buffer_t beyond the second must have type Int(32)\n";
             }
 
-            Value *elem_size = codegen(op->args[1]);
+            // Second argument is used solely for its Type. Value is unimportant.
+            // Currenty, only the size matters, but ultimately we will encode
+            // complete type info in buffer_t.
+            Value *elem_size = codegen(op->args[1].type().bytes());
             builder->CreateStore(elem_size, buffer_elem_size_ptr(buffer));
 
-            int dims = op->args.size()/3;
+            int dims = (op->args.size() - 2) / 3;
             user_assert(dims <= 4)
                 << "Halide currently has a limit of four dimensions on "
                 << "Funcs used on the GPU or passed to extern stages.\n";
@@ -2210,6 +2226,11 @@ void CodeGen_LLVM::visit(const Call *op) {
             builder->CreateStore(ConstantInt::get(i64, 0), buffer_dev_ptr(buffer));
 
             value = buffer;
+        } else if (op->name == Call::extract_buffer_host) {
+            internal_assert(op->args.size() == 1);
+            Value *buffer = codegen(op->args[0]);
+            buffer = builder->CreatePointerCast(buffer, buffer_t_type->getPointerTo());
+            value = buffer_host(buffer);
         } else if (op->name == Call::extract_buffer_min) {
             internal_assert(op->args.size() == 2);
             const IntImm *idx = op->args[1].as<IntImm>();
@@ -2366,12 +2387,6 @@ void CodeGen_LLVM::visit(const Call *op) {
                 value = value_stored;
             }
 
-        } else if (op->name == Call::profiling_timer) {
-            internal_assert(op->args.size() == 1);
-            llvm::Function *fn = Intrinsic::getDeclaration(module,
-                Intrinsic::readcyclecounter, std::vector<llvm::Type*>());
-            CallInst *call = builder->CreateCall(fn, vector<llvm::Value *>());
-            value = call;
         } else if (op->name == Call::lerp) {
             internal_assert(op->args.size() == 3);
             value = codegen(lower_lerp(op->args[0], op->args[1], op->args[2]));
@@ -2553,6 +2568,20 @@ void CodeGen_LLVM::visit(const Call *op) {
             value = builder->CreateMemCpy(codegen(op->args[0]),
                                           codegen(op->args[1]),
                                           codegen(op->args[2]), 0);
+        } else if (op->name == Call::register_destructor) {
+            internal_assert(op->args.size() == 2);
+            const StringImm *fn = op->args[0].as<StringImm>();
+            internal_assert(fn);
+            Expr arg = op->args[1];
+            internal_assert(arg.type() == Handle());
+            llvm::Function *f = module->getFunction(fn->value);
+            if (!f) {
+                llvm::Type *arg_types[] = {i8->getPointerTo(), i8->getPointerTo()};
+                FunctionType *func_t = FunctionType::get(void_t, arg_types, false);
+                f = llvm::Function::Create(func_t, llvm::Function::ExternalLinkage, fn->value, module);
+                f->setCallingConv(CallingConv::C);
+            }
+            register_destructor(f, codegen(arg), Always);
         } else {
             internal_error << "Unknown intrinsic: " << op->name << "\n";
         }
@@ -2584,13 +2613,19 @@ void CodeGen_LLVM::visit(const Call *op) {
             args[i] = codegen(op->args[i]);
         }
 
+        // Add a user context arg as needed. It's never a vector.
+        bool takes_user_context = function_takes_user_context(op->name);
+        if (takes_user_context) {
+            debug(4) << "Adding user_context to " << op->name << " args\n";
+            args.insert(args.begin(), get_user_context());
+        }
+
         llvm::Function *fn = module->getFunction(op->name);
 
         llvm::Type *result_type = llvm_type_of(op->type);
 
         // If we can't find it, declare it extern "C"
         if (!fn) {
-            // cout << "Didn't find " << op->name << " in initial module. Assuming it's extern." << endl;
             vector<llvm::Type *> arg_types(args.size());
             for (size_t i = 0; i < args.size(); i++) {
                 arg_types[i] = args[i]->getType();
@@ -2598,6 +2633,10 @@ void CodeGen_LLVM::visit(const Call *op) {
                     VectorType *vt = dyn_cast<VectorType>(arg_types[i]);
                     arg_types[i] = vt->getElementType();
                 }
+            }
+
+            if (function_takes_user_context(op->name)) {
+                arg_types.insert(arg_types.begin(), i8->getPointerTo());
             }
 
             llvm::Type *scalar_result_type = result_type;
@@ -2618,28 +2657,25 @@ void CodeGen_LLVM::visit(const Call *op) {
             // correctly (they just get called "Handle()"), so we may
             // need to pointer cast to the appropriate type. Only look at
             // fixed params (not varags) in llvm function.
-            // Functions which take a user context have it added below so the
-            // llvm function argument indexing is one greater in that case.
-            size_t llvm_arg_offset = function_takes_user_context(op->name) ? 1 : 0;
             FunctionType *func_t = fn->getFunctionType();
-            for (size_t i = 0;
-                 i < std::min(args.size(),
-                              func_t->getNumParams() - llvm_arg_offset);
+            for (size_t i = takes_user_context ? 1 : 0;
+                 i < std::min(args.size(), (size_t)(func_t->getNumParams()));
                  i++) {
-                if (op->args[i].type().is_handle()) {
-                    llvm::Type *t = func_t->getParamType(i + llvm_arg_offset);
+                Expr halide_arg = takes_user_context ? op->args[i-1] : op->args[i];
+                if (halide_arg.type().is_handle()) {
+                    llvm::Type *t = func_t->getParamType(i);
 
                     // Widen to vector-width as needed. If the
                     // function doesn't actually take a vector,
                     // individual lanes will be extracted below.
-                    if (op->args[i].type().is_vector() &&
+                    if (halide_arg.type().is_vector() &&
                         !t->isVectorTy()) {
-                        t = VectorType::get(t, op->args[i].type().width);
+                        t = VectorType::get(t, halide_arg.type().width);
                     }
 
                     if (t != args[i]->getType()) {
                         debug(4) << "Pointer casting argument to extern call: "
-                                 << op->args[i] << "\n";
+                                 << halide_arg << "\n";
                         args[i] = builder->CreatePointerCast(args[i], t);
                     }
                 }
@@ -2659,14 +2695,9 @@ void CodeGen_LLVM::visit(const Call *op) {
         if (op->name == "halide_current_time_ns" ||
             op->name == "halide_distr_time_ns" ||
             op->name == "halide_gpu_thread_barrier" ||
+            op->name == "halide_profiler_get_state" ||
             starts_with(op->name, "halide_error")) {
             pure = false;
-        }
-
-        // Add a user context arg as needed. It's never a vector.
-        if (function_takes_user_context(op->name)) {
-            debug(4) << "Adding user_context to " << op->name << " args\n";
-            args.insert(args.begin(), get_user_context());
         }
 
         if (op->type.is_scalar()) {
@@ -2813,6 +2844,13 @@ void CodeGen_LLVM::create_assertion(Value *cond, Expr message, llvm::Value *erro
     // Call the error handler
     if (!error_code) error_code = codegen(message);
 
+    return_with_error_code(error_code);
+
+    // Continue on using the success case
+    builder->SetInsertPoint(assert_succeeds_bb);
+}
+
+void CodeGen_LLVM::return_with_error_code(llvm::Value *error_code) {
     // Branch to the destructor block, which cleans up and then bails out.
     BasicBlock *dtors = get_destructor_block();
 
@@ -2822,9 +2860,6 @@ void CodeGen_LLVM::create_assertion(Value *cond, Expr message, llvm::Value *erro
     phi->addIncoming(error_code, builder->GetInsertBlock());
 
     builder->CreateBr(get_destructor_block());
-
-    // Continue on using the success case
-    builder->SetInsertPoint(assert_succeeds_bb);
 }
 
 void CodeGen_LLVM::visit(const ProducerConsumer *op) {
@@ -2953,7 +2988,7 @@ void CodeGen_LLVM::visit(const For *op) {
         codegen(op->body);
 
         // Return success
-        builder->CreateRet(ConstantInt::get(i32, 0));
+        return_with_error_code(ConstantInt::get(i32, 0));
 
         // Move the builder back to the main function and call do_par_for
         builder->restoreIP(call_site);
@@ -2985,16 +3020,24 @@ void CodeGen_LLVM::visit(const For *op) {
 }
 
 void CodeGen_LLVM::visit(const Store *op) {
-    Value *val = codegen(op->value);
+    // Even on 32-bit systems, Handles are treated as 64-bit in
+    // memory, so convert stores of handles to stores of uint64_ts.
+    if (op->value.type().is_handle()) {
+        Expr v = reinterpret(UInt(64, op->value.type().width), op->value);
+        codegen(Store::make(op->name, v, op->index));
+        return;
+    }
+
     Halide::Type value_type = op->value.type();
+    Value *val = codegen(op->value);
     bool possibly_misaligned = (might_be_misaligned.find(op->name) != might_be_misaligned.end());
     // Scalar
     if (value_type.is_scalar()) {
         Value *ptr = codegen_buffer_pointer(op->name, value_type, op->index);
-        StoreInst *store = builder->CreateAlignedStore(val, ptr, op->value.type().bytes());
+        StoreInst *store = builder->CreateAlignedStore(val, ptr, value_type.bytes());
         add_tbaa_metadata(store, op->name, op->index);
     } else {
-        int alignment = op->value.type().bytes();
+        int alignment = value_type.bytes();
         const Ramp *ramp = op->index.as<Ramp>();
         if (ramp && is_one(ramp->stride)) {
 
@@ -3014,8 +3057,8 @@ void CodeGen_LLVM::visit(const Store *op) {
 
             // For dense vector stores wider than the native vector
             // width, bust them up into native vectors.
-            int store_lanes = op->value.type().width;
-            int native_lanes = native_bits / op->value.type().bits;
+            int store_lanes = value_type.width;
+            int native_lanes = native_bits / value_type.bits;
 
             for (int i = 0; i < store_lanes; i += native_lanes) {
                 int slice_lanes = std::min(native_lanes, store_lanes - i);
@@ -3151,7 +3194,9 @@ Value *CodeGen_LLVM::call_intrin(Type result_type, int intrin_vector_width,
 
 Value *CodeGen_LLVM::call_intrin(llvm::Type *result_type, int intrin_vector_width,
                                  const string &name, vector<Value *> arg_values) {
-    int arg_vector_width = (int)result_type->getVectorNumElements();
+    internal_assert(result_type->isVectorTy()) << "call_intrin is for vector intrinsics only\n";
+
+    int arg_vector_width = (int)(result_type->getVectorNumElements());
 
     if (intrin_vector_width != arg_vector_width) {
         // Cut up each arg into appropriately-sized pieces, call the

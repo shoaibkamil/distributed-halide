@@ -412,7 +412,7 @@ Stmt build_produce(Function f) {
                 host_ptr = Call::make(Handle(), Call::address_of, {host_ptr}, Call::Intrinsic);
 
                 buffer_args[0] = host_ptr;
-                buffer_args[1] = f.output_types()[j].bytes();
+                buffer_args[1] = make_zero(f.output_types()[j]);
                 for (int k = 0; k < f.dimensions(); k++) {
                     string var = stage_name + f.args()[k];
                     Expr min = Variable::make(Int(32), var + ".min");
@@ -779,19 +779,19 @@ private:
             found = true;
             sites_allowed = sites;
         } else {
-            // Take the common sites between loops and loops allowed
-            for (size_t i = 0; i < sites_allowed.size(); i++) {
-                bool ok = false;
-                for (size_t j = 0; j < sites.size(); j++) {
-                    if (sites_allowed[i].loop_level.match(sites[j].loop_level)) {
-                        ok = true;
+            vector<Site> common_sites;
+
+            // Take the common sites between sites and sites_allowed
+            for (const Site &s1 : sites) {
+                for (const Site &s2 : sites_allowed) {
+                    if (s1.loop_level.match(s2.loop_level)) {
+                        common_sites.push_back(s1);
+                        break;
                     }
                 }
-                if (!ok) {
-                    sites_allowed[i] = sites_allowed.back();
-                    sites_allowed.pop_back();
-                }
             }
+
+            sites_allowed.swap(common_sites);
         }
     }
 
@@ -820,22 +820,111 @@ string schedule_to_source(Function f,
     if (compute_at.is_inline()) {
         ss << ".compute_inline()";
     } else {
+        string store_var_name = store_at.var;
+        string compute_var_name = compute_at.var;
+        if (store_var_name == Var::outermost().name()) {
+            store_var_name = "Var::outermost()";
+        }
+        if (compute_var_name == Var::outermost().name()) {
+            compute_var_name = "Var::outermost()";
+        }
         if (!store_at.match(compute_at)) {
             if (store_at.is_root()) {
                 ss << ".store_root()";
             } else {
-                ss << ".store_at(" << store_at.func << ", " << store_at.var << ")";
+                ss << ".store_at(" << store_at.func << ", " << store_var_name << ")";
             }
         }
         if (compute_at.is_root()) {
             ss << ".compute_root()";
         } else {
-            ss << ".compute_at(" << compute_at.func << ", " << compute_at.var << ")";
+            ss << ".compute_at(" << compute_at.func << ", " << compute_var_name << ")";
         }
     }
     ss << ";";
     return ss.str();
 }
+
+class StmtUsesFunc : public IRVisitor {
+    using IRVisitor::visit;
+    string func;
+    void visit(const Call *op) {
+        if (op->name == func) {
+            result = true;
+        }
+        IRVisitor::visit(op);
+    }
+public:
+    bool result = false;
+    StmtUsesFunc(string f) : func(f) {}
+};
+
+class PrintUsesOfFunc : public IRVisitor {
+    using IRVisitor::visit;
+
+    int indent = 1;
+    string func, caller;
+    bool last_print_was_ellipsis = false;
+    std::ostream &stream;
+
+    void do_indent() {
+        for (int i = 0; i < indent; i++) {
+            stream << "  ";
+        }
+    }
+
+    void visit(const For *op) {
+        if (ends_with(op->name, Var::outermost().name()) ||
+            ends_with(op->name, LoopLevel::root().var)) {
+            IRVisitor::visit(op);
+        } else {
+
+            int old_indent = indent;
+
+            StmtUsesFunc uses(func);
+            op->body.accept(&uses);
+            if (!uses.result) {
+                if (!last_print_was_ellipsis) {
+                    do_indent();
+                    stream << "...\n";
+                    last_print_was_ellipsis = true;
+                }
+            } else {
+                do_indent();
+                stream << "for " << op->name << ":\n";
+                last_print_was_ellipsis = false;
+                indent++;
+            }
+
+            IRVisitor::visit(op);
+            indent = old_indent;
+        }
+    }
+
+    void visit(const ProducerConsumer *op) {
+        string old_caller = caller;
+        caller = op->name;
+        op->produce.accept(this);
+        if (op->update.defined()) {
+            op->update.accept(this);
+        }
+        caller = old_caller;
+        op->consume.accept(this);
+    }
+
+    void visit(const Call *op) {
+        if (op->name == func) {
+            do_indent();
+            stream << caller << " uses " << func << "\n";
+            last_print_was_ellipsis = false;
+        } else {
+            IRVisitor::visit(op);
+        }
+    }
+
+public:
+    PrintUsesOfFunc(string f, std::ostream &s) : func(f), stream(s) {}
+};
 
 void validate_schedule(Function f, Stmt s, bool is_output) {
 
@@ -846,7 +935,7 @@ void validate_schedule(Function f, Stmt s, bool is_output) {
                 Function g(arg.func);
                 if (g.schedule().compute_level().is_inline()) {
                     user_error
-                        << "Function " << g.name() << " cannot be scheduled to be computed inline, "
+                        << "Func " << g.name() << " cannot be scheduled to be computed inline, "
                         << "because it is used in the externally-computed function " << f.name() << "\n";
                 }
             }
@@ -882,7 +971,7 @@ void validate_schedule(Function f, Stmt s, bool is_output) {
         if (store_at.is_root() && compute_at.is_root()) {
             return;
         } else {
-            user_error << "Function " << f.name() << " is the output, so must"
+            user_error << "Func " << f.name() << " is the output, so must"
                        << " be scheduled compute_root (which is the default).\n";
         }
     }
@@ -916,7 +1005,7 @@ void validate_schedule(Function f, Stmt s, bool is_output) {
     if (store_at_ok && compute_at_ok) {
         for (size_t i = store_idx + 1; i <= compute_idx; i++) {
             if (sites[i].is_parallel) {
-                err << "Function \"" << f.name()
+                err << "Func \"" << f.name()
                     << "\" is stored outside the parallel loop over "
                     << sites[i].loop_level.func << "." << sites[i].loop_level.var
                     << " but computed within it. This is a potential race condition.\n";
@@ -926,16 +1015,16 @@ void validate_schedule(Function f, Stmt s, bool is_output) {
     }
 
     if (!store_at_ok || !compute_at_ok) {
-        err << "Function \"" << f.name() << "\" is computed and stored in the following invalid location:\n"
-            << schedule_to_source(f, store_at, compute_at) << "\n"
+        err << "Func \"" << f.name() << "\" is computed at the following invalid location:\n"
+            << "  " << schedule_to_source(f, store_at, compute_at) << "\n"
             << "Legal locations for this function are:\n";
         for (size_t i = 0; i < sites.size(); i++) {
-            for (size_t j = i; j < sites.size(); j++) {
-                if (j > i && sites[j].is_parallel) break;
-                err << schedule_to_source(f, sites[i].loop_level, sites[j].loop_level) << "\n";
-
-            }
+            err << "  " << schedule_to_source(f, sites[i].loop_level, sites[i].loop_level) << "\n";
         }
+        err << "\"" << f.name() << "\" is used in the following places:\n";
+        PrintUsesOfFunc printer(f.name(), err);
+        s.accept(&printer);
+
         user_error << err.str();
     }
 }
@@ -1008,10 +1097,13 @@ public:
 Stmt schedule_functions(const vector<Function> &outputs,
                         const vector<string> &order,
                         const map<string, Function> &env,
+                        bool &any_memoized,
                         bool inject_asserts) {
 
     string root_var = LoopLevel::root().func + "." + LoopLevel::root().var;
     Stmt s = For::make(root_var, 0, 1, ForType::Serial, DeviceAPI::Host, Evaluate::make(0));
+
+    any_memoized = false;
 
     for (size_t i = order.size(); i > 0; i--) {
         Function f = env.find(order[i-1])->second;
@@ -1034,6 +1126,7 @@ Stmt schedule_functions(const vector<Function> &outputs,
             s = injector.mutate(s);
             internal_assert(injector.found_store_level && injector.found_compute_level);
         }
+        any_memoized = any_memoized || f.schedule().memoized();
         debug(2) << s << '\n';
     }
 

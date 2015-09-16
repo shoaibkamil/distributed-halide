@@ -3,13 +3,20 @@
 #include "Output.h"
 #include "LLVM_Headers.h"
 #include "LLVM_Output.h"
+#include "LLVM_Runtime_Linker.h"
 
 #include <fstream>
 
 namespace Halide {
 
 void compile_module_to_object(const Module &module, std::string filename) {
-    if (filename.empty()) filename = module.name() + ".o";
+    if (filename.empty()) {
+        if (module.target().os == Target::Windows) {
+            filename = module.name() + ".obj";
+        } else {
+            filename = module.name() + ".o";
+        }
+    }
 
     llvm::LLVMContext context;
     llvm::Module *llvm = compile_module_to_llvm_module(module, context);
@@ -29,8 +36,16 @@ void compile_module_to_assembly(const Module &module, std::string filename)  {
 void compile_module_to_native(const Module &module,
                    std::string object_filename,
                    std::string assembly_filename) {
-    if (object_filename.empty()) object_filename = module.name() + ".o";
-    if (assembly_filename.empty()) assembly_filename = module.name() + ".s";
+    if (object_filename.empty()) {
+        if (module.target().os == Target::Windows) {
+            object_filename = module.name() + ".obj";
+        } else {
+            object_filename = module.name() + ".o";
+        }
+    }
+    if (assembly_filename.empty()) {
+        assembly_filename = module.name() + ".s";
+    }
 
     llvm::LLVMContext context;
     llvm::Module *llvm = compile_module_to_llvm_module(module, context);
@@ -104,6 +119,11 @@ void compile_module_to_c(const Module &module,
               std::string c_filename) {
     compile_module_to_c_header(module, h_filename);
     compile_module_to_c_source(module, c_filename);
+}
+
+void compile_standalone_runtime(std::string object_filename, Target t) {
+    Module empty("standalone_runtime", t.without_feature(Target::NoRuntime));
+    compile_module_to_object(empty, object_filename);
 }
 
 }  // namespace Halide

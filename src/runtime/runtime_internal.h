@@ -75,6 +75,11 @@ int open(const char *filename, int opts, int mode);
 int close(int fd);
 ssize_t write(int fd, const void *buf, size_t bytes);
 void exit(int);
+void abort();
+char *strncpy(char *dst, const char *src, size_t n);
+
+// Below are prototypes for various functions called by generated code
+// and parts of the runtime but not exposed to users:
 
 // Similar to strncpy, but with various non-string arguments. Writes
 // arg to dst. Does not write to pointer end or beyond. Returns
@@ -86,130 +91,38 @@ WEAK char *halide_int64_to_string(char *dst, char *end, int64_t arg, int digits)
 WEAK char *halide_uint64_to_string(char *dst, char *end, uint64_t arg, int digits);
 WEAK char *halide_pointer_to_string(char *dst, char *end, const void *arg);
 
+// Search the current process for a symbol with the given name.
+WEAK void *halide_get_symbol(const char *name);
+// Platform specific implementations of dlopen/dlsym.
+WEAK void *halide_load_library(const char *name);
+// If lib is NULL, this call should be equivalent to halide_get_symbol(name).
+WEAK void *halide_get_library_symbol(void *lib, const char *name);
+
+WEAK int halide_start_clock(void *user_context);
+WEAK int64_t halide_current_time_ns(void *user_context);
+WEAK void halide_sleep_ms(void *user_context, int ms);
+WEAK void halide_device_free_as_destructor(void *user_context, void *obj);
+
+WEAK int halide_profiler_pipeline_start(void *user_context,
+                                        const char *pipeline_name,
+                                        int num_funcs,
+                                        const uint64_t *func_names);
 }
+
+/** A macro that calls halide_print if the supplied condition is
+ * false, then aborts. Used for unrecoverable errors, or
+ * should-never-happen errors. */
+#define _halide_stringify(x) #x
+#define _halide_expand_and_stringify(x) _halide_stringify(x)
+#define halide_assert(user_context, cond)                               \
+    if (!(cond)) {                                                      \
+        halide_print(user_context, __FILE__ ":" _halide_expand_and_stringify(__LINE__) " Assert failed: " #cond "\n"); \
+        abort();                                                        \
+    }
 
 // A convenient namespace for weak functions that are internal to the
 // halide runtime.
 namespace Halide { namespace Runtime { namespace Internal {
-
-enum PrinterType {BasicPrinter = 0,
-                  ErrorPrinter = 1,
-                  StringStreamPrinter = 2};
-
-// A class for constructing debug messages from the runtime. Dumps
-// items into a stack array, then prints them when the object leaves
-// scope using halide_print. Think of it as a stringstream that prints
-// when it dies. Use it like this:
-
-// debug(user_context) << "A" << b << c << "\n";
-
-// If you use it like this:
-
-// debug d(user_context);
-// d << "A";
-// d << b;
-// d << c << "\n";
-
-// Then remember the print only happens when the debug object leaves
-// scope, which may print at a confusing time.
-
-namespace {
-template<int type, uint64_t length = 1024>
-class Printer {
-public:
-    char *buf, *dst, *end;
-    void *user_context;
-
-    Printer(void *ctx) : user_context(ctx) {
-        buf = (char *)halide_malloc(user_context, length);
-        dst = buf;
-        end = buf + (length-1);
-        *end = 0;
-    }
-
-    Printer &operator<<(const char *arg) {
-        dst = halide_string_to_string(dst, end, arg);
-        return *this;
-    }
-
-    Printer &operator<<(int64_t arg) {
-        dst = halide_int64_to_string(dst, end, arg, 1);
-        return *this;
-    }
-
-    Printer &operator<<(int32_t arg) {
-        dst = halide_int64_to_string(dst, end, arg, 1);
-        return *this;
-    }
-
-    Printer &operator<<(uint64_t arg) {
-        dst = halide_uint64_to_string(dst, end, arg, 1);
-        return *this;
-    }
-
-    Printer &operator<<(uint32_t arg) {
-        dst = halide_uint64_to_string(dst, end, arg, 1);
-        return *this;
-    }
-
-    Printer &operator<<(double arg) {
-        dst = halide_double_to_string(dst, end, arg, 1);
-        return *this;
-    }
-
-    Printer &operator<<(float arg) {
-        dst = halide_double_to_string(dst, end, arg, 0);
-        return *this;
-    }
-
-    Printer &operator<<(const void *arg) {
-        dst = halide_pointer_to_string(dst, end, arg);
-        return *this;
-    }
-
-    // Use it like a stringstream.
-    const char *str() {
-        return buf;
-    }
-
-    // Returns the number of characters in the buffer
-    uint64_t size() const {
-        return (uint64_t)(dst-buf);
-    }
-
-    ~Printer() {
-        if (type == ErrorPrinter) {
-            halide_error(user_context, buf);
-        } else if (type == BasicPrinter) {
-            halide_print(user_context, buf);
-        } else {
-            // It's a stringstream. Do nothing.
-        }
-        halide_free(user_context, buf);
-    }
-};
-
-// A class that supports << with all the same types as Printer, but
-// does nothing and should compile to a no-op.
-class SinkPrinter {
-public:
-    SinkPrinter(void *user_context) {}
-};
-template<typename T>
-SinkPrinter operator<<(const SinkPrinter &s, T) {
-    return s;
-}
-
-typedef Printer<BasicPrinter> print;
-typedef Printer<ErrorPrinter> error;
-typedef Printer<StringStreamPrinter> stringstream;
-
-#ifdef DEBUG_RUNTIME
-typedef Printer<BasicPrinter> debug;
-#else
-typedef SinkPrinter debug;
-#endif
-}
 
 extern WEAK void halide_use_jit_module();
 extern WEAK void halide_release_jit_module();
@@ -226,10 +139,9 @@ __attribute__((always_inline)) T max(const T &a, const T &b) {
     return a > b ? a : b;
 }
 
-// Search the process for a symbol with the given name.
-extern WEAK void *get_symbol(const char *name);
-
 }}}
+
+
 
 using namespace Halide::Runtime::Internal;
 

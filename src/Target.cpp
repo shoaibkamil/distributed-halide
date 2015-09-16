@@ -185,7 +185,7 @@ Target parse_target_string(const std::string &target) {
                    << "and os is linux, windows, osx, nacl, ios, or android. "
                    << "If arch or os are omitted, they default to the host. "
                    << "Features include sse41, avx, avx2, armv7s, cuda, "
-                   << "opencl, no_asserts, no_bounds_query, and debug.\n"
+                   << "opencl, metal, no_asserts, no_bounds_query, and debug.\n"
                    << "HL_TARGET can also begin with \"host\", which sets the "
                    << "host's architecture, os, and feature set, with the "
                    << "exception of the GPU runtimes, which default to off.\n"
@@ -282,12 +282,16 @@ bool Target::merge_string(const std::string &target) {
             set_features({Target::CUDA, Target::CUDACapability50});
         } else if (tok == "opencl") {
             set_feature(Target::OpenCL);
+        } else if (tok == "metal") {
+            set_feature(Target::Metal);
         } else if (tok == "debug" || tok == "gpu_debug") {
             set_feature(Target::Debug);
         } else if (tok == "opengl") {
             set_feature(Target::OpenGL);
         } else if (tok == "mpi") {
             set_feature(Target::MPI);
+        } else if (tok == "openglcompute") {
+            set_feature(Target::OpenGLCompute);
         } else if (tok == "renderscript") {
             set_feature(Target::Renderscript);
         } else if (tok == "user_context") {
@@ -308,6 +312,10 @@ bool Target::merge_string(const std::string &target) {
             set_features({Target::F16C, Target::SSE41, Target::AVX});
         } else if (tok == "matlab") {
             set_feature(Target::Matlab);
+        } else if (tok == "profile") {
+            set_feature(Target::Profile);
+        } else if (tok == "no_runtime") {
+            set_feature(Target::NoRuntime);
         } else {
             return false;
         }
@@ -352,34 +360,37 @@ bool Target::merge_string(const std::string &target) {
 }
 
 std::string Target::to_string() const {
-  const char* const arch_names[] = {
-      "arch_unknown", "x86", "arm", "pnacl", "mips"
-  };
-  const char* const os_names[] = {
-      "os_unknown", "linux", "windows", "osx", "android", "ios", "nacl"
-  };
-  // The contents of this array must match Target::Features.
-  const char* const feature_names[] = {
-      "jit", "debug", "no_asserts", "no_bounds_query",
-      "sse41", "avx", "avx2", "fma", "fma4", "f16c",
-      "armv7s", "no_neon",
-      "cuda", "cuda_capability_30", "cuda_capability_32", "cuda_capability_35", "cuda_capability_50",
-      "opencl", "cl_doubles",
-      "opengl", "mpi", "rs",
-      "user_context",
-      "register_metadata",
-      "matlab"
-  };
-  internal_assert(sizeof(feature_names) / sizeof(feature_names[0]) == FeatureEnd);
-  string result = string(arch_names[arch])
-      + "-" + std::to_string(bits)
-      + "-" + string(os_names[os]);
-  for (size_t i = 0; i < FeatureEnd; ++i) {
-      if (has_feature(static_cast<Feature>(i))) {
-          result += "-" + string(feature_names[i]);
-      }
-  }
-  return result;
+    const char* const arch_names[] = {
+        "arch_unknown", "x86", "arm", "pnacl", "mips"
+    };
+    const char* const os_names[] = {
+        "os_unknown", "linux", "windows", "osx", "android", "ios", "nacl"
+    };
+    // The contents of this array must match Target::Features.
+    const char* const feature_names[] = {
+        "jit", "debug", "no_asserts", "no_bounds_query",
+        "sse41", "avx", "avx2", "fma", "fma4", "f16c",
+        "armv7s", "no_neon",
+        "cuda", "cuda_capability_30", "cuda_capability_32", "cuda_capability_35", "cuda_capability_50",
+        "opencl", "cl_doubles",
+        "opengl", "mpi", "openglcompute", "renderscript",
+        "user_context",
+        "register_metadata",
+        "matlab",
+        "profile",
+        "no_runtime",
+        "metal"
+    };
+    internal_assert(sizeof(feature_names) / sizeof(feature_names[0]) == FeatureEnd);
+    string result = string(arch_names[arch])
+        + "-" + std::to_string(bits)
+        + "-" + string(os_names[os]);
+    for (size_t i = 0; i < FeatureEnd; ++i) {
+        if (has_feature(static_cast<Feature>(i))) {
+            result += "-" + string(feature_names[i]);
+        }
+    }
+    return result;
 }
 
 }

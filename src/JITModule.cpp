@@ -31,100 +31,6 @@ using std::string;
 
 namespace {
 
-llvm::Type *copy_llvm_type_to_module(llvm::Module *to_module, llvm::Type *from_type) {
-    llvm::LLVMContext &context(to_module->getContext());
-    if (&from_type->getContext() == &context) {
-        return from_type;
-    }
-
-    switch (from_type->getTypeID()) {
-    case llvm::Type::VoidTyID:
-        return llvm::Type::getVoidTy(context);
-        break;
-    case llvm::Type::HalfTyID:
-        return llvm::Type::getHalfTy(context);
-        break;
-    case llvm::Type::FloatTyID:
-        return llvm::Type::getFloatTy(context);
-        break;
-    case llvm::Type::DoubleTyID:
-        return llvm::Type::getDoubleTy(context);
-        break;
-    case llvm::Type::X86_FP80TyID:
-        return llvm::Type::getX86_FP80Ty(context);
-        break;
-    case llvm::Type::FP128TyID:
-        return llvm::Type::getFP128Ty(context);
-        break;
-    case llvm::Type::PPC_FP128TyID:
-        return llvm::Type::getPPC_FP128Ty(context);
-        break;
-    case llvm::Type::LabelTyID:
-        return llvm::Type::getLabelTy(context);
-        break;
-    case llvm::Type::MetadataTyID:
-        return llvm::Type::getMetadataTy(context);
-        break;
-    case llvm::Type::X86_MMXTyID:
-        return llvm::Type::getX86_MMXTy(context);
-        break;
-    case llvm::Type::IntegerTyID:
-        return llvm::Type::getIntNTy(context, from_type->getIntegerBitWidth());
-        break;
-    case llvm::Type::FunctionTyID: {
-        llvm::FunctionType *f = llvm::cast<llvm::FunctionType>(from_type);
-        llvm::Type *return_type = copy_llvm_type_to_module(to_module, f->getReturnType());
-        std::vector<llvm::Type *> arg_types;
-        for (size_t i = 0; i < f->getNumParams(); i++) {
-            arg_types.push_back(copy_llvm_type_to_module(to_module, f->getParamType(i)));
-        }
-        return llvm::FunctionType::get(return_type, arg_types, f->isVarArg());
-    } break;
-    case llvm::Type::StructTyID: {
-        llvm::StructType *result;
-        llvm::StructType *s = llvm::cast<llvm::StructType>(from_type);
-        std::vector<llvm::Type *> element_types;
-        for (size_t i = 0; i < s->getNumElements(); i++) {
-            element_types.push_back(copy_llvm_type_to_module(to_module, s->getElementType(i)));
-        }
-        if (s->isLiteral()) {
-            result = llvm::StructType::get(context, element_types, s->isPacked());
-        } else {
-            result = to_module->getTypeByName(s->getName());
-            if (result == NULL) {
-                result = llvm::StructType::create(context, s->getName());
-                if (!element_types.empty()) {
-                    result->setBody(element_types, s->isPacked());
-                }
-            } else {
-                if (result->isOpaque() &&
-                    !element_types.empty()) {
-                    result->setBody(element_types, s->isPacked());
-                }
-            }
-        }
-        return result;
-    } break;
-    case llvm::Type::ArrayTyID: {
-        llvm::ArrayType *a = llvm::cast<llvm::ArrayType>(from_type);
-        return llvm::ArrayType::get(copy_llvm_type_to_module(to_module, a->getElementType()), a->getNumElements());
-    } break;
-    case llvm::Type::PointerTyID: {
-        llvm::PointerType *p = llvm::cast<llvm::PointerType>(from_type);
-        return llvm::PointerType::get(copy_llvm_type_to_module(to_module, p->getElementType()), p->getAddressSpace());
-    } break;
-    case llvm::Type::VectorTyID: {
-        llvm::VectorType *v = llvm::cast<llvm::VectorType>(from_type);
-        return llvm::VectorType::get(copy_llvm_type_to_module(to_module, v->getElementType()), v->getNumElements());
-    } break;
-    default: {
-        internal_error << "Unhandled LLVM type\n";
-        return NULL;
-    }
-    }
-
-}
-
 typedef struct CUctx_st *CUcontext;
 
 struct SharedCudaContext {
@@ -157,51 +63,6 @@ struct SharedOpenCLContext {
     // We never free the context, for the same reason as above.
 } cl_ctx;
 
-void load_libcuda() {
-    // Make sure extern cuda calls inside the module point to the
-    // right things. If cuda is already linked in we should be
-    // fine. If not we need to tell llvm to load it.
-    if (have_symbol("cuInit")) {
-        debug(1) << "This program was linked to cuda already\n";
-    } else {
-        debug(1) << "Looking for cuda shared library...\n";
-        string error;
-        llvm::sys::DynamicLibrary::LoadLibraryPermanently("libcuda.so", &error);
-        if (!error.empty()) {
-            error.clear();
-            llvm::sys::DynamicLibrary::LoadLibraryPermanently("libcuda.dylib", &error);
-        }
-        if (!error.empty()) {
-            error.clear();
-            llvm::sys::DynamicLibrary::LoadLibraryPermanently("/Library/Frameworks/CUDA.framework/CUDA", &error);
-        }
-        if (!error.empty()) {
-            error.clear();
-            llvm::sys::DynamicLibrary::LoadLibraryPermanently("nvcuda.dll", &error);
-        }
-        user_assert(error.empty()) << "Could not find libcuda.so, libcuda.dylib, or nvcuda.dll\n";
-    }
-}
-
-void load_libopencl() {
-    if (have_symbol("clCreateContext")) {
-        debug(1) << "This program was linked to OpenCL already\n";
-    } else {
-        debug(1) << "Looking for OpenCL shared library...\n";
-        string error;
-        llvm::sys::DynamicLibrary::LoadLibraryPermanently("libOpenCL.so", &error);
-        if (!error.empty()) {
-            error.clear();
-            llvm::sys::DynamicLibrary::LoadLibraryPermanently("/System/Library/Frameworks/OpenCL.framework/OpenCL", &error);
-        }
-        if (!error.empty()) {
-            error.clear();
-            llvm::sys::DynamicLibrary::LoadLibraryPermanently("opencl.dll", &error); // TODO: test on Windows
-        }
-        user_assert(error.empty()) << "Could not find libopencl.so, OpenCL.framework, or opencl.dll\n";
-    }
-}
-
 void load_opengl() {
 #if defined(__linux__)
     if (have_symbol("glXGetCurrentContext") && have_symbol("glDeleteTextures")) {
@@ -227,6 +88,21 @@ void load_opengl() {
     }
 #else
     internal_error << "JIT support for OpenGL on anything other than linux or OS X not yet implemented\n";
+#endif
+}
+
+void load_metal() {
+#if defined(__APPLE__)
+    if (have_symbol("MTLCreateSystemDefaultDevice")) {
+        debug(1) << "Metal framework already linked in...\n";
+    } else {
+        debug(1) << "Looking for Metal framework...\n";
+        string error;
+        llvm::sys::DynamicLibrary::LoadLibraryPermanently("/System/Library/Frameworks/Metal.framework/Metal", &error);
+        user_assert(error.empty()) << "Could not find Metal.framework\n";
+    }
+#else
+    internal_error << "JIT support for Metal only implemented on OS X\n";
 #endif
 }
 
@@ -376,7 +252,7 @@ void JITModule::compile_module(llvm::Module *m, const string &function_name, con
     engine_builder.setTargetOptions(options);
     engine_builder.setErrorStr(&error_string);
     engine_builder.setEngineKind(llvm::EngineKind::JIT);
-#if LLVM_VERSION < 36 || WITH_NATIVE_CLIENT
+    #if LLVM_VERSION < 36 || WITH_NATIVE_CLIENT
     // >= 3.6 there is only mcjit. Native client is currently in a
     // place between 3.5 and 3.6
     #if !WITH_NATIVE_CLIENT
@@ -386,21 +262,40 @@ void JITModule::compile_module(llvm::Module *m, const string &function_name, con
     //engine_builder.setJITMemoryManager(memory_manager);
     HalideJITMemoryManager *memory_manager = new HalideJITMemoryManager(dependencies);
     engine_builder.setMCJITMemoryManager(memory_manager);
-#else
+    #else
     engine_builder.setMCJITMemoryManager(std::unique_ptr<RTDyldMemoryManager>(new HalideJITMemoryManager(dependencies)));
-#endif
+    #endif
 
     engine_builder.setOptLevel(CodeGenOpt::Aggressive);
     engine_builder.setMCPU(mcpu);
     std::vector<string> mattrs_array = {mattrs};
     engine_builder.setMAttrs(mattrs_array);
+
+    #if LLVM_VERSION >= 37
+        TargetMachine *tm = engine_builder.selectTarget();
+        #if LLVM_VERSION == 37
+            DataLayout target_data_layout(*(tm->getDataLayout()));
+        #else
+            DataLayout target_data_layout(tm->createDataLayout());
+        #endif
+        if (m->getDataLayout() != target_data_layout) {
+                debug(0) << "Warning: data layout mismatch between module ("
+                             << m->getDataLayout().getStringRepresentation()
+                                 << ") and what the execution engine expects ("
+                                 << target_data_layout.getStringRepresentation() << ")\n";
+                m->setDataLayout(target_data_layout);
+        }
+    ExecutionEngine *ee = engine_builder.create(tm);
+    #else
     ExecutionEngine *ee = engine_builder.create();
+    #endif
+
     if (!ee) std::cerr << error_string << "\n";
     internal_assert(ee) << "Couldn't create execution engine\n";
 
-#ifdef __arm__
+    #ifdef __arm__
     start = end = NULL;
-#endif
+    #endif
 
     // Do any target-specific initialization
     std::vector<llvm::JITEventListener *> listeners;
@@ -415,28 +310,9 @@ void JITModule::compile_module(llvm::Module *m, const string &function_name, con
         ee->RegisterJITEventListener(listeners[i]);
     }
 
-    // Add exported symbols for all dependencies.
-    std::set<std::string> provided_symbols;
-    for (const JITModule &dep : dependencies) {
-        for (const std::pair<std::string, Symbol> &i : dep.exports()) {
-            const std::string &name = i.first;
-            const Symbol &s = i.second;
-            if (provided_symbols.find(i.first) == provided_symbols.end()) {
-                llvm::Type *llvm_type = copy_llvm_type_to_module(m, s.llvm_type);
-                if (llvm_type->isFunctionTy()) {
-                    m->getOrInsertFunction(name, cast<FunctionType>(llvm_type));
-                } else {
-                    m->getOrInsertGlobal(name, llvm_type);
-                }
-                debug(3) << "Global value " << name << " is at address " << s.address << "\n";
-                provided_symbols.insert(name);
-            }
-        }
-    }
-
     // Retrieve function pointers from the compiled module (which also
     // triggers compilation)
-    debug(1) << "JIT compiling...\n";
+    debug(1) << "JIT compiling " << m->getModuleIdentifier() << "\n";
 
     std::map<std::string, Symbol> exports;
 
@@ -495,21 +371,16 @@ const std::map<std::string, JITModule::Symbol> &JITModule::exports() const {
     return jit_module.ptr->exports;
 }
 
-void JITModule::make_externs(const std::vector<JITModule> &deps, llvm::Module *module) {
-    for (const JITModule &dep : deps) {
-        for (const std::pair<std::string, Symbol> &i : dep.exports()) {
-            const std::string &name = i.first;
-            const Symbol &s = i.second;
-            GlobalValue *gv;
-            llvm::Type *llvm_type = copy_llvm_type_to_module(module, s.llvm_type);
-            if (llvm_type->isFunctionTy()) {
-                gv = (llvm::Function *)module->getOrInsertFunction(name, (FunctionType *)llvm_type);
-            } else {
-                gv = (GlobalValue *)module->getOrInsertGlobal(name, llvm_type);
-            }
-            gv->setLinkage(GlobalValue::ExternalWeakLinkage);
-        }
+JITModule::Symbol JITModule::find_symbol_by_name(const std::string &name) const {
+    std::map<std::string, JITModule::Symbol>::iterator it = jit_module.ptr->exports.find(name);
+    if (it != jit_module.ptr->exports.end()) {
+        return it->second;
     }
+    for (const JITModule &dep : jit_module.ptr->dependencies) {
+        JITModule::Symbol s = dep.find_symbol_by_name(name);
+        if (s.address) return s;
+    }
+    return JITModule::Symbol();
 }
 
 void *JITModule::main_function() const {
@@ -560,7 +431,7 @@ void JITModule::add_extern_for_export(const std::string &name, const ExternSigna
     symbol.address = address;
 
     // Struct types are uniqued on the context, but the lookup API is only available
-    // ont he Module, not hte Context.
+    // on the Module, not the Context.
     llvm::Module dummy_module("ThisIsRidiculous", jit_module.ptr->context);
     llvm::Type *buffer_t = dummy_module.getTypeByName("struct.buffer_t");
     if (buffer_t == NULL) {
@@ -733,8 +604,10 @@ std::mutex shared_runtimes_mutex;
 enum RuntimeKind {
     MainShared,
     OpenCL,
+    Metal,
     CUDA,
     OpenGL,
+    OpenGLCompute,
     MaxRuntimeKind
 };
 
@@ -762,27 +635,46 @@ JITModule &make_module(llvm::Module *for_module, Target target,
         target.set_feature(Target::JIT);
 
         Target one_gpu(target);
+        one_gpu.set_feature(Target::OpenCL, false);
+        one_gpu.set_feature(Target::Metal, false);
+        one_gpu.set_feature(Target::CUDA, false);
+        one_gpu.set_feature(Target::OpenGL, false);
+        one_gpu.set_feature(Target::OpenGLCompute, false);
+        string module_name;
         switch (runtime_kind) {
         case OpenCL:
             one_gpu.set_feature(Target::OpenCL);
-            load_libopencl();
+            module_name = "opencl";
+            break;
+        case Metal:
+            one_gpu.set_feature(Target::Metal);
+            module_name = "metal";
+            load_metal();
             break;
         case CUDA:
             one_gpu.set_feature(Target::CUDA);
-            load_libcuda();
+            module_name = "cuda";
             break;
         case OpenGL:
             one_gpu.set_feature(Target::OpenGL);
+            module_name = "opengl";
+            load_opengl();
+            break;
+        case OpenGLCompute:
+            one_gpu.set_feature(Target::OpenGLCompute);
+            module_name = "openglcompute";
             load_opengl();
             break;
         default:
+            module_name = "shared runtime";
             break;
         }
 
         // This function is protected by a mutex so this is thread safe.
         llvm::Module *module =
-            get_initial_module_for_target(target, &runtime.jit_module.ptr->context, true, runtime_kind != MainShared);
+            get_initial_module_for_target(one_gpu, &runtime.jit_module.ptr->context, true, runtime_kind != MainShared);
         clone_target_options(for_module, module);
+        module->setModuleIdentifier(module_name);
 
         std::set<std::string> halide_exports_unique;
 
@@ -871,6 +763,11 @@ std::vector<JITModule> JITSharedRuntime::get(llvm::Module *for_module, const Tar
         if (m.compiled())
             result.push_back(m);
     }
+    if (target.has_feature(Target::Metal)) {
+        JITModule m = make_module(for_module, target, Metal, result, create);
+        if (m.compiled())
+            result.push_back(m);
+    }
     if (target.has_feature(Target::CUDA)) {
         JITModule m = make_module(for_module, target, CUDA, result, create);
         if (m.compiled())
@@ -878,6 +775,11 @@ std::vector<JITModule> JITSharedRuntime::get(llvm::Module *for_module, const Tar
     }
     if (target.has_feature(Target::OpenGL)) {
         JITModule m = make_module(for_module, target, OpenGL, result, create);
+        if (m.compiled())
+            result.push_back(m);
+    }
+    if (target.has_feature(Target::OpenGLCompute)) {
+        JITModule m = make_module(for_module, target, OpenGLCompute, result, create);
         if (m.compiled())
             result.push_back(m);
     }

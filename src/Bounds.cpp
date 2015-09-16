@@ -37,6 +37,48 @@ int static_sign(Expr x) {
     }
     return 0;
 }
+
+
+// Given a varying expression, try to find a constant that is either:
+// An upper bound (always greater than or equal to the expression), or
+// A lower bound (always less than or equal to the expression)
+// If it fails, returns an undefined Expr.
+enum Direction {Upper, Lower};
+Expr find_constant_bound(Expr e, Direction d) {
+    // We look through casts, so we only handle ops that can't
+    // overflow. E.g. if A >= a and B >= b, then you can't assume that
+    // (A + B) >= (a + b) in a world with overflow.
+    if (is_const(e)) {
+        return e;
+    } else if (const Min *min = e.as<Min>()) {
+        Expr a = find_constant_bound(min->a, d);
+        Expr b = find_constant_bound(min->b, d);
+        if (a.defined() && b.defined()) {
+            return simplify(Min::make(a, b));
+        } else if (a.defined() && d == Upper) {
+            return a;
+        } else if (b.defined() && d == Upper) {
+            return b;
+        }
+    } else if (const Max *max = e.as<Max>()) {
+        Expr a = find_constant_bound(max->a, d);
+        Expr b = find_constant_bound(max->b, d);
+        if (a.defined() && b.defined()) {
+            return simplify(Max::make(a, b));
+        } else if (a.defined() && d == Lower) {
+            return a;
+        } else if (b.defined() && d == Lower) {
+            return b;
+        }
+    } else if (const Cast *cast = e.as<Cast>()) {
+        Expr a = find_constant_bound(cast->value, d);
+        if (a.defined()) {
+            return simplify(Cast::make(cast->type, a));
+        }
+    }
+    return Expr();
+}
+
 }
 
 class Bounds : public IRVisitor {
@@ -116,54 +158,35 @@ private:
         // If overflow is impossible, cast the min and max. If it's
         // possible, use the bounds of the destination type.
         bool could_overflow = true;
-        if (to.is_float()) {
-            could_overflow = false;
-        } else if (to.is_int() && from.is_int() && to.bits >= from.bits) {
-            could_overflow = false;
-        } else if (to.is_uint() && from.is_uint() && to.bits >= from.bits) {
-            could_overflow = false;
-        } else if (to.is_int() && from.is_uint() && to.bits > from.bits) {
+        if (to.can_represent(from) || to.is_float()) {
             could_overflow = false;
         } else if (to.is_int() && to.bits >= 32) {
-            // Warning: dubious code ahead.
-
             // If we cast to an int32 or greater, assume that it won't
-            // overflow. Otherwise expressions like
-            // cast<int32_t>(bounded_float) barf.
+            // overflow. Signed 32-bit integer overflow is undefined.
             could_overflow = false;
-        }
+        } else if (min_a.defined() && max_a.defined() && from.can_represent(to)) {
+            // The other case to consider is narrowing where the
+            // bounds of the original fit into the narrower type. We
+            // can only really prove that this is the case if they're
+            // constants, so try to make the constants first.
 
-        // If min and max are different constants that fit into the
-        // narrower type, we should allow it.
-        if (from == Int(32) && min_a.defined() && max_a.defined()) {
-            if (const IntImm *min_int = min_a.as<IntImm>()) {
-                if (const IntImm *max_int = max_a.as<IntImm>()) {
-                    if (to.is_uint() && to.bits <= 32 &&
-                        min_int->value >= 0 &&
-                        (to.bits == 32 || (max_int->value < (1 << to.bits)))) {
-                        could_overflow = false;
-                    } else if (to.is_int() && to.bits <= 32 &&
-                               min_int->value >= -(1 << (to.bits-1)) &&
-                               max_int->value < (1 << (to.bits-1))) {
-                        could_overflow = false;
-                    }
-                }
-            }
-        }
+            Expr lower_bound = find_constant_bound(min_a, Lower);
+            Expr upper_bound = find_constant_bound(max_a, Upper);
 
-        if (from == Float(32) && min_a.defined() && max_a.defined()) {
-            if (const FloatImm *min_float = min_a.as<FloatImm>()) {
-                if (const FloatImm *max_float = max_a.as<FloatImm>()) {
-                    double max_magnitude = ::pow(2.0, to.bits-1);
-                    if (to.is_uint() &&
-                        min_float->value >= 0.0f &&
-                        max_float->value < 2.0*max_magnitude) {
-                        could_overflow = false;
-                    } else if (to.is_int() &&
-                               min_float->value >= -max_magnitude &&
-                               max_float->value < max_magnitude) {
-                        could_overflow = false;
-                    }
+            if (lower_bound.defined() && upper_bound.defined()) {
+                // Cast them to the narrow type and back and see if
+                // they're provably unchanged.
+                Expr test =
+                    (cast(from, cast(to, lower_bound)) == lower_bound &&
+                     cast(from, cast(to, upper_bound)) == upper_bound);
+                test = simplify(test);
+                if (is_one(test)) {
+                    could_overflow = false;
+                    // Relax the bounds to the constants we found. Not
+                    // strictly necessary, but probably helpful to
+                    // keep the expressions small.
+                    min_a = lower_bound;
+                    max_a = upper_bound;
                 }
             }
         }
@@ -459,16 +482,23 @@ private:
             min = max = Mod::make(min_a, min_b);
         } else {
             // Only consider B (so A can be undefined)
-            min = make_zero(op->type);
-            if (max_b.type().is_uint()) {
-                max = max_b;
+            if (max_b.type().is_uint() || (max_b.type().is_int() && is_positive_const(min_b))) {
+                // If the RHS is a positive integer, the result is in [0, max_b-1]
+                min = make_zero(op->type);
+                max = max_b - make_one(op->type);
+            } else if (max_b.type().is_int()) {
+                // mod takes the sign of the second arg
+                // x % [4,10] -> [0,9]
+                // x % [-8,-3] -> [-7,0]
+                // x % [-8, 10] -> [-7,9]
+                min = Min::make(min_b + make_one(op->type), make_zero(op->type));
+                max = Max::make(max_b - make_one(op->type), make_zero(op->type));
             } else {
-                max = cast(op->type, abs(max_b));
-            }
-            if (!max.type().is_float()) {
-                // Integer modulo returns at most one less than the
-                // second arg.
-                max = max - make_one(op->type);
+                // The floating point version has the same sign rules,
+                // but can reach all the way up to the original value,
+                // so there's no -1.
+                min = Min::make(min_b, make_zero(op->type));
+                max = Max::make(max_b, make_zero(op->type));
             }
         }
     }
@@ -747,9 +777,54 @@ private:
 
     void visit(const Let *op) {
         op->value.accept(this);
-        scope.push(op->name, Interval(min, max));
+        Expr min_val = min, max_val = max;
+
+        // We'll either substitute the values in directly, or pass
+        // them in as variables and add an outer let (to avoid
+        // combinatorial explosion).
+        Expr min_var, max_var;
+        string min_name = op->name + ".min";
+        string max_name = op->name + ".max";
+
+        if (min_val.defined()) {
+            if (is_const(min_val)) {
+                min_var = min_val;
+                min_val = Expr();
+            } else {
+                min_var = Variable::make(op->value.type(), min_name);
+            }
+        }
+
+        if (max_val.defined()) {
+            if (is_const(max_val)) {
+                max_var = max_val;
+                max_val = Expr();
+            } else {
+                max_var = Variable::make(op->value.type(), max_name);
+            }
+        }
+
+        scope.push(op->name, Interval(min_var, max_var));
         op->body.accept(this);
         scope.pop(op->name);
+
+        if (min.defined()) {
+            if (min_val.defined()) {
+                min = Let::make(min_name, min_val, min);
+            }
+            if (max_val.defined()) {
+                min = Let::make(max_name, max_val, min);
+            }
+        }
+
+        if (max.defined()) {
+            if (min_val.defined()) {
+                max = Let::make(min_name, min_val, max);
+            }
+            if (max_val.defined()) {
+                max = Let::make(max_name, max_val, max);
+            }
+        }
     }
 
     void visit(const LetStmt *) {
@@ -1011,16 +1086,6 @@ private:
 
     using IRGraphVisitor::visit;
 
-    void visit(const Let *op) {
-        if (!consider_calls) return;
-
-        op->value.accept(this);
-        Interval value_bounds = bounds_of_expr_in_scope(op->value, scope, func_bounds);
-        scope.push(op->name, value_bounds);
-        op->body.accept(this);
-        scope.pop(op->name);
-    }
-
     void visit(const Call *op) {
         if (!consider_calls) return;
 
@@ -1086,7 +1151,8 @@ private:
         return c.count < 10;
     }
 
-    void visit(const LetStmt *op) {
+    template<typename LetOrLetStmt>
+    void visit_let(const LetOrLetStmt *op) {
         if (consider_calls) {
             op->value.accept(this);
         }
@@ -1122,6 +1188,14 @@ private:
                 }
             }
         }
+    }
+
+    void visit(const Let *op) {
+        visit_let(op);
+    }
+
+    void visit(const LetStmt *op) {
+        visit_let(op);
     }
 
     void visit(const IfThenElse *op) {
@@ -1234,14 +1308,38 @@ private:
 
 map<string, Box> boxes_touched(Expr e, Stmt s, bool consider_calls, bool consider_provides,
                                string fn, const Scope<Interval> &scope, const FuncValueBounds &fb) {
-    BoxesTouched b(consider_calls, consider_provides, fn, &scope, fb);
-    if (e.defined()) {
-        e.accept(&b);
+    // Do calls and provides separately, for better simplification.
+    BoxesTouched calls(consider_calls, false, fn, &scope, fb);
+    BoxesTouched provides(false, consider_provides, fn, &scope, fb);
+
+    if (consider_calls) {
+        if (e.defined()) {
+            e.accept(&calls);
+        }
+        if (s.defined()) {
+            s.accept(&calls);
+        }
     }
-    if (s.defined()) {
-        s.accept(&b);
+    if (consider_provides) {
+        if (e.defined()) {
+            e.accept(&provides);
+        }
+        if (s.defined()) {
+            s.accept(&provides);
+        }
     }
-    return b.boxes;
+    if (!consider_calls) {
+        return provides.boxes;
+    }
+    if (!consider_provides) {
+        return calls.boxes;
+    }
+
+    // Combine the two maps.
+    for (pair<const string, Box> &i : provides.boxes) {
+        merge_boxes(calls.boxes[i.first], i.second);
+    }
+    return calls.boxes;
 }
 
 Box box_touched(Expr e, Stmt s, bool consider_calls, bool consider_provides,
@@ -1297,23 +1395,6 @@ Box box_touched(Stmt s, string fn, const Scope<Interval> &scope, const FuncValue
     return box_touched(Expr(), s, true, true, fn, scope, fb);
 }
 
-void check(const Scope<Interval> &scope, Expr e, Expr correct_min, Expr correct_max) {
-    FuncValueBounds fb;
-    Interval result = bounds_of_expr_in_scope(e, scope, fb);
-    if (result.min.defined()) result.min = simplify(result.min);
-    if (result.max.defined()) result.max = simplify(result.max);
-    if (!equal(result.min, correct_min)) {
-        internal_error << "In bounds of " << e << ":\n"
-                       << "Incorrect min: " << result.min << '\n'
-                       << "Should have been: " << correct_min << '\n';
-    }
-    if (!equal(result.max, correct_max)) {
-        internal_error << "In bounds of " << e << ":\n"
-                       << "Incorrect max: " << result.max << '\n'
-                       << "Should have been: " << correct_max << '\n';
-    }
-}
-
 FuncValueBounds compute_function_value_bounds(const vector<string> &order,
                                               const map<string, Function> &env) {
     FuncValueBounds fb;
@@ -1358,6 +1439,23 @@ FuncValueBounds compute_function_value_bounds(const vector<string> &order,
     return fb;
 }
 
+void check(const Scope<Interval> &scope, Expr e, Expr correct_min, Expr correct_max) {
+    FuncValueBounds fb;
+    Interval result = bounds_of_expr_in_scope(e, scope, fb);
+    if (result.min.defined()) result.min = simplify(result.min);
+    if (result.max.defined()) result.max = simplify(result.max);
+    if (!equal(result.min, correct_min)) {
+        internal_error << "In bounds of " << e << ":\n"
+                       << "Incorrect min: " << result.min << '\n'
+                       << "Should have been: " << correct_min << '\n';
+    }
+    if (!equal(result.max, correct_max)) {
+        internal_error << "In bounds of " << e << ":\n"
+                       << "Incorrect max: " << result.max << '\n'
+                       << "Should have been: " << correct_max << '\n';
+    }
+}
+
 void bounds_test() {
     Scope<Interval> scope;
     Var x("x"), y("y");
@@ -1381,6 +1479,11 @@ void bounds_test() {
     check(scope, print(x, y), 0, 10);
     check(scope, print_when(x > y, x, y), 0, 10);
 
+    check(scope, cast<int32_t>(abs(cast<int16_t>(x/y))), 0, 32768);
+    check(scope, cast<float>(x), 0.0f, 10.0f);
+
+    check(scope, cast<int32_t>(abs(cast<float>(x))), 0, 10);
+
     // Check some operations that may overflow
     check(scope, (cast<uint8_t>(x)+250), cast<uint8_t>(0), cast<uint8_t>(255));
     check(scope, (cast<uint8_t>(x)+10)*20, cast<uint8_t>(0), cast<uint8_t>(255));
@@ -1392,6 +1495,14 @@ void bounds_test() {
     check(scope, (cast<uint8_t>(x)+10)*10, cast<uint8_t>(100), cast<uint8_t>(200));
     check(scope, (cast<uint8_t>(x)+10)*(cast<uint8_t>(x)), cast<uint8_t>(0), cast<uint8_t>(200));
     check(scope, (cast<uint8_t>(x)+20)-(cast<uint8_t>(x)+5), cast<uint8_t>(5), cast<uint8_t>(25));
+
+    check(scope,
+          cast<uint16_t>(clamp(cast<float>(x/y), 0.0f, 4095.0f)),
+          cast<uint16_t>(0), cast<uint16_t>(4095));
+
+    check(scope,
+          cast<uint8_t>(clamp(cast<uint16_t>(x/y), cast<uint16_t>(0), cast<uint16_t>(128))),
+          cast<uint8_t>(0), cast<uint8_t>(128));
 
     Expr u8_1 = cast<uint8_t>(Load::make(Int(8), "buf", x, Buffer(), Parameter()));
     Expr u8_2 = cast<uint8_t>(Load::make(Int(8), "buf", x + 17, Buffer(), Parameter()));

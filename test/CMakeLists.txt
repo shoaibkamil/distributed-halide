@@ -1,3 +1,4 @@
+option(WITH_TEST_INTERNAL "Build and run internal tests" ON)
 option(WITH_TEST_CORRECTNESS "Build correctness tests" ON)
 option(WITH_TEST_ERROR "Build error tests" ON)
 option(WITH_TEST_WARNING "Build warning tests" ON)
@@ -5,6 +6,7 @@ option(WITH_TEST_PERFORMANCE "Build performance tests" ON)
 option(WITH_TEST_OPENGL "Build OpenGL tests" ON)
 option(WITH_TEST_DISTRIBUTED "Build distributed tests" ON)
 option(WITH_TEST_GENERATORS "Build Generator tests" ON)
+option(WITH_TEST_RENDERSCRIPT "Build Renderscript tests" ON)
 
 if (MSVC)
 else()
@@ -14,6 +16,29 @@ else()
   add_definitions("-fno-rtti")
 endif()
 
+if (WITH_TEST_INTERNAL)
+  message(STATUS "Internal tests enabled")
+  halide_project(test_internal internal internal.cpp)
+  # Run internal tests after building
+  add_custom_command(TARGET test_internal
+                     POST_BUILD
+                     COMMAND test_internal
+                     COMMENT "Running internal tests")
+else()
+  message(WARNING "Internal tests disabled")
+endif()
+
+# Generate the Halide runtime object file used by pure runtime tests
+set(HALIDE_RUNTIME_DIR "${PROJECT_BINARY_DIR}/${PROJECT_NAME}.build")
+set(HALIDE_RUNTIME_FILE_NAME "halide_runtime.debug${CMAKE_CXX_OUTPUT_EXTENSION}")
+set(HALIDE_RUNTIME_FILE_PATH "${HALIDE_RUNTIME_DIR}/${HALIDE_RUNTIME_FILE_NAME}")
+add_custom_command(OUTPUT "${HALIDE_RUNTIME_FILE_PATH}"
+                   COMMAND runtime.generator
+                           -r "${HALIDE_RUNTIME_FILE_NAME}"
+                           -o "${HALIDE_RUNTIME_DIR}"
+                           "target=host-debug"
+                  )
+
 function(tests folder)
   file(GLOB TESTS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/${folder}" "${CMAKE_CURRENT_SOURCE_DIR}/${folder}/*.cpp")
   if (WIN32)
@@ -21,12 +46,21 @@ function(tests folder)
   endif()
   foreach(file ${TESTS})
     string(REPLACE ".cpp" "" name "${file}")
-    halide_project("${folder}_${name}" "${folder}" "${folder}/${file}")
+    if (${name} MATCHES "^runtime_")
+      # By convention test names that start with the ``runtime_`` prefix
+      # are treated as pure runtime tests so the test will not be linked against
+      # libHalide and instead is linked against's Halide's generated runtime
+      add_executable("${folder}_${name}" "${folder}/${file}" "${HALIDE_RUNTIME_FILE_PATH}")
+      target_include_directories("${folder}_${name}" PRIVATE "${CMAKE_BINARY_DIR}/include")
+      if (NOT WIN32)
+        target_link_libraries("${folder}_${name}" dl pthread z)
+      endif()
+    else()
+      # Test links against libHalide
+      halide_project("${folder}_${name}" "${folder}" "${folder}/${file}")
+    endif()
   endforeach()
 endfunction(tests)
-
-include_directories ("${CMAKE_BINARY_DIR}/include")
-link_directories ("${LLVM_LIB}")
 
 if (WITH_TEST_CORRECTNESS)
   tests(correctness)
@@ -45,10 +79,11 @@ if (WITH_TEST_OPENGL)
 endif()
 if (WITH_TEST_DISTRIBUTED)
   tests(distributed)
+if (WITH_TEST_RENDERSCRIPT)
+  tests(renderscript)
 endif()
 
 if (WITH_TEST_GENERATORS)
-
   # Generator tests for just-in-time mode:
   # For foo_generator.cpp, assume it contains a single generator named 'foo'
   # and make an executable target for it named 'generator_foo'
@@ -74,25 +109,31 @@ if (WITH_TEST_GENERATORS)
   # First create Halide linked executables for the generators using
   # halide_project(...). These are used during the build.
   file(GLOB GENS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/generator" "${CMAKE_CURRENT_SOURCE_DIR}/generator/*_generator.cpp")
+
+  # Create the object file generator targets ("generator executables")
+  set(OBJ_GEN_EXE_SUFFIX ".generator")
   foreach(gen_src ${GENS})
-    string(REPLACE "_generator.cpp" "" gen_name "generator_${gen_src}")
+    string(REPLACE "_generator.cpp" "" gen_name "${gen_src}${OBJ_GEN_EXE_SUFFIX}")
     # tiled_blur also needs tiled_blur_blur
-    if(gen_name STREQUAL "generator_tiled_blur")
+    if(gen_name STREQUAL "tiled_blur${OBJ_GEN_EXE_SUFFIX}")
       halide_project(${gen_name} "generator" "${CMAKE_CURRENT_SOURCE_DIR}/../tools/GenGen.cpp" "generator/${gen_src}" "generator/tiled_blur_blur_generator.cpp")
     else()
       halide_project(${gen_name} "generator" "${CMAKE_CURRENT_SOURCE_DIR}/../tools/GenGen.cpp" "generator/${gen_src}")
     endif()
   endforeach()
 
-  # Next, invoke each of the generator executables with the arguments specific
-  # to each test case.
+  # Next create the test case targets. For each target
+  # set up dependencies so that
+  # - the generator executables will be invoked at build time with the
+  #   arguments specific to that particular test case.
+  # - the test case is linked against the generated object files.
   file(GLOB TESTS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/generator" "${CMAKE_CURRENT_SOURCE_DIR}/generator/*_aottest.cpp")
   foreach(TEST_SRC ${TESTS})
 
     string(REPLACE "_aottest.cpp" "" GEN_NAME "${TEST_SRC}")
     string(REPLACE "_aottest.cpp" "" FUNC_NAME "${TEST_SRC}")
 
-    string(REPLACE ".cpp" "" TEST_RUNNER "exec_test_${TEST_SRC}")
+    set(TEST_RUNNER "generator_aot_${GEN_NAME}")
 
     file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/" NATIVE_INT_DIR)
     set(SCRATCH_DIR "${NATIVE_INT_DIR}scratch_${GEN_NAME}")
@@ -106,80 +147,80 @@ if (WITH_TEST_GENERATORS)
       # "tiled_blur_interleaved" is produced by using tiled_blur with different
       # generator args.
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_tiled_blur"
+                               GENERATOR_TARGET "tiled_blur${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "tiled_blur"
                                GENERATED_FUNCTION "tiled_blur_interleaved"
                                GENERATOR_ARGS "target=host" "is_interleaved=true")
       # "tiled_blur_blur_interleaved" is produced by using tiled_blur_blur with
       # different generator args.
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_tiled_blur_blur"
+                               GENERATOR_TARGET "tiled_blur_blur${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "tiled_blur_blur"
                                GENERATED_FUNCTION "tiled_blur_blur_interleaved"
                                GENERATOR_ARGS "target=host" "is_interleaved=true")
     elseif(TEST_SRC STREQUAL "nested_externs_aottest.cpp")
 
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_nested_externs"
+                               GENERATOR_TARGET "nested_externs${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "nested_externs_root"
                                GENERATED_FUNCTION "nested_externs_root"
                                GENERATOR_ARGS "target=host")
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_nested_externs"
+                               GENERATOR_TARGET "nested_externs${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "nested_externs_inner"
                                GENERATED_FUNCTION "nested_externs_inner"
                                GENERATOR_ARGS "target=host")
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_nested_externs"
+                               GENERATOR_TARGET "nested_externs${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "nested_externs_combine"
                                GENERATED_FUNCTION "nested_externs_combine"
                                GENERATOR_ARGS "target=host")
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_nested_externs"
+                               GENERATOR_TARGET "nested_externs${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "nested_externs_leaf"
                                GENERATED_FUNCTION "nested_externs_leaf"
                                GENERATOR_ARGS "target=host")
     elseif(TEST_SRC STREQUAL "user_context_aottest.cpp")
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_${GEN_NAME}"
+                               GENERATOR_TARGET "${GEN_NAME}${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "${GEN_NAME}"
                                GENERATED_FUNCTION "${FUNC_NAME}"
                                GENERATOR_ARGS "target=host-user_context")
     elseif(TEST_SRC STREQUAL "user_context_insanity_aottest.cpp")
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_${GEN_NAME}"
+                               GENERATOR_TARGET "${GEN_NAME}${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "${GEN_NAME}"
                                GENERATED_FUNCTION "${FUNC_NAME}"
                                GENERATOR_ARGS "target=host-user_context")
     # metadata_tester_aottest.cpp depends on two variants of metadata_generator
     elseif(TEST_SRC STREQUAL "metadata_tester_aottest.cpp")
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_${GEN_NAME}"
+                               GENERATOR_TARGET "${GEN_NAME}${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "${GEN_NAME}"
                                GENERATED_FUNCTION "${FUNC_NAME}"
                                GENERATOR_ARGS "target=host-register_metadata")
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_${GEN_NAME}"
+                               GENERATOR_TARGET "${GEN_NAME}${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "${GEN_NAME}"
                                GENERATED_FUNCTION "${FUNC_NAME}_ucon"
                                GENERATOR_ARGS "target=host-register_metadata-user_context")
     else()
       # All the other foo_test.cpp just depend on foo_generator.cpp
       halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                               GENERATOR_TARGET "generator_${GEN_NAME}"
+                               GENERATOR_TARGET "${GEN_NAME}${OBJ_GEN_EXE_SUFFIX}"
                                GENERATOR_NAME "${GEN_NAME}"
                                GENERATED_FUNCTION "${FUNC_NAME}"
                                GENERATOR_ARGS "target=host")
       # tiled_blur_aottest.cpp depends on tiled_blur AND ALSO tiled_blur_blur
       if (TEST_SRC STREQUAL "tiled_blur_aottest.cpp")
         halide_add_generator_dependency(TARGET "${TEST_RUNNER}"
-                                 GENERATOR_TARGET "generator_tiled_blur_blur"
+                                 GENERATOR_TARGET "tiled_blur_blur${OBJ_GEN_EXE_SUFFIX}"
                                  GENERATOR_NAME "tiled_blur_blur"
                                  GENERATED_FUNCTION "tiled_blur_blur"
                                  GENERATOR_ARGS "target=host")
       endif()
     endif()
-    target_include_directories("${TEST_RUNNER}" PRIVATE "${CMAKE_SOURCE_DIR}/apps/support")
+    target_include_directories("${TEST_RUNNER}" PRIVATE "${CMAKE_SOURCE_DIR}/tools")
     target_include_directories("${TEST_RUNNER}" PRIVATE "${CMAKE_SOURCE_DIR}/src/runtime")
     set_target_properties("${TEST_RUNNER}" PROPERTIES FOLDER "generator")
     if (WIN32)

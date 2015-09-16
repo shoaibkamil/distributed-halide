@@ -70,6 +70,9 @@ void Closure::visit(const Store *op) {
 }
 
 void Closure::visit(const Allocate *op) {
+    if (op->new_expr.defined()) {
+        op->new_expr.accept(this);
+    }
     ignore.push(op->name, 0);
     for (size_t i = 0; i < op->extents.size(); i++) {
         op->extents[i].accept(this);
@@ -262,20 +265,27 @@ bool function_takes_user_context(const std::string &name) {
         "halide_free",
         "halide_malloc",
         "halide_print",
-        "halide_profiling_timer",
+        "halide_profiler_pipeline_start",
+        "halide_profiler_pipeline_end",
+        "halide_spawn_thread",
         "halide_device_release",
         "halide_start_clock",
         "halide_trace",
         "halide_memoization_cache_lookup",
         "halide_memoization_cache_store",
+        "halide_memoization_cache_release",
         "halide_cuda_run",
         "halide_opencl_run",
         "halide_opengl_run",
+        "halide_openglcompute_run",
         "halide_renderscript_run",
+        "halide_metal_run",
         "halide_cuda_initialize_kernels",
         "halide_opencl_initialize_kernels",
         "halide_opengl_initialize_kernels",
+        "halide_openglcompute_initialize_kernels",
         "halide_renderscript_initialize_kernels",
+        "halide_metal_initialize_kernels",
         "halide_get_gpu_device",
     };
     const int num_funcs = sizeof(user_context_runtime_funcs) /

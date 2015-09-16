@@ -241,7 +241,9 @@ void Pipeline::compile_to_file(const string &filename_prefix,
     compile_module_to_c_header(m, filename_prefix + ".h");
 
     if (target.arch == Target::PNaCl) {
-        compile_module_to_llvm_bitcode(m, filename_prefix + ".o");
+        compile_module_to_llvm_bitcode(m, filename_prefix + ".bc");
+    } else if (target.os == Target::Windows) {
+        compile_module_to_object(m, filename_prefix + ".obj");
     } else {
         compile_module_to_object(m, filename_prefix + ".o");
     }
@@ -457,6 +459,12 @@ Module Pipeline::compile_to_module(const vector<Argument> &args,
                                    const string &fn_name,
                                    const Target &target) {
     user_assert(defined()) << "Can't compile undefined Pipeline\n";
+    string new_fn_name(fn_name);
+    if (new_fn_name.empty()) {
+        new_fn_name = generate_function_name();
+    }
+    internal_assert(!new_fn_name.empty()) << "new_fn_name cannot be empty\n";
+    // TODO: Assert that the function name is legal
 
     // TODO: This is a bit of a wart. Right now, IR cannot directly
     // reference Buffers because neither CodeGen_LLVM nor
@@ -486,10 +494,10 @@ Module Pipeline::compile_to_module(const vector<Argument> &args,
             custom_passes.push_back(p.pass);
         }
 
-        private_body = lower(contents.ptr->outputs, target, custom_passes);
+        private_body = lower(contents.ptr->outputs, fn_name, target, custom_passes);
     }
 
-    string private_name = "__" + fn_name;
+    string private_name = "__" + new_fn_name;
 
     // Get all the arguments/global images referenced in this function.
     vector<Argument> public_args = args;
@@ -520,7 +528,7 @@ Module Pipeline::compile_to_module(const vector<Argument> &args,
     }
 
     // Create a module with all the global images in it.
-    Module module(fn_name, target);
+    Module module(new_fn_name, target);
 
     // Add all the global images to the module, and add the global
     // images used to the private argument list.
@@ -551,11 +559,23 @@ Module Pipeline::compile_to_module(const vector<Argument> &args,
     Stmt public_body = AssertStmt::make(private_result_var == 0, private_result_var);
     public_body = LetStmt::make(private_result_name, call_private, public_body);
 
-    module.append(LoweredFunc(fn_name, public_args, public_body, LoweredFunc::External));
+    module.append(LoweredFunc(new_fn_name, public_args, public_body, LoweredFunc::External));
 
     contents.ptr->module = module;
 
     return module;
+}
+
+std::string Pipeline::generate_function_name() {
+    user_assert(defined()) << "Pipeline is undefined\n";
+    // Come up with a name for a generated function
+    string name = contents.ptr->outputs[0].name();
+    for (size_t i = 0; i < name.size(); i++) {
+        if (!isalnum(name[i])) {
+            name[i] = '_';
+        }
+    }
+    return name;
 }
 
 void *Pipeline::compile_jit(const Target &target_arg) {
@@ -581,12 +601,7 @@ void *Pipeline::compile_jit(const Target &target_arg) {
     infer_arguments();
 
     // Come up with a name for the generated function
-    string name = contents.ptr->outputs[0].name();
-    for (size_t i = 0; i < name.size(); i++) {
-        if (!isalnum(name[i])) {
-            name[i] = '_';
-        }
-    }
+    string name = generate_function_name();
 
     vector<Argument> args;
     for (const InferredArgument &arg : contents.ptr->inferred_args) {
@@ -981,11 +996,86 @@ void Pipeline::realize(Realization dst, const Target &t) {
         }
     }
 
+    // We need to make a context for calling the jitted function to
+    // carry the the set of custom handlers. Here's how handlers get
+    // called when running jitted code:
+
+    // There's a single shared module that includes runtime code like
+    // posix_error_handler.cpp. This module is created the first time
+    // you JIT something and is reused for all subsequent runs of
+    // jitted code for any pipeline with the same target.
+
+    // To handle events like printing, tracing, or errors, the jitted
+    // code calls things like halide_error or halide_print in the
+    // shared runtime, which in turn call global function pointer
+    // variables in the shared runtime (e.g. halide_error_handler,
+    // halide_custom_print). When the shared module is created, we set
+    // those variables to point to the global handlers in
+    // JITModule.cpp (e.g. error_handler_handler, print_handler).
+
+    // Those global handlers use the user_context passed in to call
+    // the right handler for this particular pipeline run. The
+    // user_context is just a pointer to a JITUserContext, which is a
+    // member of the JITFuncCallContext which we will declare now:
+
     JITFuncCallContext jit_context(jit_handlers(), contents.ptr->user_context_arg.param);
+
+    // The handlers in the jit_context default to the default handlers
+    // in the runtime of the shared module (e.g. halide_print_impl,
+    // default_trace). As an example, here's what happens with a
+    // halide_print call:
+
+    // 1) Before the pipeline runs, when the single shared runtime
+    // module is created, halide_custom_print in posix_print.cpp is
+    // set to print_handler in JITModule.cpp
+
+    // 2) When the jitted module is compiled, we tell llvm to resolve
+    // calls to halide_print to the halide_print in the shared module
+    // we made.
+
+    // 3) The user calls realize(), and the jitted code calls
+    // halide_print in the shared runtime.
+
+    // 4) halide_print calls the function pointer halide_custom_print,
+    // which is print_handler in JITModule.cpp
+
+    // 5) print_handler casts the user_context to a JITUserContext,
+    // then calls the function pointer member handlers.custom_print,
+    // which is either halide_print_impl in the runtime, or some other
+    // function set by Pipeline::set_custom_print.
+
+    // Errors are slightly different, in that we always override the
+    // default when jitting.  We instead use ErrorBuffer::handler
+    // above (this was set in jit_context's constructor). When
+    // jit-compiled code encounters an error, it calls this handler,
+    // which just records the fact there was an error and what the
+    // message was, then returns back into jitted code. The jitted
+    // code cleans up and returns early with an exit code. We record
+    // this exit status below, then pass it to jit_context.finalize at
+    // the end of this function. If it's non-zero,
+    // jit_context.finalize passes the recorded error message to
+    // halide_runtime_error, which either calls abort() or throws an
+    // exception.
 
     debug(2) << "Calling jitted function\n";
     int exit_status = contents.ptr->jit_module.argv_function()(&(args[0]));
     debug(2) << "Back from jitted function. Exit status was " << exit_status << "\n";
+
+    // If we're profiling, report runtimes and reset profiler stats.
+    if (target.has_feature(Target::Profile)) {
+        JITModule::Symbol report_sym =
+            contents.ptr->jit_module.find_symbol_by_name("halide_profiler_report");
+        JITModule::Symbol reset_sym =
+            contents.ptr->jit_module.find_symbol_by_name("halide_profiler_reset");
+        if (report_sym.address && reset_sym.address) {
+            void *uc = jit_context.user_context_param.get_scalar<void *>();
+            void (*report_fn_ptr)(void *) = (void (*)(void *))(report_sym.address);
+            report_fn_ptr(uc);
+
+            void (*reset_fn_ptr)() = (void (*)())(reset_sym.address);
+            reset_fn_ptr();
+        }
+    }
 
     jit_context.finalize(exit_status);
 }
