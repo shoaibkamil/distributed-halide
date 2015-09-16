@@ -7,6 +7,47 @@ typedef int (*halide_task)(void *user_context, int, uint8_t *);
 extern "C" {
 extern int printf(const char *format, ...);
 extern double ceil(double d);
+extern int syscall(int num, ...);
+
+#ifndef __clockid_t_defined
+#define __clockid_t_defined 1
+
+typedef int32_t clockid_t;
+
+#define CLOCK_REALTIME               0
+#define CLOCK_MONOTONIC              1
+#define CLOCK_PROCESS_CPUTIME_ID     2
+#define CLOCK_THREAD_CPUTIME_ID      3
+#define CLOCK_MONOTONIC_RAW          4
+#define CLOCK_REALTIME_COARSE        5
+#define CLOCK_MONOTONIC_COARSE       6
+#define CLOCK_BOOTTIME               7
+#define CLOCK_REALTIME_ALARM         8
+#define CLOCK_BOOTTIME_ALARM         9
+
+#endif  // __clockid_t_defined
+
+#ifndef _STRUCT_TIMESPEC
+#define _STRUCT_TIMESPEC
+
+struct timespec {
+    long tv_sec;            /* Seconds.  */
+    long tv_nsec;           /* Nanoseconds.  */
+};
+
+#endif  // _STRUCT_TIMESPEC
+
+#ifndef SYS_CLOCK_GETTIME
+
+#ifdef BITS_64
+#define SYS_CLOCK_GETTIME 228
+#endif
+
+#ifdef BITS_32
+#define SYS_CLOCK_GETTIME 265
+#endif
+
+#endif
 
 typedef int MPI_Comm;
 #define MPI_COMM_WORLD ((MPI_Comm)0x44000000)
@@ -488,4 +529,11 @@ WEAK int halide_do_distr_waitall_sends(void *p) {
     return rc;
 }
 
+WEAK uint64_t halide_distr_time_ns(void *user_context) {
+    timespec now;
+    // To avoid requiring people to link -lrt, we just make the syscall directly.
+    syscall(SYS_CLOCK_GETTIME, CLOCK_MONOTONIC, &now);
+    return now.tv_sec * 1000000000 + now.tv_nsec;
+}
+    
 } // extern "C"

@@ -2657,6 +2657,7 @@ void CodeGen_LLVM::visit(const Call *op) {
         // We also have several impure runtime functions that do not
         // take a handle.
         if (op->name == "halide_current_time_ns" ||
+            op->name == "halide_distr_time_ns" ||
             op->name == "halide_gpu_thread_barrier" ||
             starts_with(op->name, "halide_error")) {
             pure = false;

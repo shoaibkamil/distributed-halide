@@ -251,6 +251,7 @@ bool function_takes_user_context(const std::string &name) {
         "halide_copy_to_host",
         "halide_copy_to_device",
         "halide_current_time_ns",
+        "halide_distr_time_ns",
         "halide_debug_to_file",
         "halide_device_free",
         "halide_device_malloc",
