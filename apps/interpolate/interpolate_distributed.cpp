@@ -3,7 +3,7 @@
 
 using namespace Halide;
 
-#include <image_io.h>
+#include <halide_image_io.h>
 #include <iostream>
 #include <limits>
 #include <sys/time.h>

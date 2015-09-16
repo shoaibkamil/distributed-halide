@@ -26,9 +26,8 @@ endif
 test: test.cpp halide_blur.o
 	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) -msse2 -Wall -O2 test.cpp halide_blur.o -o test -lpthread -ldl $(PNGFLAGS)
 
-distributed_blur: ../../ halide_blur_distributed.cpp
-	$(MAKE) -C ../../ $(LIB_HALIDE)
-	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 halide_blur_distributed.cpp ../../$(LIB_HALIDE) -o distributed_blur -ldl -lpthread -lz $(LDFLAGS)
+distributed_blur: halide_blur_distributed.cpp
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 halide_blur_distributed.cpp $(LIB_HALIDE) -o distributed_blur -ldl -lpthread -lz $(LDFLAGS)
 
 nondistributed_blur: ../../ halide_blur_distributed.cpp
 	$(MAKE) -C ../../ $(LIB_HALIDE)

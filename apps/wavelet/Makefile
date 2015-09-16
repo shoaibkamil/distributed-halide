@@ -11,9 +11,8 @@ HL_TARGET ?= host
 
 all: $(BUILD_DIR)/wavelet
 
-distributed_wavelet: ../../ wavelet_distributed.cpp
-	$(MAKE) -C ../../ $(LIB_HALIDE)
-	$(CXX) $(CXXFLAGS) wavelet_distributed.cpp -g ../../$(LIB_HALIDE) -o distributed_wavelet -lpthread -ldl -lz $(LDFLAGS)
+distributed_wavelet: wavelet_distributed.cpp
+	$(CXX) $(CXXFLAGS) wavelet_distributed.cpp -g $(LIB_HALIDE) -o distributed_wavelet -lpthread -ldl -lz $(LDFLAGS)
 
 clean:
 	@rm -rf $(BUILD_DIR)

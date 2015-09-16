@@ -31,8 +31,7 @@ local_laplacian.mp4: $(HALIDE_PATH)/bin/HalideTraceViz process_viz
 	bash viz.sh
 
 distributed_local_laplacian: ../../ local_laplacian_distributed.cpp
-	$(MAKE) -C ../../ $(LIB_HALIDE)
-	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 local_laplacian_distributed.cpp -g ../../$(LIB_HALIDE) -o distributed_local_laplacian -lpthread -ldl -lz \
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 local_laplacian_distributed.cpp -g $(LIB_HALIDE) -o distributed_local_laplacian -lpthread -ldl -lz \
 	$(LDFLAGS) $(LLVM_SHARED_LIBS)
 
 clean:

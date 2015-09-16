@@ -1,7 +1,7 @@
 #include "Halide.h"
 using namespace Halide;
 
-#include "image_io.h"
+#include "halide_image_io.h"
 #include "mpi_timing.h"
 
 DistributedImage<float> input, output;

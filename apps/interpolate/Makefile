@@ -12,9 +12,8 @@ interpolate: interpolate.cpp
 	$(CXX) $(CXXFLAGS) interpolate.cpp $(LIB_HALIDE) -o interpolate -lpthread -ldl -lz \
 	$(PNGFLAGS) $(LDFLAGS) $(LLVM_SHARED_LIBS)
 
-distributed_interpolate: ../../ interpolate_distributed.cpp
-	$(MAKE) -C ../../ $(LIB_HALIDE)
-	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) interpolate_distributed.cpp ../../$(LIB_HALIDE) -o distributed_interpolate -lpthread -ldl -lz \
+distributed_interpolate: interpolate_distributed.cpp
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) interpolate_distributed.cpp $(LIB_HALIDE) -o distributed_interpolate -lpthread -ldl -lz \
 	$(PNGFLAGS) $(CUDA_LDFLAGS) $(OPENCL_LDFLAGS) $(OPENGL_LDFLAGS) $(LDFLAGS) $(LLVM_SHARED_LIBS)
 
 out.png: interpolate

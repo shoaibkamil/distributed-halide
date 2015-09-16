@@ -12,9 +12,8 @@ else
 OPENMP_FLAGS=
 endif
 
-distributed_transpose: ../../ transpose_distributed.cpp
-	$(MAKE) -C ../../ $(LIB_HALIDE)
-	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 transpose_distributed.cpp ../../$(LIB_HALIDE) -o distributed_transpose -ldl -lpthread -lz $(LDFLAGS)
+distributed_transpose: transpose_distributed.cpp
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 transpose_distributed.cpp $(LIB_HALIDE) -o distributed_transpose -ldl -lpthread -lz $(LDFLAGS)
 
 clean:
 	rm -f test distributed_transpose

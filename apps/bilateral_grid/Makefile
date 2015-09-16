@@ -22,9 +22,8 @@ bilateral_grid.mp4: bilateral_grid.cpp viz.sh $(HALIDE_PATH)/bin/HalideTraceViz
 out.png: filter
 	./filter ../images/gray.png out.png 0.1 10
 
-distributed_bilateral_grid: ../.. bilateral_grid_distributed.cpp
-	$(MAKE) -C ../../ $(LIB_HALIDE)
-	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 bilateral_grid_distributed.cpp ../../$(LIB_HALIDE) -o distributed_bilateral_grid -ldl -lpthread -lz $(LDFLAGS)
+distributed_bilateral_grid: bilateral_grid_distributed.cpp
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 bilateral_grid_distributed.cpp $(LIB_HALIDE) -o distributed_bilateral_grid -ldl -lpthread -lz $(LDFLAGS)
 
 clean:
 	rm -f bilateral_grid bilateral_grid.mp4 bilateral_grid.o bilateral_grid.h bilateral filter distributed_bilateral_grid

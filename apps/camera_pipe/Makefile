@@ -37,9 +37,8 @@ out.png: process
 camera_pipe.avi: camera_pipe.cpp viz.sh $(HALIDE_TRACE_VIZ) ../../bin/HalideTraceViz
 	bash viz.sh
 
-distributed_camera_pipe: ../../ camera_pipe_distributed.cpp
-	$(MAKE) -C ../../ $(LIB_HALIDE)
-	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 camera_pipe_distributed.cpp ../../$(LIB_HALIDE) -o distributed_camera_pipe -ldl -lpthread -lz $(LDFLAGS)
+distributed_camera_pipe: camera_pipe_distributed.cpp
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 camera_pipe_distributed.cpp $(LIB_HALIDE) -o distributed_camera_pipe -ldl -lpthread -lz $(LDFLAGS)
 
 clean:
 	rm -f out.png process curved.o camera_pipe fcam/*.o distributed_camera_pipe
