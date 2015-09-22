@@ -470,7 +470,6 @@ RUNTIME_CPP_COMPONENTS = \
   cuda \
   destructors \
   device_interface \
-  distributed_mpi \
   fake_thread_pool \
   float16_t \
   gcd_thread_pool \
@@ -486,6 +485,7 @@ RUNTIME_CPP_COMPONENTS = \
   metal_objc_x86 \
   module_aot_ref_count \
   module_jit_ref_count \
+  mpi \
   nacl_host_cpu_count \
   opencl \
   opengl \

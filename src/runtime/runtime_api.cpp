@@ -1,5 +1,6 @@
 #include "HalideRuntime.h"
 #include "HalideRuntimeCuda.h"
+#include "HalideRuntimeMPI.h"
 #include "HalideRuntimeOpenGL.h"
 #include "HalideRuntimeOpenGLCompute.h"
 #include "HalideRuntimeOpenCL.h"
@@ -31,6 +32,7 @@ __attribute__((used)) void *runtime_api_functions[] = {
     (void *)&halide_device_malloc,
     (void *)&halide_device_release,
     (void *)&halide_device_sync,
+    (void *)&halide_distr_time_ns,
     (void *)&halide_do_par_for,
     (void *)&halide_double_to_string,
     (void *)&halide_enumerate_registered_filters,
