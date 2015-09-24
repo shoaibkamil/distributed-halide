@@ -837,6 +837,8 @@ string schedule_to_source(Function f,
         }
         if (compute_at.is_root()) {
             ss << ".compute_root()";
+        } else if (compute_at.is_rank()) {
+            ss << ".compute_rank()";
         } else {
             ss << ".compute_at(" << compute_at.func << ", " << compute_var_name << ")";
         }

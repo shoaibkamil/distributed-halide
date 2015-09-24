@@ -18,14 +18,15 @@ namespace Internal {
  * in this loop nest. A LoopLevel identifies such a site. */
 struct LoopLevel {
     std::string func, var;
+    bool _is_rank;
 
     /** Identify the loop nest corresponding to some dimension of some function */
-    LoopLevel(std::string f, std::string v) : func(f), var(v) {}
+    LoopLevel(std::string f, std::string v) : func(f), var(v), _is_rank(false) {}
 
     /** Construct an empty LoopLevel, which is interpreted as
      * 'inline'. This is a special LoopLevel value that implies
      * that a function should be inlined away */
-    LoopLevel() {}
+    LoopLevel() : _is_rank(false) {}
 
     /** Test if a loop level corresponds to inlining the function */
     bool is_inline() const {return var.empty();}
@@ -43,9 +44,11 @@ struct LoopLevel {
      * outside of all for loops, but only computing the region
      * required on a rank. */
     static LoopLevel rank() {
-        return LoopLevel("", "__rank");
+        LoopLevel ll = root();
+        ll._is_rank = true;
+        return ll;
     }
-    bool is_rank() const { return var == "__rank"; }
+    bool is_rank() const { return _is_rank; }
 
     /** Compare this loop level against the variable name of a for
      * loop, to see if this loop level refers to the site
