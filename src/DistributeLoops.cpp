@@ -149,6 +149,23 @@ public:
 
 // Simplify the given box, using the given environment of variable
 // to value.
+Box simplify_box(const Box &b, const vector<std::pair<string, Expr> > &lets) {
+    Box result;
+    // TODO: this can be quite slow with large
+    // environments. The goal is to get the Box into terms of
+    // the outermost variables (the global output buffer
+    // variables).
+    for (unsigned i = 0; i < b.size(); i++) {
+        Expr min = b[i].min, max = b[i].max;
+        for (auto let = lets.rbegin(); let != lets.rend(); ++let) {
+            min = simplify(substitute(let->first, let->second, min));
+            max = simplify(substitute(let->first, let->second, max));
+        }
+        result.push_back(Interval(min, max));
+    }
+    return result;
+}
+
 Box simplify_box(const Box &b, const Scope<Expr> &env) {
     Box result(b.size());
     ReplaceVariables replace(env);
@@ -1214,6 +1231,98 @@ public:
     }
 };
 
+// Sets distributed loop bounds for any functions marked
+// compute_rank(). Must occur after DistributeLoops.
+class LowerComputeRankFunctions : public IRMutator {
+    const map<string, Function> &env;
+    map<string, Box> required_regions;
+
+    class MergeAllRequiredRegions : public IRVisitor {
+        Scope<Interval> scope;
+        vector<std::pair<string, Expr> > lets;
+    public:
+        map<string, Box> regions;
+        using IRVisitor::visit;
+
+        void visit(const For *for_loop) {
+            scope.push(for_loop->name, Interval(for_loop->min, for_loop->min + for_loop->extent - 1));
+            IRVisitor::visit(for_loop);
+            scope.pop(for_loop->name);
+        }
+
+        void visit(const LetStmt *let) {
+            lets.push_back(std::make_pair(let->name, let->value));
+            IRVisitor::visit(let);
+            lets.pop_back();
+        }
+
+        void visit(const Let *let) {
+            lets.push_back(std::make_pair(let->name, let->value));
+            IRVisitor::visit(let);
+            lets.pop_back();
+        }
+
+        void visit(const Call *op) {
+            map<string, Box> required = boxes_required(op, scope);
+            for (auto it : required) {
+                string name = it.first;
+                if (regions.find(name) != regions.end()) {
+                    Box b = regions[name];
+                    merge_boxes(b, it.second);
+                    regions[name] = simplify_box(b, lets);
+                } else {
+                    regions[name] = simplify_box(it.second, lets);
+                }
+            }
+        }
+    };
+
+    Interval get_interval(const string &func, const string &loop_var) {
+        internal_assert(required_regions.find(func) != required_regions.end());
+        internal_assert(env.find(func) != env.end());
+        const Box &b = required_regions.at(func);
+        const vector<Dim> &dims = env.at(func).schedule().dims();
+        int idx = -1;
+        for (int i = 0; i < (int)dims.size(); i++) {
+            if (ends_with(loop_var, dims[i].var)) {
+                internal_assert(idx == -1);
+                idx = i;
+            }
+        }
+        return b[idx];
+    }
+
+public:
+    LowerComputeRankFunctions(Stmt s, const std::map<std::string, Function> &e) : env(e) {
+        MergeAllRequiredRegions find;
+        s.accept(&find);
+        required_regions.swap(find.regions);
+    }
+
+    using IRMutator::visit;
+
+    void visit(const LetStmt *let) {
+        string loop_var = remove_suffix(let->name);
+        string funcname = first_token(let->name);
+        string stage_prefix = funcname + "." + second_token(let->name);
+        auto it = env.find(funcname);
+        if (it != env.end() && it->second.schedule().compute_level().is_rank()) {
+            Interval I = get_interval(funcname, loop_var);
+            if (ends_with(let->name, ".loop_min")) {
+                stmt = LetStmt::make(let->name, I.min, mutate(let->body));
+            } else if (ends_with(let->name, ".loop_max")) {
+                stmt = LetStmt::make(let->name, I.max, mutate(let->body));
+            } else if (ends_with(let->name, ".loop_extent")) {
+                stmt = LetStmt::make(let->name, I.max - I.min + 1, mutate(let->body));
+            } else {
+                internal_assert(false) << let->name;
+            }
+        } else {
+            IRMutator::visit(let);
+        }
+    }
+};
+
 // Remove the "distributed" attribute from all distributed loops, and
 // replace with the non-distributed serial/parallel version.
 class ChangeDistributedFor : public IRMutator {
@@ -1402,7 +1511,9 @@ Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env, b
     if (find.distributed_functions.empty()) {
         return s;
     }
-    return DistributeLoops(find.distributed_bounds, env, cap_extents).mutate(s);
+    s = DistributeLoops(find.distributed_bounds, env, cap_extents).mutate(s);
+    s = LowerComputeRankFunctions(s, env).mutate(s);
+    return s;
 }
 
 Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env) {
@@ -1411,7 +1522,9 @@ Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env) {
     if (find.distributed_functions.empty()) {
         return s;
     }
-    return DistributeLoops(find.distributed_bounds, env).mutate(s);
+    s = DistributeLoops(find.distributed_bounds, env).mutate(s);
+    s = LowerComputeRankFunctions(s, env).mutate(s);
+    return s;
 }
 
 Stmt change_distributed_annotation(Stmt s) {
