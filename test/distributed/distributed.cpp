@@ -891,9 +891,10 @@ int main(int argc, char **argv) {
         blury(x, y) = (blurx(x, y-1) + blurx(x, y) + blurx(x, y+1)) / 3;
 
         blurx.compute_rank();
+        //blurx.compute_root();
         blury.distribute(y);
 
-        DistributedImage<int> out(11, 113);
+        DistributedImage<int> out(100, 100);
         out.set_domain(x, y);
         out.placement().distribute(y);
         out.allocate();
