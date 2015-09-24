@@ -1346,6 +1346,10 @@ public:
      */
     EXPORT Func &compute_root();
 
+    /** Compute a function at "rank" level, which is root level but
+     * only the region required by that rank. */
+    EXPORT Func &compute_rank();
+
     /** Use the halide_memoization_cache_... interface to store a
      *  computed version of this function across invocations of the
      *  Func.

@@ -1150,6 +1150,15 @@ Func &Func::compute_root() {
     return *this;
 }
 
+Func &Func::compute_rank() {
+    invalidate_cache();
+    func.schedule().compute_level() = LoopLevel::rank();
+    if (func.schedule().store_level().is_inline()) {
+        func.schedule().store_level() = LoopLevel::rank();
+    }
+    return *this;
+}
+
 Func &Func::store_at(Func f, RVar var) {
     return store_at(f, Var(var.name()));
 }

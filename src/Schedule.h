@@ -39,6 +39,14 @@ struct LoopLevel {
      * outside of all for loops */
     bool is_root() const {return var == "__root";}
 
+    /** rank is a special LoopLevel which represents the location
+     * outside of all for loops, but only computing the region
+     * required on a rank. */
+    static LoopLevel rank() {
+        return LoopLevel("", "__rank");
+    }
+    bool is_rank() const { return var == "__rank"; }
+
     /** Compare this loop level against the variable name of a for
      * loop, to see if this loop level refers to the site
      * immediately inside this loop. */
