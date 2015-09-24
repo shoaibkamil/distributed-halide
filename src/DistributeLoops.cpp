@@ -119,6 +119,16 @@ Expr same_boxes(const Box &a, const Box &b) {
     return e;
 }
 
+// Return expr evaluating whether box a encloses box b.
+Expr box_encloses(const Box &a, const Box &b) {
+    internal_assert(a.size() == b.size());
+    Expr e = simplify(a[0].min <= b[0].min && a[0].max >= b[0].max);
+    for (unsigned i = 1; i < a.size(); i++) {
+        e = e && simplify(a[i].min <= b[i].min && a[i].max >= b[i].max);
+    }
+    return simplify(e);
+}
+
 Expr round_away_from_zero(Expr e) {
     return select(e < 0, floor(e), ceil(e));
 }
@@ -803,15 +813,15 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     switch (cmd) {
     case Send:
         I = BoxIntersection(have, need_parameterized);
-        ghost_zone_empty = same_boxes(have_parameterized, need_parameterized);
+        ghost_zone_empty = box_encloses(have_parameterized, need_parameterized);
         break;
     case Recv:
         I = BoxIntersection(have_parameterized, need);
-        ghost_zone_empty = same_boxes(have, need);
+        ghost_zone_empty = box_encloses(have, need);
         break;
     }
 
-    ghost_zone_empty = const_false();
+    //ghost_zone_empty = const_false();
 
     Expr addr;
     Expr numbytes = Var("msgsize");
