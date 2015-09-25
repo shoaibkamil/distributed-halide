@@ -1277,19 +1277,40 @@ class LowerComputeRankFunctions : public IRMutator {
         }
     };
 
-    Interval get_interval(const string &func, const string &loop_var) {
+    // For a loop variable corresponding to a function argument (not a
+    // split loop variable), return an Interval containing the min and
+    // max values for the loop variable based on the required region
+    // of the function by its consumers.
+    Interval get_required_interval(const string &func, const string &loop_var) {
         internal_assert(required_regions.find(func) != required_regions.end());
         internal_assert(env.find(func) != env.end());
+        const vector<string> &args = env.at(func).args();
         const Box &b = required_regions.at(func);
-        const vector<Dim> &dims = env.at(func).schedule().dims();
-        int idx = -1;
-        for (int i = 0; i < (int)dims.size(); i++) {
-            if (ends_with(loop_var, dims[i].var)) {
-                internal_assert(idx == -1);
-                idx = i;
+        internal_assert(b.size() == args.size());
+        for (int i = 0; i < (int)args.size(); i++) {
+            if (ends_with(loop_var, args[i])) {
+                return b[i];
             }
         }
-        return b[idx];
+        internal_assert(false) << loop_var;
+        return Interval(0, 0);
+    }
+
+    // Returns true if the given name is a split (or fuse) dimension
+    // of the given function.
+    bool var_is_split(const string &func, const string &var) {
+        for (const Split &sp : env.at(func).schedule().splits()) {
+            if (ends_with(var, sp.outer) || ends_with(var, sp.inner)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool var_is_loop_bound(const string &var) {
+        return ends_with(var, ".loop_min") ||
+            ends_with(var, ".loop_max") ||
+            ends_with(var, ".loop_extent");
     }
 
 public:
@@ -1306,8 +1327,9 @@ public:
         string funcname = first_token(let->name);
         string stage_prefix = funcname + "." + second_token(let->name);
         auto it = env.find(funcname);
-        if (it != env.end() && it->second.schedule().compute_level().is_rank()) {
-            Interval I = get_interval(funcname, loop_var);
+        if (it != env.end() && it->second.schedule().compute_level().is_rank() &&
+            !var_is_split(funcname, loop_var) && var_is_loop_bound(let->name)) {
+            Interval I = get_required_interval(funcname, loop_var);
             if (ends_with(let->name, ".loop_min")) {
                 stmt = LetStmt::make(let->name, I.min, mutate(let->body));
             } else if (ends_with(let->name, ".loop_max")) {

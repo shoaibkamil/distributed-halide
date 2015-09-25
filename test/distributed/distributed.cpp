@@ -890,8 +890,8 @@ int main(int argc, char **argv) {
         blurx(x, y) = (clamped(x-1, y) + clamped(x, y) + clamped(x+1, y)) / 3;
         blury(x, y) = (blurx(x, y-1) + blurx(x, y) + blurx(x, y+1)) / 3;
 
-        blurx.compute_rank();
-        //blurx.compute_root();
+        Var yi;
+        blurx.compute_rank().parallel(y, 2).vectorize(x, 8);
         blury.distribute(y);
 
         DistributedImage<int> out(100, 100);
