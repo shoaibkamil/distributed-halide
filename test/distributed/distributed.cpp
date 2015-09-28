@@ -928,7 +928,54 @@ int main(int argc, char **argv) {
             }
         }
     }
-    
+
+    {
+        DistributedImage<int> in(100, 100);
+
+        Expr clamped_x = clamp(x, 0, in.global_width()-1),
+            clamped_y = clamp(y, 0, in.global_height()-1);
+        Func clamped;
+        clamped(x, y) = in(clamped_x, clamped_y);
+        Func f, g, h;
+        f(x, y) = clamped(x, y) + clamped(x, y+1) + 1;
+        g(x, y) = f(x, y) + f(x, y+1) + 1;
+        h(x, y) = g(x, y) * 2;
+
+        f.compute_rank().parallel(y, 2).vectorize(x, 8);
+        g.compute_root().parallel(y, 2).vectorize(x, 8).distribute(y);
+        h.parallel(y, 2).vectorize(x, 8).distribute(y);
+
+        DistributedImage<int> out(100, 100);
+        out.set_domain(x, y);
+        out.placement().parallel(y, 2).distribute(y);
+        out.allocate();
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate(h, out);
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
+
+        h.realize(out.get_buffer());
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                const int max = out.global_height() - 1;
+                const int yp1 = out.global(1, y+1) >= max ? out.local(1, max) : y+1,
+                    yp2 = out.global(1, y+2) >= max ? out.local(1, max) : y+2;
+                const int correct = ((out.global(0, x) + out.global(1, y) + out.global(0, x) + out.global(1, yp1) + 1) +
+                                     (out.global(0, x) + out.global(1, yp1) + out.global(0, x) + out.global(1, yp2) + 1) + 1) * 2;
+                if (out(x, y) != correct) {
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
+                    MPI_Finalize();
+                    return -1;
+                }
+            }
+        }
+    }
+
     printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();

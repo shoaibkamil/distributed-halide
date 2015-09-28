@@ -1251,14 +1251,30 @@ class LowerComputeRankFunctions : public IRMutator {
         }
 
         void visit(const LetStmt *let) {
+            Interval I = bounds_of_expr_in_scope(let->value, scope);
+            internal_assert(I.min.defined() == I.max.defined());
+            if (I.min.defined()) {
+                scope.push(let->name, I);
+            }
             lets.push_back(std::make_pair(let->name, let->value));
             IRVisitor::visit(let);
+            if (I.min.defined()) {
+                scope.pop(let->name);
+            }
             lets.pop_back();
         }
 
         void visit(const Let *let) {
+            Interval I = bounds_of_expr_in_scope(let->value, scope);
+            internal_assert(I.min.defined() == I.max.defined());
+            if (I.min.defined()) {
+                scope.push(let->name, I);
+            }
             lets.push_back(std::make_pair(let->name, let->value));
             IRVisitor::visit(let);
+            if (I.min.defined()) {
+                scope.pop(let->name);
+            }
             lets.pop_back();
         }
 
