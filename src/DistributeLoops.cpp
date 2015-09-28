@@ -666,6 +666,108 @@ Stmt copy_memory(Expr dest, Expr src, Expr size) {
                                     {dest, src, size}, Call::Intrinsic));
 }
 
+// Used for profiling
+const string profile_buf = "DistrProfileBuffer";
+const string profile_gathered_buf = "DistrProfileBufferGathered";
+map<string, int> profile_indices;   // map name -> index in buffer.
+
+// Return current time in nanoseconds.
+Expr profile_time() {
+    return Call::make(UInt(64), "halide_distr_time_ns", std::vector<Expr>(), Call::Extern);
+}
+
+// Get or assign an index into the profiling buffer for the given
+// event name.
+Expr get_profiling_index(const string& s) {
+    if (profile_indices.find(s) == profile_indices.end()) {
+        int idx = profile_indices.size();
+        profile_indices[s] = idx;
+    }
+    return profile_indices[s];
+}
+
+// Add profiling (timing) arround the given statement. The event name
+// is constructed as operation.name
+Stmt add_profiling(Stmt s, const string &operation, const string &name) {
+    const string id = operation + "." + name;
+    const string start_name = "start_timer_" + id;
+    Expr idx = get_profiling_index(id);
+    Expr start = Variable::make(UInt(64), start_name);
+    Expr old_val = Load::make(UInt(64), profile_buf, idx, Buffer(), Parameter());
+    Expr delta = Sub::make(profile_time(), start);
+    Expr new_val = Add::make(old_val, delta);
+    s = Block::make(s, Store::make(profile_buf, new_val, idx));
+    s = LetStmt::make(start_name, profile_time(), s);
+    return s;
+}
+
+// Gather all profiling data to rank 0 into a larger "gathered" buffer.
+Stmt gather_profiling() {
+    Stmt rank0copy;
+    // Copy rank 0 profiling into gathered buffer
+    Expr stride = (int)profile_indices.size();
+    for (const std::pair<std::string, int> &i : profile_indices) {
+        int eventidx = i.second;
+        Expr val = Load::make(UInt(64), profile_buf, eventidx, Buffer(), Parameter());
+        Expr idx = eventidx + rank() * stride;
+        Stmt store = Store::make(profile_gathered_buf, val, idx);
+        if (rank0copy.defined()) {
+            rank0copy = Block::make(rank0copy, store);
+        } else {
+            rank0copy = store;
+        }
+    }
+    // Receive other ranks into gathered buffer
+    Expr addr = address_of(profile_gathered_buf, Var("r") * stride * UInt(64).bytes());
+    Expr count = (int)profile_indices.size();
+    Stmt recvstmt = Evaluate::make(recv(addr, UInt(64), count, Var("r")));
+    Stmt recvloop = For::make("r", 1, Var("NumProcessors")-1, ForType::Serial, DeviceAPI::Host, recvstmt);
+    recvloop = Block::make(rank0copy, recvloop);
+
+    // Send profiling to rank 0
+    addr = address_of(profile_buf, 0);
+    Stmt sendstmt = Evaluate::make(send(addr, UInt(64), count, 0));
+
+    return IfThenElse::make(rank() == 0, recvloop, sendstmt);
+}
+
+// Insert statements to print all profiling data. Rank 0 gathers all
+// data from other ranks and prints: other ranks do not print.
+Stmt print_profiling(Stmt s) {
+    Stmt gather = gather_profiling();
+    Expr stride = (int)profile_indices.size();
+    Stmt printstmt;
+    for (const std::pair<std::string, int> &i : profile_indices) {
+        int eventidx = i.second;
+        Expr idx = eventidx + Var("r") * stride;
+        Expr val = Load::make(UInt(64), profile_gathered_buf, idx, Buffer(), Parameter());
+        vector<Expr> msg = {string("rank"), Var("r"), string("profiling"),
+                            i.first, string("="), val, string("ns")};
+        if (printstmt.defined()) {
+            printstmt = Block::make(printstmt, Evaluate::make(print(msg)));
+        } else {
+            printstmt = Evaluate::make(print(msg));
+        }
+    }
+    Stmt printloop = IfThenElse::make(rank() == 0, For::make("r", 0, Var("NumProcessors"), ForType::Serial, DeviceAPI::Host, printstmt));
+
+    s = Block::make(s, gather);
+    s = Block::make(s, printloop);
+
+    s = Allocate::make(profile_gathered_buf, UInt(64), {stride, Var("NumProcessors")}, const_true(), s);
+    return s;
+}
+
+// Allocate a profiling buffer for the events on the current rank.
+Stmt allocate_profiling(Stmt s) {
+    Expr i = Variable::make(Int(32), "i");
+    Stmt init = For::make("i", 0, (int)profile_indices.size(), ForType::Serial, DeviceAPI::Host,
+                          Store::make(profile_buf, Cast::make(UInt(64), 0), i));
+    s = Block::make(init, s);
+    s = Allocate::make(profile_buf, UInt(64), {(int)profile_indices.size()}, const_true(), s);
+    return s;
+}
+
 class ChangeDistributedLoopBuffers : public IRMutator {
     string name, newname;
     const Box &box;
@@ -932,20 +1034,31 @@ Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required, S
         // output images.
         if (!in.distributed() || in.is_output_image()) continue;
 
+        Stmt sendstmt = communicate_intersection(Send, in, func);
+        Stmt sendwaitstmt = waitall_isend(in.name());
+        Stmt recvstmt = communicate_intersection(Recv, in, func);
+        Stmt recvwaitstmt = waitall_irecv(in.name());
+        if (profiling) {
+            sendstmt = add_profiling(sendstmt, "border_exchange_send", func + "." + in.name());
+            sendwaitstmt = add_profiling(sendwaitstmt, "border_exchange_send", func + "." + in.name());
+            recvstmt = add_profiling(recvstmt, "border_exchange_recv", func + "." + in.name());
+            recvwaitstmt = add_profiling(recvwaitstmt, "border_exchange_recv", func + "." + in.name());
+        }
+
         if (sendloop.defined()) {
-            sendloop = Block::make(sendloop, communicate_intersection(Send, in, func));
-            sendwait = Block::make(sendwait, waitall_isend(in.name()));
+            sendloop = Block::make(sendloop, sendstmt);
+            sendwait = Block::make(sendwait, sendwaitstmt);
         } else {
-            sendloop = communicate_intersection(Send, in, func);
-            sendwait = waitall_isend(in.name());
+            sendloop = sendstmt;
+            sendwait = sendwaitstmt;
         }
 
         if (recvloop.defined()) {
-            recvloop = Block::make(recvloop, communicate_intersection(Recv, in, func));
-            recvwait = Block::make(recvwait, waitall_irecv(in.name()));
+            recvloop = Block::make(recvloop, recvstmt);
+            recvwait = Block::make(recvwait, recvwaitstmt);
         } else {
-            recvloop = communicate_intersection(Recv, in, func);
-            recvwait = waitall_irecv(in.name());
+            recvloop = recvstmt;
+            recvwait = recvwaitstmt;
         }
     }
     internal_assert(sendloop.defined() == recvloop.defined());
@@ -986,108 +1099,6 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
     }
     return loop;
 }
-
-// Used for profiling
-const string profile_buf = "DistrProfileBuffer";
-const string profile_gathered_buf = "DistrProfileBufferGathered";
-map<string, int> profile_indices;   // map name -> index in buffer.
-
-// Return current time in nanoseconds.
-Expr profile_time() {
-    return Call::make(UInt(64), "halide_distr_time_ns", std::vector<Expr>(), Call::Extern);
-}
-
-// Get or assign an index into the profiling buffer for the given
-// event name.
-Expr get_profiling_index(const string& s) {
-    if (profile_indices.find(s) == profile_indices.end()) {
-        int idx = profile_indices.size();
-        profile_indices[s] = idx;
-    }
-    return profile_indices[s];
-}
-
-// Add profiling (timing) arround the given statement. The event name
-// is constructed as operation.name
-Stmt add_profiling(Stmt s, const string &operation, const string &name) {
-    const string id = operation + "." + name;
-    const string start_name = "start_timer_" + id;
-    Expr idx = get_profiling_index(id);
-    Expr start = Variable::make(UInt(64), start_name);
-    Expr old_val = Load::make(UInt(64), profile_buf, idx, Buffer(), Parameter());
-    Expr delta = Sub::make(profile_time(), start);
-    Expr new_val = Add::make(old_val, delta);
-    s = Block::make(s, Store::make(profile_buf, new_val, idx));
-    s = LetStmt::make(start_name, profile_time(), s);
-    return s;
-}
-
-// Gather all profiling data to rank 0 into a larger "gathered" buffer.
-Stmt gather_profiling() {
-    Stmt rank0copy;
-    // Copy rank 0 profiling into gathered buffer
-    Expr stride = (int)profile_indices.size();
-    for (const std::pair<std::string, int> &i : profile_indices) {
-        int eventidx = i.second;
-        Expr val = Load::make(UInt(64), profile_buf, eventidx, Buffer(), Parameter());
-        Expr idx = eventidx + rank() * stride;
-        Stmt store = Store::make(profile_gathered_buf, val, idx);
-        if (rank0copy.defined()) {
-            rank0copy = Block::make(rank0copy, store);
-        } else {
-            rank0copy = store;
-        }
-    }
-    // Receive other ranks into gathered buffer
-    Expr addr = address_of(profile_gathered_buf, Var("r") * stride * UInt(64).bytes());
-    Expr count = (int)profile_indices.size();
-    Stmt recvstmt = Evaluate::make(recv(addr, UInt(64), count, Var("r")));
-    Stmt recvloop = For::make("r", 1, Var("NumProcessors")-1, ForType::Serial, DeviceAPI::Host, recvstmt);
-    recvloop = Block::make(rank0copy, recvloop);
-
-    // Send profiling to rank 0
-    addr = address_of(profile_buf, 0);
-    Stmt sendstmt = Evaluate::make(send(addr, UInt(64), count, 0));
-
-    return IfThenElse::make(rank() == 0, recvloop, sendstmt);
-}
-
-// Insert statements to print all profiling data. Rank 0 gathers all
-// data from other ranks and prints: other ranks do not print.
-Stmt print_profiling(Stmt s) {
-    Stmt gather = gather_profiling();
-    Expr stride = (int)profile_indices.size();
-    Stmt printstmt;
-    for (const std::pair<std::string, int> &i : profile_indices) {
-        int eventidx = i.second;
-        Expr idx = eventidx + Var("r") * stride;
-        Expr val = Load::make(UInt(64), profile_gathered_buf, idx, Buffer(), Parameter());
-        vector<Expr> msg = {string("rank"), Var("r"), string("profiling"),
-                            i.first, string("="), val, string("ns")};
-        if (printstmt.defined()) {
-            printstmt = Block::make(printstmt, Evaluate::make(print(msg)));
-        } else {
-            printstmt = Evaluate::make(print(msg));
-        }
-    }
-    Stmt printloop = IfThenElse::make(rank() == 0, For::make("r", 0, Var("NumProcessors"), ForType::Serial, DeviceAPI::Host, printstmt));
-
-    s = Block::make(s, gather);
-    s = Block::make(s, printloop);
-
-    s = Allocate::make(profile_gathered_buf, UInt(64), {stride, Var("NumProcessors")}, const_true(), s);
-    return s;
-}
-
-// Allocate a profiling buffer for the events on the current rank.
-Stmt allocate_profiling(Stmt s) {
-    Expr i = Variable::make(Int(32), "i");
-    Stmt init = For::make("i", 0, (int)profile_indices.size(), ForType::Serial, DeviceAPI::Host,
-                          Store::make(profile_buf, Cast::make(UInt(64), 0), i));
-    s = Block::make(init, s);
-    s = Allocate::make(profile_buf, UInt(64), {(int)profile_indices.size()}, const_true(), s);
-    return s;
-}
 }
 
 class InjectCommunication : public IRMutator {
@@ -1113,9 +1124,6 @@ class InjectCommunication : public IRMutator {
         if (border_exchange.defined()) {
             // No overlap of communication and computation:
             border_exchange = Block::make(border_exchange, sendwait);
-            if (profiling) {
-                border_exchange = add_profiling(border_exchange, "border_exchange", name);
-            }
             newstmt = Block::make(border_exchange, newstmt);
             // Overlap sends with computation (slower on local_laplacian):
             //newstmt = Block::make(newstmt, sendwait);
