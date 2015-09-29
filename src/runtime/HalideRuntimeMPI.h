@@ -32,7 +32,7 @@ extern int halide_do_distr_irecv_subarray(void *buf, halide_type_code_t type_cod
 
 extern int halide_do_distr_waitall_recvs(void *p);
 extern int halide_do_distr_waitall_sends(void *p);
-extern uint64_t halide_distr_time_ns(void *user_context);
+extern uint64_t halide_distr_time_ns(void *user_context, int id);
 
 #ifdef __cplusplus
 } // End extern "C"

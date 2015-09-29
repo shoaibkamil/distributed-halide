@@ -469,7 +469,7 @@ WEAK int halide_do_distr_waitall_sends(void *p) {
     return rc;
 }
 
-WEAK uint64_t halide_distr_time_ns(void *user_context) {
+WEAK uint64_t halide_distr_time_ns(void *user_context, int id) {
     timespec now;
     // To avoid requiring people to link -lrt, we just make the syscall directly.
     syscall(SYS_CLOCK_GETTIME, CLOCK_MONOTONIC, &now);

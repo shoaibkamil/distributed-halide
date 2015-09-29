@@ -673,7 +673,11 @@ map<string, int> profile_indices;   // map name -> index in buffer.
 
 // Return current time in nanoseconds.
 Expr profile_time() {
-    return Call::make(UInt(64), "halide_distr_time_ns", std::vector<Expr>(), Call::Extern);
+    // Pass a dummy unique "id" value as argument. This is to prevent
+    // multiple calls from being folded into one (Call node equality
+    // just looks at type, name, and args).
+    static int id = 0;
+    return Call::make(UInt(64), "halide_distr_time_ns", std::vector<Expr>({id++}), Call::Extern);
 }
 
 // Get or assign an index into the profiling buffer for the given
