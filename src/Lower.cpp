@@ -126,7 +126,7 @@ Stmt lower(const vector<Function> &outputs, const string &pipeline_name, const T
     // that inferred bounds are in terms of processor rank.
     if (t.has_feature(Target::MPI) && use_distributed()) {
         debug(1) << "Converting distributed for loops to MPI calls...\n";
-        s = distribute_loops(s, env);
+        s = distribute_loops(s, env, func_bounds);
         debug(2) << "Lowering after converting distributed for loops:\n" << s << "\n\n";
     }
     if (!use_distributed()) {

@@ -1246,10 +1246,14 @@ class LowerComputeRankFunctions : public IRMutator {
     map<string, Box> required_regions;
 
     class MergeAllRequiredRegions : public IRVisitor {
+        const FuncValueBounds &func_bounds;
         Scope<Interval> scope;
         vector<std::pair<string, Expr> > lets;
     public:
         map<string, Box> regions;
+
+        MergeAllRequiredRegions(const FuncValueBounds &fb) : func_bounds(fb) {}
+
         using IRVisitor::visit;
 
         void visit(const For *for_loop) {
@@ -1259,7 +1263,7 @@ class LowerComputeRankFunctions : public IRMutator {
         }
 
         void visit(const LetStmt *let) {
-            Interval I = bounds_of_expr_in_scope(let->value, scope);
+            Interval I = bounds_of_expr_in_scope(let->value, scope, func_bounds);
             internal_assert(I.min.defined() == I.max.defined());
             if (I.min.defined()) {
                 scope.push(let->name, I);
@@ -1273,7 +1277,7 @@ class LowerComputeRankFunctions : public IRMutator {
         }
 
         void visit(const Let *let) {
-            Interval I = bounds_of_expr_in_scope(let->value, scope);
+            Interval I = bounds_of_expr_in_scope(let->value, scope, func_bounds);
             internal_assert(I.min.defined() == I.max.defined());
             if (I.min.defined()) {
                 scope.push(let->name, I);
@@ -1287,7 +1291,7 @@ class LowerComputeRankFunctions : public IRMutator {
         }
 
         void visit(const Call *op) {
-            map<string, Box> required = boxes_required(op, scope);
+            map<string, Box> required = boxes_required(op, scope, func_bounds);
             for (auto it : required) {
                 string name = it.first;
                 if (regions.find(name) != regions.end()) {
@@ -1338,8 +1342,8 @@ class LowerComputeRankFunctions : public IRMutator {
     }
 
 public:
-    LowerComputeRankFunctions(Stmt s, const std::map<std::string, Function> &e) : env(e) {
-        MergeAllRequiredRegions find;
+    LowerComputeRankFunctions(Stmt s, const std::map<std::string, Function> &e, const FuncValueBounds &func_bounds) : env(e) {
+        MergeAllRequiredRegions find(func_bounds);
         s.accept(&find);
         required_regions.swap(find.regions);
     }
@@ -1551,25 +1555,26 @@ public:
     }
 };
 
-Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env, bool cap_extents) {
+Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env,
+                           const FuncValueBounds &func_bounds, bool cap_extents) {
     FindDistributedLoops find;
     s.accept(&find);
     if (find.distributed_functions.empty()) {
         return s;
     }
     s = DistributeLoops(find.distributed_bounds, env, cap_extents).mutate(s);
-    s = LowerComputeRankFunctions(s, env).mutate(s);
+    s = LowerComputeRankFunctions(s, env, func_bounds).mutate(s);
     return s;
 }
 
-Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env) {
+Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env, const FuncValueBounds &func_bounds) {
     FindDistributedLoops find;
     s.accept(&find);
     if (find.distributed_functions.empty()) {
         return s;
     }
     s = DistributeLoops(find.distributed_bounds, env).mutate(s);
-    s = LowerComputeRankFunctions(s, env).mutate(s);
+    s = LowerComputeRankFunctions(s, env, func_bounds).mutate(s);
     return s;
 }
 

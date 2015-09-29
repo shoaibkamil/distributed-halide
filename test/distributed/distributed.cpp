@@ -976,6 +976,63 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        DistributedImage<int16_t> in(100, 100);
+
+        Expr clamped_x = clamp(x, 0, in.global_width()-1),
+            clamped_y = clamp(y, 0, in.global_height()-1);
+        Func clamped;
+        clamped(x, y) = in(clamped_x, clamped_y);
+
+        const int J = 2;
+        Var k;
+        Func ll;
+        Func gPyramid[J], lPyramid[J], outGPyramid[J];
+
+        for (int j = 0; j < J; j++) {
+            gPyramid[j](x, y, k) = clamped(x, y) + k;
+        }
+
+        lPyramid[J-1](x, y, k) = gPyramid[J-1](x, y, k);
+        for (int j = J-2; j >= 0; j--) {
+            lPyramid[j](x, y, k) = gPyramid[j](x, y, k) - gPyramid[j+1](x, y, k);
+        }
+
+        outGPyramid[J-1](x, y) = lPyramid[J-1](x, y, 0);
+        for (int j = J-2; j >= 0; j--) {
+            Expr li = clamp(clamped(x, y), 0, J);
+            outGPyramid[j](x, y) = lPyramid[j](x, y, li);
+        }
+
+        ll(x, y) = outGPyramid[0](x, y);
+
+        // Schedule
+        ll.distribute(y);
+        for (int j = 0; j < 1; j++) {
+            outGPyramid[j].compute_root().distribute(y);
+        }
+        for (int j = 1; j < J; j++) {
+            gPyramid[j].compute_rank();
+        }
+
+        DistributedImage<int> out(100, 100);
+        out.set_domain(x, y);
+        out.placement().parallel(y).distribute(y);
+        out.allocate();
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate(ll, out);
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
+
+        ll.realize(out.get_buffer());
+        // Don't bother checking output.
+    }
+
     printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();
