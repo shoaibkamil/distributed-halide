@@ -1150,9 +1150,14 @@ public:
 
     void visit(const ProducerConsumer *op) {
         string current_function = op->name;
-        Stmt newproduce = inject_communication(op->name, op->produce);
+        Stmt newproduce = op->produce, newupdate = op->update;
+        if (profiling) {
+            newproduce = add_profiling(newproduce, "compute", op->name);
+            if (newupdate.defined()) newupdate = add_profiling(newupdate, "compute", op->name);
+        }
+        newproduce = inject_communication(op->name, newproduce);
         stmt = ProducerConsumer::make(op->name, newproduce,
-                                      op->update.defined() ? inject_communication(op->name, op->update) : mutate(op->update),
+                                      newupdate.defined() ? inject_communication(op->name, newupdate) : mutate(newupdate),
                                       mutate(op->consume));
     }
 };
