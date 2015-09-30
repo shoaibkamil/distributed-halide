@@ -99,26 +99,6 @@ vector<Expr> dims_to_print(const Box &b, const string &name) {
     return result;
 }
 
-Box offset_box(const Box &b, const vector<Expr> &offset) {
-    internal_assert(b.size() == offset.size());
-    Box result(b.size());
-    for (unsigned i = 0; i < b.size(); i++) {
-        result[i] = Interval(b[i].min - offset[i], b[i].max - offset[i]);
-    }
-    return result;
-}
-
-Expr same_boxes(const Box &a, const Box &b) {
-    if (a.size() != b.size()) {
-        return const_false();
-    }
-    Expr e = simplify((a[0].min - b[0].min == 0) && (a[0].max - b[0].max == 0));
-    for (unsigned i = 1; i < a.size(); i++) {
-        e = e && simplify((a[i].min - b[i].min == 0) && (a[i].max - b[i].max == 0));
-    }
-    return e;
-}
-
 // Return expr evaluating whether box a encloses box b.
 Expr box_encloses(const Box &a, const Box &b) {
     internal_assert(a.size() == b.size());
@@ -127,10 +107,6 @@ Expr box_encloses(const Box &a, const Box &b) {
         e = e && simplify(a[i].min <= b[i].min && a[i].max >= b[i].max);
     }
     return simplify(e);
-}
-
-Expr round_away_from_zero(Expr e) {
-    return select(e < 0, floor(e), ceil(e));
 }
 
 class ReplaceVariables : public IRMutator {
@@ -660,12 +636,6 @@ Stmt waitall_isend(const string &name) {
     return Evaluate::make(rc);
 }
 
-// Construct a statement to copy 'size' bytes from src to dest.
-Stmt copy_memory(Expr dest, Expr src, Expr size) {
-    return Evaluate::make(Call::make(UInt(8), Call::copy_memory,
-                                    {dest, src, size}, Call::Intrinsic));
-}
-
 // Used for profiling
 const string profile_buf = "DistrProfileBuffer";
 const string profile_gathered_buf = "DistrProfileBufferGathered";
@@ -816,109 +786,6 @@ public:
         }
     }
 };
-
-typedef enum { Pack, Unpack } PackCmd;
-// Construct a statement to pack/unpack the given box of the given buffer
-// to/from the contiguous scratch region of memory with the given name.
-Stmt pack_region(PackCmd cmd, Type t, const string &scratch_name, const string &buffer_name, const Box &buffer_shape, const Box &b) {
-    internal_assert(b.size() > 0);
-    vector<Var> dims;
-    for (unsigned i = 0; i < b.size(); i++) {
-        dims.push_back(Var(buffer_name + "_dim" + std::to_string(i)));
-    }
-
-    // Construct src/dest pointer expressions as expressions in
-    // terms of the box dimension variables.
-    Expr bufferoffset = b[0].min * t.bytes(), scratchoffset = 0;
-    Expr scratchstride = b[0].max - b[0].min + 1,
-        bufferstride = buffer_shape[0].max - buffer_shape[0].min + 1;
-    for (unsigned i = 1; i < b.size(); i++) {
-        Expr extent = b[i].max - b[i].min + 1;
-        Expr dim = dims[i];
-        bufferoffset += (dim + b[i].min) * bufferstride * t.bytes();
-        scratchoffset += dim * scratchstride * t.bytes();
-        scratchstride *= extent;
-        bufferstride *= buffer_shape[i].max - buffer_shape[i].min + 1;
-    }
-
-    // Construct loop nest to copy each contiguous row.  TODO:
-    // ensure this nesting is in the correct row/column major
-    // order.
-    Expr rowsize = (b[0].max - b[0].min + 1) * t.bytes();
-    Expr bufferaddr;
-    Expr scratchaddr = address_of(scratch_name, scratchoffset);
-
-    Stmt copyloop;
-    switch (cmd) {
-    case Pack:
-        bufferaddr = address_of(buffer_name, bufferoffset);
-        copyloop = copy_memory(scratchaddr, bufferaddr, rowsize);
-        break;
-    case Unpack:
-        bufferaddr = address_of(buffer_name, bufferoffset);
-        copyloop = copy_memory(bufferaddr, scratchaddr, rowsize);
-        break;
-    }
-    //for (int i = b.size() - 1; i >= 1; i--) {
-    for (int i = 1; i < (int)b.size(); i++) {
-        copyloop = For::make(dims[i].name(), 0, b[i].max - b[i].min + 1,
-                             ForType::Serial, DeviceAPI::Host, copyloop);
-    }
-    return copyloop;
-}
-
-Stmt copy_box(Type t, const string &src_buffer, const Box &src_shape, const Box &src_box,
-              const string &dest_buffer, const Box &dest_shape, const Box &dest_box) {
-    internal_assert(src_box.size() == dest_box.size());
-    vector<Var> dims;
-    for (unsigned i = 0; i < src_box.size(); i++) {
-        dims.push_back(Var(src_buffer + "_dim" + std::to_string(i)));
-    }
-
-    // Construct src/dest pointer expressions as expressions in
-    // terms of the box dimension variables.
-    Expr destoffset = dest_box[0].min * t.bytes(),
-        srcoffset = src_box[0].min * t.bytes();
-    Expr srcstride = src_shape[0].max - src_shape[0].min + 1,
-        deststride = dest_shape[0].max - dest_shape[0].min + 1;
-    for (unsigned i = 1; i < dest_box.size(); i++) {
-        Expr dim = dims[i];
-        destoffset += (dim + dest_box[i].min) * deststride * t.bytes();
-        deststride *= dest_shape[i].max - dest_shape[i].min + 1;
-        srcoffset += (dim + src_box[i].min) * srcstride * t.bytes();
-        srcstride *= src_shape[i].max - src_shape[i].min + 1;
-    }
-
-    // Construct loop nest to copy each contiguous row.  TODO:
-    // ensure this nesting is in the correct row/column major
-    // order.
-    Expr rowsize = (dest_box[0].max - dest_box[0].min + 1) * t.bytes();
-    Expr destaddr = address_of(dest_buffer, destoffset);
-    Expr srcaddr = address_of(src_buffer, srcoffset);
-
-    Stmt copyloop = copy_memory(destaddr, srcaddr, rowsize);
-    // for (int i = dest_box.size() - 1; i >= 1; i--) {
-    for (int i = 1; i < (int)dest_box.size(); i++) {
-        copyloop = For::make(dims[i].name(), 0, dest_box[i].max - dest_box[i].min + 1,
-                             ForType::Serial, DeviceAPI::Host, copyloop);
-    }
-    return copyloop;
-}
-
-// Allocate a buffer of the given name, type, and size that will
-// be used in the given body.
-Stmt allocate_scratch(const string &name, Type type, const Box &b, Stmt body) {
-    vector<Expr> extents;
-    Expr stride = 1;
-    for (unsigned i = 0; i < b.size(); i++) {
-        Expr extent = b[i].max - b[i].min + 1;
-        body = LetStmt::make(name + ".min." + std::to_string(i), 0, body);
-        body = LetStmt::make(name + ".stride." + std::to_string(i), stride, body);
-        extents.push_back(extent);
-        stride *= extent;
-    }
-    return Allocate::make(name, type, extents, const_true(), body);
-}
 
 // Generate communication code to send/recv the intersection of the
 // 'have' and 'need' regions of 'buf'.
@@ -1647,6 +1514,15 @@ public:
 
     map<string, Box> required, provided;
 };
+
+Box offset_box(const Box &b, const vector<Expr> &offset) {
+    internal_assert(b.size() == offset.size());
+    Box result(b.size());
+    for (unsigned i = 0; i < b.size(); i++) {
+        result[i] = Interval(b[i].min - offset[i], b[i].max - offset[i]);
+    }
+    return result;
+}
 
 // Lower the given function enough to get bounds information on
 // input buffers with respect to rank and number of MPI
