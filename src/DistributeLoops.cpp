@@ -1185,7 +1185,7 @@ class LowerComputeRankFunctions : public IRMutator {
     // split loop variable), return an Interval containing the min and
     // max values for the loop variable based on the required region
     // of the function by its consumers.
-    Interval get_required_interval(const string &func, const string &loop_var) {
+    Interval get_required_interval(const string &func, const string &loop_var) const {
         internal_assert(required_regions.find(func) != required_regions.end());
         internal_assert(env.find(func) != env.end());
         const vector<string> &args = env.at(func).args();
@@ -1202,7 +1202,7 @@ class LowerComputeRankFunctions : public IRMutator {
 
     // Returns true if the given name is a split (or fuse) dimension
     // of the given function.
-    bool var_is_split(const string &func, const string &var) {
+    bool var_is_split(const string &func, const string &var) const {
         for (const Split &sp : env.at(func).schedule().splits()) {
             if (ends_with(var, sp.outer) || ends_with(var, sp.inner)) {
                 return true;
@@ -1211,7 +1211,7 @@ class LowerComputeRankFunctions : public IRMutator {
         return false;
     }
 
-    bool var_is_loop_bound(const string &var) {
+    bool var_is_loop_bound(const string &var) const {
         return ends_with(var, ".loop_min") ||
             ends_with(var, ".loop_max") ||
             ends_with(var, ".loop_extent");
@@ -1254,16 +1254,23 @@ public:
 class ChangeDistributedFor : public IRMutator {
 public:
     using IRMutator::visit;
+
+    ForType get_new_type(ForType t) const {
+        if (t == ForType::Distributed) {
+            return ForType::Serial;
+        } else if (t == ForType::DistributedParallel) {
+            return ForType::Parallel;
+        } else {
+            return t;
+        }
+    }
+
     void visit(const For *for_loop) {
         IRMutator::visit(for_loop);
-        if (for_loop->for_type == ForType::Distributed) {
+        ForType newtype = get_new_type(for_loop->for_type);
+        if (newtype != for_loop->for_type) {
             stmt = For::make(for_loop->name, for_loop->min, for_loop->extent,
-                             ForType::Serial, for_loop->device_api,
-                             for_loop->body);
-        } else if (for_loop->for_type == ForType::DistributedParallel) {
-            stmt = For::make(for_loop->name, for_loop->min, for_loop->extent,
-                             ForType::Parallel, for_loop->device_api,
-                             for_loop->body);
+                             newtype, for_loop->device_api, for_loop->body);
         }
     }
 };
@@ -1431,8 +1438,7 @@ public:
     }
 };
 
-Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env,
-                           const FuncValueBounds &func_bounds, bool cap_extents) {
+Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env, const FuncValueBounds &func_bounds, bool cap_extents) {
     FindDistributedLoops find;
     s.accept(&find);
     if (find.distributed_functions.empty()) {
@@ -1441,21 +1447,6 @@ Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env,
     s = DistributeLoops(find.distributed_bounds, env, cap_extents).mutate(s);
     s = LowerComputeRankFunctions(s, env, func_bounds).mutate(s);
     return s;
-}
-
-Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env, const FuncValueBounds &func_bounds) {
-    FindDistributedLoops find;
-    s.accept(&find);
-    if (find.distributed_functions.empty()) {
-        return s;
-    }
-    s = DistributeLoops(find.distributed_bounds, env).mutate(s);
-    s = LowerComputeRankFunctions(s, env, func_bounds).mutate(s);
-    return s;
-}
-
-Stmt change_distributed_annotation(Stmt s) {
-    return ChangeDistributedFor().mutate(s);
 }
 
 Stmt inject_communication(Stmt s, const std::map<std::string, Function> &env) {
@@ -1479,6 +1470,10 @@ Stmt inject_communication(Stmt s, const std::map<std::string, Function> &env) {
     s = LetStmt::make("Rank", rank(), s);
     s = LetStmt::make("NumProcessors", num_processors(), s);
     return s;
+}
+
+Stmt change_distributed_annotation(Stmt s) {
+    return ChangeDistributedFor().mutate(s);
 }
 
 // -------------------------------------------------- Testing specific code:

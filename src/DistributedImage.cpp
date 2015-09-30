@@ -86,7 +86,7 @@ Stmt partial_lower(Func f, bool cap_extents) {
     bool any_memoized = false;
     Stmt s = schedule_functions(outputs, order, env, any_memoized, !t.has_feature(Target::NoAsserts));
     FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
-    s = distribute_loops_only(s, env, func_bounds, cap_extents);
+    s = distribute_loops(s, env, func_bounds, cap_extents);
     s = bounds_inference(s, outputs, order, env, func_bounds);
     s = allocation_bounds_inference(s, env, func_bounds);
     s = uniquify_variable_names(s);

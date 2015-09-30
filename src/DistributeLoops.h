@@ -14,11 +14,16 @@ namespace Internal {
  * them into loops that operate on a subset of their input data
  * according to their MPI rank.
  */
-Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env, const FuncValueBounds &func_bounds);
-Stmt inject_communication(Stmt s, const std::map<std::string, Function> &env);
-Stmt change_distributed_annotation(Stmt s);
+Stmt distribute_loops(Stmt s, const std::map<std::string, Function> &env, const FuncValueBounds &func_bounds, bool cap_extents=false);
 
-Stmt distribute_loops_only(Stmt s, const std::map<std::string, Function> &env, const FuncValueBounds &func_bounds, bool cap_extents);
+/** Inject communication calls to gather required distributed data
+ * onto the current rank.
+ */
+Stmt inject_communication(Stmt s, const std::map<std::string, Function> &env);
+
+/** Change "distribute" loop types into their corresponding
+ * non-distributed types. */
+Stmt change_distributed_annotation(Stmt s);
 
 void distribute_loops_test();
 
