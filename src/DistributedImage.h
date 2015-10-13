@@ -1,6 +1,7 @@
 #ifndef HALIDE_DISTRIBUTED_IMAGE_H
 #define HALIDE_DISTRIBUTED_IMAGE_H
 
+#define MPICH_SKIP_MPICXX
 #include <mpi.h>
 
 #include "ScheduleFunctions.h"
@@ -117,7 +118,7 @@ public:
             wrapper = Func("accessor_" + param.name());
             internal_assert(vars.size() == full_extents.size());
             wrapper(vars) = param(vars);
-            for (int i = 0; i < full_extents.size(); i++) {
+            for (int i = 0; i < (int)full_extents.size(); i++) {
                 wrapper.bound(vars[i], 0, full_extents[i]);
             }
             wrapper.compute_root();
@@ -310,7 +311,7 @@ public:
 
     int global_extent(int dim) const {
         internal_assert(!full_extents.empty());
-        internal_assert(dim < full_extents.size());
+        internal_assert(dim < (int)full_extents.size());
         return full_extents[dim];
     }
     int global_width() const { return global_extent(0); }
@@ -319,7 +320,7 @@ public:
 
     int extent(int dim) const {
         internal_assert(!local_extents.empty());
-        internal_assert(dim < local_extents.size());
+        internal_assert(dim < (int)local_extents.size());
         return local_extents[dim];
     }
     int width() const { return extent(0); }
@@ -342,7 +343,7 @@ public:
      * to the local coordinate value c. */
     int global(int dim, int c) const {
         internal_assert(!global_mins.empty());
-        internal_assert(dim < local_mins.size());
+        internal_assert(dim < (int)local_mins.size());
         internal_assert(local_mins[dim] >= 0);
         return global_mins[dim] + local_mins[dim] + c;
     }
@@ -351,7 +352,7 @@ public:
      * to the global coordinate value c. */
     int local(int dim, int c) const {
         internal_assert(!global_mins.empty());
-        internal_assert(dim < local_mins.size());
+        internal_assert(dim < (int)local_mins.size());
         internal_assert(local_mins[dim] >= 0);
         return c - (global_mins[dim] + local_mins[dim]);
     }

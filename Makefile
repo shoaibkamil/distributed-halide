@@ -28,7 +28,7 @@ OPTIMIZE ?= -O3
 #  but that is difficult in some testing situations because it requires having
 #  such a compiler handy. One still needs to have 32-bit llvm libraries, etc.)
 BUILD_BIT_SIZE ?=
-TEST_CXX_FLAGS ?= -std=c++11 $(BUILD_BIT_SIZE) -g -fno-omit-frame-pointer -fno-rtti $(CXX_WARNING_FLAGS)
+TEST_CXX_FLAGS ?= -std=c++11 $(BUILD_BIT_SIZE) -g -fno-omit-frame-pointer -fno-rtti $(CXX_WARNING_FLAGS) -dynamic
 # The tutorials contain example code with warnings that we don't want to be flagged as errors.
 TUTORIAL_CXX_FLAGS ?= -std=c++11 $(BUILD_BIT_SIZE) -g -fno-omit-frame-pointer -fno-rtti
 GENGEN_DEPS ?= $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h $(ROOT_DIR)/tools/GenGen.cpp
@@ -83,8 +83,8 @@ METAL_LLVM_CONFIG_LIB=$(if $(WITH_METAL), , )
 
 OPENGL_CXX_FLAGS=$(if $(WITH_OPENGL), -DWITH_OPENGL=1, )
 
-CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
-MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
+CXX := $(if $(WITH_MPI), CC, $(CXX))
+MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1 -dynamic, )
 MPI_RUN=$(if $(MPI_NODES), srun -N$(MPI_NODES) --exclude=lanka11, )
 
 RENDERSCRIPT_CXX_FLAGS=$(if $(WITH_RENDERSCRIPT), -DWITH_RENDERSCRIPT=1, )
@@ -550,16 +550,16 @@ all: $(BIN_DIR)/libHalide.a $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h $(RU
 
 ifeq ($(USE_LLVM_SHARED_LIB), )
 $(BIN_DIR)/libHalide.a: $(OBJECTS) $(INITIAL_MODULES)
-	# Determine the relevant object files from llvm with a dummy
-	# compilation. Passing -t to the linker gets it to list which
-	# object files in which archives it uses to resolve
-	# symbols. We only care about the libLLVM ones.
+# Determine the relevant object files from llvm with a dummy
+# compilation. Passing -t to the linker gets it to list which
+# object files in which archives it uses to resolve
+# symbols. We only care about the libLLVM ones.
 	@rm -rf $(BUILD_DIR)/llvm_objects
 	@mkdir -p $(BUILD_DIR)/llvm_objects
 	$(CXX) -o /dev/null -shared $(OBJECTS) $(INITIAL_MODULES) -Wl,-t $(LLVM_STATIC_LIBS) -ldl -lz -lpthread | grep libLLVM | sed "s/[()]/ /g" > $(BUILD_DIR)/llvm_objects/list
-	# Extract the necessary object files from the llvm archives.
+# Extract the necessary object files from the llvm archives.
 	cd $(BUILD_DIR)/llvm_objects; xargs -n2 ar x < list
-	# Archive together all the halide and llvm object files
+# Archive together all the halide and llvm object files
 	@-mkdir -p $(BIN_DIR)
 	@rm -f $(BIN_DIR)/libHalide.a
 	ar q $(BIN_DIR)/libHalide.a $(OBJECTS) $(INITIAL_MODULES) $(BUILD_DIR)/llvm_objects/*.o
@@ -1003,8 +1003,8 @@ time_compilation_generator_tiled_blur_interleaved: $(FILTERS_DIR)/tiled_blur.gen
 .PHONY: test_apps
 test_apps: $(BIN_DIR)/libHalide.a $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h $(INCLUDE_DIR)/HalideRuntime.h
 	mkdir -p apps
-	# Make a local copy of the apps if we're building out-of-tree,
-	# because the app Makefiles are written to build in-tree
+# Make a local copy of the apps if we're building out-of-tree,
+# because the app Makefiles are written to build in-tree
 	if [ "$(ROOT_DIR)" != "$(CURDIR)" ]; then \
 	  echo "Building out-of-tree, so making local copy of apps"; \
 	  cp -r $(ROOT_DIR)/apps/bilateral_grid \
