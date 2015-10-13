@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import numpy as np
 from optparse import OptionParser
@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 class Config:
     def __init__(self, output_dir, nodes, srcfile, baseline, args):
@@ -30,7 +31,42 @@ class Result:
         self.num_nodes = num_nodes
         self.timing = value
 
-def make_run_cmd(config, num_nodes, baseline=False):
+hopper_torque_template = """
+#PBS -q regular
+#PBS -l mppwidth=%(mppwidth)d
+#PBS -l walltime=00:15:00
+#PBS -o %(outputfile)s
+#PBS -j oe
+
+cd $PBS_O_WORKDIR
+
+module swap PrgEnv-pgi PrgEnv-gnu
+module unload atp
+module unload cray-shem
+module load zlib
+module load gcc
+
+# Set environment variables after module loading.
+
+export HL_JIT_TARGET=host
+export HL_DISABLE_DISTRIBUTED=%(disabledistributed)s
+export LD_LIBRARY_PATH=${PBS_O_WORKDIR}:${LD_LIBRARY_PATH}
+export XTPE_LINK_TYPE=dynamic
+export MPICH_MAX_THREAD_SAFETY=multiple
+
+aprun -n %(mpitasks)d -N %(taskspernode)d -d %(threadspertask)d ./%(exefile)s
+"""
+
+def get_unique_path(template):
+    i = 0
+    while True:
+        path = template % i
+        i += 1
+        if not os.path.exists(path):
+            return path
+    sys.exit(1)
+
+def make_run_cmd_lanka(config, num_nodes, baseline=False):
     os.environ["MV2_ENABLE_AFFINITY"] = "0"
     if baseline:
         os.environ["HL_DISABLE_DISTRIBUTED"] = "1"
@@ -53,12 +89,46 @@ def make_run_cmd(config, num_nodes, baseline=False):
     cmd.extend(["--nodes=%d" % num_nodes])
     cmd.extend(config.exe)
     cmd = map(str, cmd)
-    return cmd
+    return cmd, ""
 
-def execute(cmd):
-    print "Executing HL_DISABLE_DISTRIBUTED=%s %s..." % (os.environ["HL_DISABLE_DISTRIBUTED"], " ".join(cmd))
+def make_run_cmd_hopper(config, num_nodes, baseline=False):
+    appname = os.path.basename(config.exe[0])
+    mppwidth = num_nodes * 24
+    outputfile = get_unique_path(appname + "_" + config.input_size + ".%d.out")
+    disabledistributed = 1 if baseline else 0
+    mpitasks = 1 if baseline else num_nodes * 2
+    taskspernode = 1 if baseline else 2
+    threadspertask = 24 if baseline else 12
+    exefile = ' '.join(config.exe)
+    pbs_contents = hopper_torque_template % {"mppwidth": mppwidth, "outputfile": outputfile,
+                                             "disabledistributed": disabledistributed,
+                                             "mpitasks": mpitasks, "taskspernode": taskspernode,
+                                             "threadspertask": threadspertask, "exefile": exefile}
+    pbsfile = get_unique_path(appname + "_" + config.input_size + ".%d.pbs")
+    with open(pbsfile, "w") as f:
+        f.write(pbs_contents)
+    cmd = ["qsub", pbsfile]
+    return cmd, outputfile
+
+def make_run_cmd(config, num_nodes, baseline=False):
+    # Return a tuple of (cmd, outputfile) to execute the given
+    # configure. If 'outputfile' is an empty string, the time will be
+    # parsed from the stdout of cmd. Otherwise, the run time will be
+    # parsed from the given file.
+    return make_run_cmd_hopper(config, num_nodes, baseline)
+
+def execute(cmd, outputfile):
+    print "Executing %s..." % (" ".join(cmd))
     try:
-        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        if len(outputfile) == 0:
+            return output
+        else:
+            while not os.path.exists(outputfile):
+                time.sleep(7)
+            with open(outputfile, "r") as f:
+                output = f.read()
+            return output
     except subprocess.CalledProcessError as e:
         print e
         return ""
@@ -78,23 +148,14 @@ def get_time(output):
         percentile80 = float(m.groups()[2])
         return Timing(runtime, percentile20, percentile80)
     else:
-        return -1
-
-def get_unique_path(template):
-    i = 0
-    while True:
-        path = template % i
-        i += 1
-        if not os.path.exists(path):
-            return path
-    sys.exit(1)
+        return Timing(-1, -1, -1)
 
 def run(config):
     results = {}
     if not config.baseline:
         # Run baseline of a single node
-        cmd = make_run_cmd(config, 1, baseline=True)
-        result = get_time(execute(cmd))
+        cmd, outputfile = make_run_cmd(config, 1, baseline=True)
+        result = get_time(execute(cmd, outputfile))
         print "Result was: %f sec" % result.runtime
         results["baseline"] = Result(["HL_DISABLE_DISTRIBUTED=1"] + cmd, 1, result)
     else:
@@ -102,8 +163,8 @@ def run(config):
     # Run all other tests.
     for num_nodes in config.nodes:
         nranks = num_nodes * config.tasks_per_node if num_nodes > 1 else 1
-        cmd = make_run_cmd(config, num_nodes)
-        result = get_time(execute(cmd))
+        cmd, outputfile = make_run_cmd(config, num_nodes)
+        result = get_time(execute(cmd, outputfile))
         print "Result was: %f sec" % result.runtime
         results[nranks] = Result(cmd, num_nodes, result)
     return results
@@ -153,8 +214,9 @@ def report(config, results):
         contents += "%s: %f\t%.3f\n" % (nranks, v.timing.runtime, speedup.runtime)
     contents += "--END DATA--\n"
     contents += "Raw source dump:\n"
-    contents += "// File name %s\n" % config.srcfile
-    contents += readall(config.srcfile)
+    if config.srcfile:
+        contents += "// File name %s\n" % config.srcfile
+        contents += readall(config.srcfile)
 
     exe = os.path.basename(config.exe[0])
     txttemplate = "%s-%s-%s-%%d.txt" % (exe, ",".join(map(str, config.nodes)),
@@ -210,7 +272,7 @@ def main():
     try:
         results = run(config)
     except KeyboardInterrupt:
-        execute(["skill", "-u", "tyler"])
+        #execute(["skill", "-u", "tyler"])
         sys.exit(1)
     report(config, results)
 
