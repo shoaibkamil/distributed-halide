@@ -15,15 +15,6 @@ class UpcastBufferIndices : public IRMutator {
         using IRMutator::visit;
 
         Type get_type(Expr e) const {
-            if (const Variable *v = e.as<Variable>()) {
-                if (!scope.contains(v->name)) {
-                    // If a variable is not in scope, it is an input
-                    // or output buffer min/extent. For now, buffer
-                    // mins/extents are still 32 bits.
-                    return Int(32);
-                }
-                return get_type(scope.get(v->name));
-            }
             return e.type();
         }
 
@@ -50,10 +41,13 @@ class UpcastBufferIndices : public IRMutator {
             Expr b = mutate(op->b);
             bool modified = !a.same_as(op->a) || !b.same_as(op->b);
             bool type_mismatch = get_type(a) != get_type(b);
-            if (modified || type_mismatch) {
+            if (!modified) {
+                expr = op;
+            } else if (type_mismatch) {
                 expr = T::make(upcast(a), upcast(b));
             } else {
-                expr = op;
+                internal_assert(modified && !type_mismatch);
+                expr = T::make(a, b);
             }
         }
 
