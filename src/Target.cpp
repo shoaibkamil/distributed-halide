@@ -195,6 +195,7 @@ const std::map<std::string, Target::Feature> feature_name_map = {
     {"cl_doubles", Target::CLDoubles},
     {"opengl", Target::OpenGL},
     {"openglcompute", Target::OpenGLCompute},
+    {"mpi", Target::MPI},
     {"renderscript", Target::Renderscript},
     {"user_context", Target::UserContext},
     {"register_metadata", Target::RegisterMetadata},
