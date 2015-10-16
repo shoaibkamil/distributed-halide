@@ -35,9 +35,7 @@ Value *CodeGen_Posix::codegen_allocation_size(const std::string &name, Type type
     if (target.bits < 64) {
         max_size = cast<int64_t>(0x7fffffff);
     } else {
-        // The Halide compiler currently can't represent
-        // 64-bit immediate values.
-        max_size = (cast<int64_t>(1) << cast<int64_t>(63)) - cast<int64_t>(1);
+        max_size = Expr(0x7fffffffffffffff);
     }
     for (size_t i = 0; i < extents.size(); i++) {
         total_size *= extents[i];
@@ -75,7 +73,7 @@ CodeGen_Posix::Allocation CodeGen_Posix::create_allocation(const std::string &na
             stack_bytes = ((stack_bytes + 31)/32)*32;
         } else {
             stack_bytes = 0;
-            llvm_size = codegen(Expr(static_cast<int32_t>(constant_bytes)));
+            llvm_size = codegen(Expr(constant_bytes));
         }
     } else {
         llvm_size = codegen_allocation_size(name, type, extents);
@@ -142,8 +140,8 @@ CodeGen_Posix::Allocation CodeGen_Posix::create_allocation(const std::string &na
 
             debug(4) << "Creating call to halide_malloc for allocation " << name
                      << " of size " << type.bytes();
-            for (size_t i = 0; i < extents.size(); i++) {
-                debug(4) << " x " << extents[i];
+            for (Expr e : extents) {
+                debug(4) << " x " << e;
             }
             debug(4) << "\n";
             Value *args[2] = { get_user_context(), llvm_size };

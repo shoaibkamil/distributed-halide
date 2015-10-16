@@ -46,7 +46,6 @@
 #include "UnifyDuplicateLets.h"
 #include "UniquifyVariableNames.h"
 #include "UnrollLoops.h"
-#include "UpcastBufferIndices.h"
 #include "VaryingAttributes.h"
 #include "VectorizeLoops.h"
 
@@ -97,7 +96,7 @@ Stmt lower(const vector<Function> &outputs, const string &pipeline_name, const T
     }
 
     debug(1) << "Injecting tracing...\n";
-    s = inject_tracing(s, env, outputs);
+    s = inject_tracing(s, pipeline_name, env, outputs);
     debug(2) << "Lowering after injecting tracing:\n" << s << '\n';
 
     if (t.has_feature(Target::Profile)) {
@@ -192,7 +191,7 @@ Stmt lower(const vector<Function> &outputs, const string &pipeline_name, const T
     }
 
     debug(1) << "Performing storage flattening...\n";
-    s = storage_flattening(s, outputs, env);
+    s = storage_flattening(s, outputs, env, t);
     debug(2) << "Lowering after storage flattening:\n" << s << "\n\n";
 
     if (any_memoized) {
@@ -275,13 +274,6 @@ Stmt lower(const vector<Function> &outputs, const string &pipeline_name, const T
 
     s = remove_trivial_for_loops(s);
     s = simplify(s);
-
-    if (t.bits == 64) {
-        debug(1) << "Upcasting buffer indices...\n";
-        s = upcast_buffer_indices(s);
-        s = simplify(s);
-    }
-
     debug(1) << "Lowering after final simplification:\n" << s << "\n\n";
 
     if (!custom_passes.empty()) {

@@ -72,8 +72,15 @@ Stmt add_image_checks(Stmt s,
     s.accept(&finder);
     map<string, FindBuffers::Result> bufs = finder.buffers;
 
-    // Add the output buffer(s)
+    // Add the output buffer(s).
     for (Function f : outputs) {
+        // Check that their dimensionality
+        // doesn't exceed what buffer_t can handle.
+        user_assert(f.dimensions() <= 4)
+            << "Output Func " << f.name()
+            << " has " << f.dimensions()
+            << " dimensions. Output buffers may not currently have more than four dimensions.\n";
+
         for (size_t i = 0; i < f.values().size(); i++) {
             FindBuffers::Result output_buffer;
             output_buffer.type = f.values()[i].type();
@@ -305,9 +312,7 @@ Stmt add_image_checks(Stmt s,
             if (t.bits < 64) {
                 max_size = cast<int64_t>(0x7fffffff);
             } else {
-                // The Halide compiler currently can't represent
-                // 64-bit immediate values.
-                max_size = (cast<int64_t>(1) << cast<int64_t>(63)) - cast<int64_t>(1);
+                max_size = Expr(0x7fffffffffffffff);
             }
             Expr actual_size = cast<int64_t>(actual_extent) * actual_stride;
             Expr allocation_size_error = Call::make(Int(32), "halide_error_buffer_allocation_too_large",
