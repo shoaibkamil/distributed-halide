@@ -1596,8 +1596,8 @@ map<string, AbstractBuffer> func_input_buffers(Func f) {
     return getio.buffers;
 }
 
-int expr2int(Expr e) {
-    const int *result = as_const_int(simplify(e));
+int64_t expr2int(Expr e) {
+    const int64_t *result = as_const_int(simplify(e));
     internal_assert(result != NULL) << e;
     return *result;
 }

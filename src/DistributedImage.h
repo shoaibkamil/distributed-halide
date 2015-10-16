@@ -36,9 +36,9 @@ namespace Internal {
 map<string, Box> get_boxes(Func f, bool cap_extents=false);
 
 struct IntInterval {
-    int min, max;
+    int64_t min, max;
     IntInterval() : min(0), max(0) {}
-    IntInterval(int mn, int mx) : min(mn), max(mx) {}
+    IntInterval(int64_t mn, int64_t mx) : min(mn), max(mx) {}
 };
 
 struct IntBox {
@@ -287,10 +287,10 @@ public:
             Expr min = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, substitute(env, b[i].min))));
             Expr max = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, substitute(env, b[i].max))));
             int imin = 0, imax = 0;
-            const int *intmin = as_const_int(min);
+            const int64_t *intmin = as_const_int(min);
             internal_assert(intmin != NULL) << min;
             imin = *intmin;
-            const int *intmax = as_const_int(max);
+            const int64_t *intmax = as_const_int(max);
             internal_assert(intmax != NULL) << max;
             imax = *intmax;
             result.push_back(IntInterval(imin, imax));
