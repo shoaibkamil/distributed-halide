@@ -191,7 +191,7 @@ public:
             local_extents_parameterized.push_back(local[i].max - local[i].min + 1);
         }
 
-        Buffer b(type_of<T>(), full_extents, NULL, param.name());
+        Buffer b(type_of<T>(), full_extents, NULL, param.name(), false);
         b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized,
                           local_extents_parameterized, local_mins_parameterized);
         param.set(b);
@@ -246,7 +246,7 @@ public:
             local_extents_parameterized.push_back(local[i].max - local[i].min + 1);
         }
 
-        Buffer b(type_of<T>(), full_extents, NULL, param.name());
+        Buffer b(type_of<T>(), full_extents, NULL, param.name(), false);
         b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized,
                           local_extents_parameterized, local_mins_parameterized);
         param.set(b);

@@ -36,10 +36,12 @@ public:
     Buffer() : contents(NULL) {}
 
     EXPORT Buffer(Type t, int x_size = 0, int y_size = 0, int z_size = 0, int w_size = 0,
-                  uint8_t* data = NULL, const std::string &name = "");
+                  uint8_t* data = NULL, const std::string &name = "",
+                  bool alloc = true);
 
     EXPORT Buffer(Type t, const std::vector<int32_t> &sizes,
-                  uint8_t* data = NULL, const std::string &name = "");
+                  uint8_t* data = NULL, const std::string &name = "",
+                  bool alloc = true);
 
     EXPORT Buffer(Type t, const buffer_t *buf, const std::string &name = "");
 
