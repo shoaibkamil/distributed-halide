@@ -94,17 +94,42 @@ typedef struct MPI_Status {
 
 #define MPI_SUCCESS          0      /* Successful return code */
 
+#ifdef MPICH
+
+#undef MPICH_DEFINE_ATTR_TYPE_TYPES
+#if defined(__has_attribute)
+#  if __has_attribute(pointer_with_type_tag) && \
+      __has_attribute(type_tag_for_datatype) && \
+      !defined(MPICH_NO_ATTR_TYPE_TAGS)
+#    define MPICH_DEFINE_ATTR_TYPE_TYPES 1
+#    define MPICH_ATTR_POINTER_WITH_TYPE_TAG(buffer_idx, type_idx)  __attribute__((pointer_with_type_tag(MPI,buffer_idx,type_idx)))
+#    define MPICH_ATTR_TYPE_TAG(type)                               __attribute__((type_tag_for_datatype(MPI,type)))
+#    define MPICH_ATTR_TYPE_TAG_LAYOUT_COMPATIBLE(type)             __attribute__((type_tag_for_datatype(MPI,type,layout_compatible)))
+#    define MPICH_ATTR_TYPE_TAG_MUST_BE_NULL()                      __attribute__((type_tag_for_datatype(MPI,void,must_be_null)))
+#    include <stddef.h>
+#  endif
+#endif
+
+#endif // MPICH
+
+#if !defined(MPICH_ATTR_POINTER_WITH_TYPE_TAG)
+#  define MPICH_ATTR_POINTER_WITH_TYPE_TAG(buffer_idx, type_idx)
+#  define MPICH_ATTR_TYPE_TAG(type)
+#  define MPICH_ATTR_TYPE_TAG_LAYOUT_COMPATIBLE(type)
+#  define MPICH_ATTR_TYPE_TAG_MUST_BE_NULL()
+#endif
+
 extern int MPI_Comm_size(MPI_Comm, int *);
 extern int MPI_Comm_rank(MPI_Comm, int *);
 extern int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
 extern int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-                    MPI_Comm comm);
+                    MPI_Comm comm) MPICH_ATTR_POINTER_WITH_TYPE_TAG(1,3);
 extern int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-                     MPI_Comm comm, MPI_Request *request);
+                     MPI_Comm comm, MPI_Request *request) MPICH_ATTR_POINTER_WITH_TYPE_TAG(1,3);
 extern int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-                    MPI_Comm comm, MPI_Status *status);
+                    MPI_Comm comm, MPI_Status *status) MPICH_ATTR_POINTER_WITH_TYPE_TAG(1,3);
 extern int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-                     MPI_Comm comm, MPI_Request *request);
+                     MPI_Comm comm, MPI_Request *request) MPICH_ATTR_POINTER_WITH_TYPE_TAG(1,3);
 extern int MPI_Wait(MPI_Request *request, MPI_Status *status);
 extern int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]);
 
