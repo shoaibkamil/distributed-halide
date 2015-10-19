@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import math
 import numpy as np
 from optparse import OptionParser
 import os
@@ -34,7 +35,7 @@ class Result:
 hopper_torque_template = """
 #PBS -q regular
 #PBS -l mppwidth=%(mppwidth)d
-#PBS -l walltime=00:15:00
+#PBS -l walltime=%(walltime)s
 #PBS -o %(outputfile)s
 #PBS -j oe
 
@@ -91,6 +92,25 @@ def make_run_cmd_lanka(config, num_nodes, baseline=False):
     cmd = map(str, cmd)
     return cmd, ""
 
+def predict_minutes(input_size, num_nodes):
+    width, height = map(int, input_size.split("x"))
+    # Say one iteration takes 0.8 seconds at width 23000.
+    iter_sec = (0.8*width*(height/float(num_nodes/2.0)))/(23000.0*23000.0)
+    # Say we do 100 iterations
+    sec = 100 * iter_sec
+    # Round up minutes, with a minimum of one minute
+    minutes = int(math.ceil(max(sec, 60) / 60.0))
+    # Add 5 minutes for initialization time
+    minutes += 5
+    print "predict %d seconds" % int(minutes*60)
+    return minutes
+
+def format_walltime(minutes):
+    minimum = 3
+    minutes = max(minutes, minimum)
+    h, m = minutes / 60, minutes % 60
+    return "%d:%d:00" % (h, m)
+
 def make_run_cmd_hopper(config, num_nodes, baseline=False):
     appname = os.path.basename(config.exe[0])
     mppwidth = num_nodes * 24
@@ -100,7 +120,10 @@ def make_run_cmd_hopper(config, num_nodes, baseline=False):
     taskspernode = 1 if baseline else 2
     threadspertask = 24 if baseline else 12
     exefile = ' '.join(config.exe)
+    minutes = predict_minutes(config.input_size, num_nodes)
+    walltime = format_walltime(minutes)
     pbs_contents = hopper_torque_template % {"mppwidth": mppwidth, "outputfile": outputfile,
+                                             "walltime": walltime,
                                              "disabledistributed": disabledistributed,
                                              "mpitasks": mpitasks, "taskspernode": taskspernode,
                                              "threadspertask": threadspertask, "exefile": exefile}
@@ -159,12 +182,14 @@ def run(config):
         print "Result was: %f sec" % result.runtime
         results["baseline"] = Result(["HL_DISABLE_DISTRIBUTED=1"] + cmd, 1, result)
     else:
-        results["baseline"] = Result("Baseline specified on command line", 1, config.baseline)
+        results["baseline"] = Result("Baseline specified on command line", 1,
+                                     Timing(config.baseline,config.baseline,config.baseline))
     # Run all other tests.
     for num_nodes in config.nodes:
         nranks = num_nodes * config.tasks_per_node if num_nodes > 1 else 1
         cmd, outputfile = make_run_cmd(config, num_nodes)
         result = get_time(execute(cmd, outputfile))
+        #result = Timing(-1, -1, -1)
         print "Result was: %f sec" % result.runtime
         results[nranks] = Result(cmd, num_nodes, result)
     return results
@@ -259,6 +284,7 @@ def parse_config_argv():
                       help="Comma separated number of nodes to run tests on.")
     parser.add_option("-b", "--baseline", dest="baseline",
                       help="Specify a single rank runtime instead of running it.")
+
     (options, args) = parser.parse_args()
     if (len(args) == 0 or len(options.nodes) == 0):
         parser.print_help()
