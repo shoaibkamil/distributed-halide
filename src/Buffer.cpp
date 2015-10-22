@@ -105,7 +105,7 @@ struct BufferContents {
     }
 
     BufferContents(Type t, int x_size, int y_size, int z_size, int w_size,
-                   uint8_t* data, const std::string &n) :
+                   uint8_t* data, const std::string &n, bool alloc) :
         type(t), allocation(NULL), name(n.empty() ? unique_name('b') : n) {
         user_assert(t.width == 1) << "Can't create of a buffer of a vector type";
         buf.elem_size = t.bytes();
@@ -130,12 +130,14 @@ struct BufferContents {
         check_buffer_size(size, name);
 
         if (!data) {
-            size = size + 32;
-            check_buffer_size(size, name);
-            allocation = (uint8_t *)calloc(1, (size_t)size);
-            user_assert(allocation) << "Out of memory allocating buffer " << name << " of size " << size << "\n";
-            buf.host = allocation;
-            while ((size_t)(buf.host) & 0x1f) buf.host++;
+            if (alloc) {
+                size = size + 32;
+                check_buffer_size(size, name);
+                allocation = (uint8_t *)calloc(1, (size_t)size);
+                user_assert(allocation) << "Out of memory allocating buffer " << name << " of size " << size << "\n";
+                buf.host = allocation;
+                while ((size_t)(buf.host) & 0x1f) buf.host++;
+            }
         } else {
             buf.host = data;
         }
@@ -201,20 +203,21 @@ std::string make_buffer_name(const std::string &n, Buffer *b) {
 }
 
 Buffer::Buffer(Type t, int x_size, int y_size, int z_size, int w_size,
-               uint8_t* data, const std::string &name) :
+               uint8_t* data, const std::string &name, bool alloc) :
     contents(new Internal::BufferContents(t, x_size, y_size, z_size, w_size, data,
-                                          make_buffer_name(name, this))) {
+                                          make_buffer_name(name, this), alloc)) {
 }
 
 Buffer::Buffer(Type t, const std::vector<int32_t> &sizes,
-               uint8_t* data, const std::string &name) :
+               uint8_t* data, const std::string &name, bool alloc) :
     contents(new Internal::BufferContents(t,
                                           size_or_zero(sizes, 0),
                                           size_or_zero(sizes, 1),
                                           size_or_zero(sizes, 2),
                                           size_or_zero(sizes, 3),
                                           data,
-                                          make_buffer_name(name, this))) {
+                                          make_buffer_name(name, this),
+                                          alloc)) {
     user_assert(sizes.size() <= 4) << "Buffer dimensions greater than 4 are not supported.";
 }
 
