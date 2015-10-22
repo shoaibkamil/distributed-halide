@@ -83,15 +83,21 @@ int main(int argc, char **argv) {
     input.placement().distribute(y);
     input.allocate(sobel_distributed, output);
 
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            float v = x + y;
-            if (input.mine(x, y)) {
-                int lx = input.local(0, x), ly = input.local(1, y);
-                //input(lx, ly) = global_input(x, y);
-                input(lx, ly) = v;
-            }
-            //global_input(x, y) = v;
+    // for (int y = 0; y < h; y++) {
+    //     for (int x = 0; x < w; x++) {
+    //         float v = x + y;
+    //         if (input.mine(x, y)) {
+    //             int lx = input.local(0, x), ly = input.local(1, y);
+    //             //input(lx, ly) = global_input(x, y);
+    //             input(lx, ly) = v;
+    //         }
+    //         //global_input(x, y) = v;
+    //     }
+    // }
+
+    for (int y = 0; y < input.height(); y++) {
+        for (int x = 0; x < input.width(); x++) {
+            input(x, y) = input.global(0, x) + input.global(1, y);
         }
     }
 
