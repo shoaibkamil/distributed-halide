@@ -899,25 +899,26 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     // clamp-to-edge. Extending to the other extreme (tiling the image
     // at the boundary) is a fairly straightforward extension. See
     // notes from 10/6/15.
-    Expr middle_rank = cast(Int(32), ceil(cast(Float(32), Var("NumProcessors")) / 2.0f));
-    env.ref("Rank") = middle_rank;
-    Box maximal_need = simplify_box(need, env);
+    // Expr middle_rank = cast(Int(32), ceil(cast(Float(32), Var("NumProcessors")) / 2.0f));
+    // env.ref("Rank") = middle_rank;
+    // Box maximal_need = simplify_box(need, env);
 
-    // Compute the "rank span" using the have/need regions. This is
-    // the rank "radius" that we must communicate with.
-    Expr k = 0;
-    for (unsigned i = 0; i < maximal_need.size(); i++) {
-        Expr hext = have[i].max - have[i].min + 1,
-            next = maximal_need[i].max - maximal_need[i].min + 1;
-        Expr kk = cast(Int(32), ceil(cast(Float(32), next) / hext));
-        k = max(k, kk);
-    }
+    // // Compute the "rank span" using the have/need regions. This is
+    // // the rank "radius" that we must communicate with.
+    // Expr k = 0;
+    // for (unsigned i = 0; i < maximal_need.size(); i++) {
+    //     Expr hext = have[i].max - have[i].min + 1,
+    //         next = maximal_need[i].max - maximal_need[i].min + 1;
+    //     Expr kk = cast(Int(32), ceil(cast(Float(32), next) / hext));
+    //     k = max(k, kk);
+    // }
 
-    Expr left, right;
-    left = max(Var("Rank") - k, 0);
-    right = min(Var("Rank") + k, Var("NumProcessors") - 1);
-    Expr rankextent = right - left + 1;
-    commstmt = For::make("r", left, rankextent, ForType::Serial, DeviceAPI::Host, commstmt);
+    // Expr left, right;
+    // left = max(Var("Rank") - k, 0);
+    // right = min(Var("Rank") + k, Var("NumProcessors") - 1);
+    // Expr rankextent = right - left + 1;
+    // commstmt = For::make("r", left, rankextent, ForType::Serial, DeviceAPI::Host, commstmt);
+    commstmt = For::make("r", 0, Var("NumProcessors"), ForType::Serial, DeviceAPI::Host, commstmt);
     return commstmt;
 }
 
