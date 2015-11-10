@@ -43,8 +43,10 @@ const double GAMMA = 1.4;
 // Halide globals
 int global_w = 0, global_h = 0, global_d = 0;
 Var x("x"), y("y"), z("z"), c("c");
+Param<double> timestep;
 Func ctoprim("ctoprim"), courno_func("courno");
 Func diffterm("diffterm"), hypterm("hypterm");
+Func Uonethird("Uonethird"), Utwothirds("Utwothirds");
 
 void init_data(DistributedImage<double> &data) {
     // XXX: make this a Halide stage as well so that we can
@@ -563,16 +565,36 @@ Func build_hypterm(Func U, Func Q) {
     return flux;
 }
 
-void build_pipeline(Func UAccessor, Func QAccessor) {
+Func build_Uonethird(Func U, Func D, Func F) {
+    Func Uonethird("Uonethird");
+    Uonethird(x, y, z, c) = U(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c));
+    return Uonethird;
+}
+
+Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
+    Expr OneQuarter    = Expr(1.0)/Expr(4.0);
+    Expr ThreeQuarters = Expr(3.0)/Expr(4.0);
+
+    Func Utwothirds("Utwothirds");
+    Utwothirds(x, y, z, c) = ThreeQuarters * U(x,y,z,c) +
+        OneQuarter * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
+    return Utwothirds;
+}
+
+void build_pipeline(Func UAccessor, Func UnewAccessor, Func QAccessor, Func DAccessor, Func FAccessor) {
     ctoprim = build_ctoprim(UAccessor);
     courno_func  = build_courno(QAccessor);
     diffterm = build_diffterm(QAccessor);
     hypterm = build_hypterm(UAccessor, QAccessor);
+    Uonethird = build_Uonethird(UAccessor, DAccessor, FAccessor);
+    Utwothirds = build_Utwothirds(UAccessor, UnewAccessor, DAccessor, FAccessor);
 
     ctoprim.compile_jit();
     courno_func.compile_jit();
     diffterm.compile_jit();
     hypterm.compile_jit();
+    Uonethird.compile_jit();
+    Utwothirds.compile_jit();
 }
 
 void ctoprim_fort(DistributedImage<double> &U, DistributedImage<double> &Q, double &courno) {
@@ -624,7 +646,8 @@ void ctoprim_fort(DistributedImage<double> &U, DistributedImage<double> &Q, doub
     // courno = max(courmx, max(courmy, max(courmz, courno)));
 }
 
-void advance(DistributedImage<double> &U, DistributedImage<double> &Q,
+void advance(DistributedImage<double> &U, DistributedImage<double> &Unew,
+             DistributedImage<double> &Q,
              DistributedImage<double> &D, DistributedImage<double> &F,
              double &dt) {
     const double OneThird      = 1.0/3.0;
@@ -641,6 +664,7 @@ void advance(DistributedImage<double> &U, DistributedImage<double> &Q,
     courno = max(evaluate<double>(courno_func), courno);
     // XXX: parallel_reduce courno
     dt = cfl / courno;
+    timestep.set(dt);
 
     if (parallel_IOProcessor()) {
         std::cout << std::scientific << "dt,courno " << std::setprecision(std::numeric_limits<double>::digits10) << dt << " " << courno << "\n";
@@ -650,6 +674,21 @@ void advance(DistributedImage<double> &U, DistributedImage<double> &Q,
     diffterm.realize(D);
     // Calculate F at time N (N = hypterm)
     hypterm.realize(F);
+
+    // Calculate U at time N+1/3
+    Uonethird.realize(Unew);
+    // Swap so that ctoprim/hypterm read from Unew
+    std::swap(U, Unew);
+    ctoprim.realize(Q);
+    // Calculate D at time N+1/3
+    diffterm.realize(D);
+    // Calculate F at time N+1/3
+    hypterm.realize(F);
+
+    // Swap back
+    std::swap(U, Unew);
+    // Calculate U at time N+2/3
+    Utwothirds.realize(Unew);
 }
 
 } // anonymous namespace
@@ -667,7 +706,7 @@ int main(int argc, char **argv) {
 
     // XXX: should probably make the component the innermost
     // dimension, then w,h,d.
-    DistributedImage<double> U(global_w, global_h, global_d, nc), Q(global_w, global_h, global_d, 6);
+    DistributedImage<double> U(global_w, global_h, global_d, nc), Unew(global_w, global_h, global_d, nc), Q(global_w, global_h, global_d, 6);
     DistributedImage<double> D(global_w, global_h, global_d, nc), F(global_w, global_h, global_d, nc);
 
     // Impose periodic boundary conditions on U and Q
@@ -676,17 +715,23 @@ int main(int argc, char **argv) {
                            std::make_pair(0, global_d), std::make_pair(0, nc)},
         global_bounds_Q = {std::make_pair(0, global_w), std::make_pair(0, global_h),
                            std::make_pair(0, global_d), std::make_pair(0, 6)};
-    Func Ut, Qt;
+    Func Ut, Unewt, Qt;
     Ut(x,y,z,c) = U(x,y,z,c);
+    Unewt(x,y,z,c) = Unew(x,y,z,c);
     Qt(x,y,z,c) = Q(x,y,z,c);
-    Func UAccessor("UAccessor"), QAccessor("QAccessor");
+    Func UAccessor("UAccessor"), UnewAccessor("UnewAccessor"), QAccessor("QAccessor");
+    Func DAccessor("DAccessor"), FAccessor("FAccessor");
     UAccessor = BoundaryConditions::repeat_image(Ut, global_bounds_U);
+    UnewAccessor = BoundaryConditions::repeat_image(Unewt, global_bounds_U);
     QAccessor = BoundaryConditions::repeat_image(Qt, global_bounds_Q);
-
-    build_pipeline(UAccessor, QAccessor);
+    DAccessor(x,y,z,c) = D(x,y,z,c);
+    FAccessor(x,y,z,c) = F(x,y,z,c);
+    build_pipeline(UAccessor, UnewAccessor, QAccessor, DAccessor, FAccessor);
 
     U.set_domain(x, y, z, c);
     U.allocate();
+    Unew.set_domain(x, y, z, c);
+    Unew.allocate();
     Q.set_domain(x, y, z, c);
     Q.allocate();
     D.set_domain(x, y, z, c);
@@ -697,11 +742,12 @@ int main(int argc, char **argv) {
     init_data(U);
 
     double time = 0, dt = 0;
+    timestep.set(dt);
     for (int istep = 0; istep < nsteps; istep++) {
         if (parallel_IOProcessor()) {
             std::cout << "Advancing time step " << istep << ", time = " << time << "\n";
         }
-        advance(U, Q, D, F, dt);
+        advance(U, Unew, Q, D, F, dt);
         time = time + dt;
     }
 
