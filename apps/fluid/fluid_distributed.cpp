@@ -690,7 +690,7 @@ void advance(DistributedImage<double> &U, DistributedImage<double> &Unew,
 
     // Calculate U at time N+1/3
     Uonethird.realize(Unew);
-    // Swap so that ctoprim/hypterm read from Unew
+    // Swap so that ctoprim/hypterm read from Unew (U <- Unew)
     std::swap(U, Unew);
     ctoprim.realize(Q);
     // Calculate D at time N+1/3
@@ -698,18 +698,18 @@ void advance(DistributedImage<double> &U, DistributedImage<double> &Unew,
     // Calculate F at time N+1/3
     hypterm.realize(F);
 
-    // Swap back
+    // Swap back (U <- U)
     std::swap(U, Unew);
     // Calculate U at time N+2/3
     Utwothirds.realize(Unew);
-    std::swap(U, Unew);
+    std::swap(U, Unew); // U <- Unew
     ctoprim.realize(Q);
     // Calculate D at time N+2/3
     diffterm.realize(D);
     // Calculate F at time N+2/3
     hypterm.realize(F);
 
-    std::swap(U, Unew);
+    std::swap(U, Unew); // U <- U
     // Calculate U at time N+1
     Uone.realize(U);
 }
