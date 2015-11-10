@@ -1,5 +1,6 @@
 #include "Halide.h"
 #include "mpi_timing.h"
+#include <iomanip>
 using namespace Halide;
 
 // Implements Compressible Navier-Stokes (CNS) simulation.
@@ -32,7 +33,17 @@ const int nc = 5;
 
 const double dx = (prob_hi - prob_lo)/n_cell;
 
+const double GAMMA = 1.4;
+
+// Halide globals
+int global_w = 0, global_h = 0, global_d = 0;
+Var x("x"), y("y"), z("z"), c("c");
+Func ctoprim("ctoprim"), courno_func("courno");
+
 void init_data(DistributedImage<double> &data) {
+    // XXX: make this a Halide stage as well so that we can
+    // parallelize it the same way as in the Fortran code
+    // (init_data.f90)
     const double twopi = 2.0 * 3.141592653589793238462643383279502884197;
     const double scale = (prob_hi - prob_lo)/twopi;
     for (int z = 0; z < data.extent(2); z++) {
@@ -67,69 +78,129 @@ void parallel_reduce(double &a, double &b, MPI_Op op) {
 
 }
 
-template <typename T>
-T max(T a, T b) {
+double max(double a, double b) {
     return a > b ? a : b;
 }
 
-template <typename T>
-T abs(T a) {
+double abs(double a) {
     return a < 0 ? -a : a;
 }
-
 
 double Huge() {
     return std::numeric_limits<double>::max();
 }
 
-void ctoprim(DistributedImage<double> &U, DistributedImage<double> &Q, double &courno) {
-    const double GAMMA = 1.4;
+Func build_ctoprim(Func U) {
     const double CV    = 8.3333333333e6;
-    double CVinv = 1.0 / CV;
+    const double CVinv = 1.0 / CV;
 
-    // XXX: Need to handle boundary conditions here. Is it easier to
-    // just implement in Halide now? These aren't terribly difficult
-    // loops here. Or should we verify these two C loops to make sure
-    // we have indexing/ordering correct first?
-    for (int z = 0; z < Q.extent(2); z++) {
-        for (int y = 0; y < Q.extent(1); y++) {
-            for (int x = 0; x < Q.extent(0); x++) {
-                const double rhoinv = 1.0/U(x,y,z,0);
-                Q(x,y,z,0) = U(x,y,z,0);
-                Q(x,y,z,1) = U(x,y,z,1)*rhoinv;
-                Q(x,y,z,2) = U(x,y,z,2)*rhoinv;
-                Q(x,y,z,3) = U(x,y,z,3)*rhoinv;
+    Expr rhoinv = Expr(1.0)/U(x,y,z,irho);
 
-                double eint = U(x,y,z,4)*rhoinv - 0.5*(pow(Q(x,y,z,1),2) + pow(Q(x,y,z,2),2) + pow(Q(x,y,z,3),2));
+    Expr density, xvel, yvel, zvel, pressure, temperature;
+    density = U(x,y,z,irho);
+    xvel = U(x,y,z,imx)*rhoinv;
+    yvel = U(x,y,z,imy)*rhoinv;
+    zvel = U(x,y,z,imz)*rhoinv;
 
-                Q(x,y,z,4) = (GAMMA-1.0)*eint*U(x,y,z,0);
-                Q(x,y,z,5) = eint * CVinv;
-            }
-        }
-    }
+    Expr eint = U(x,y,z,iene)*rhoinv - Expr(0.5)*(pow(xvel,2) + pow(yvel,2) + pow(zvel,2));
+    pressure = Expr(GAMMA-1.0) * eint * U(x,y,z,irho);
+    temperature = eint * Expr(CVinv);
 
-    double courmx, courmy, courmz;
-    courmx = -Huge(); courmy = -Huge(); courmz = -Huge();
+    Func Q;
+    //Q(x,y,z) = Tuple(density, xvel, yvel, zvel, pressure, temperature);
+    Q(x,y,z,c) = select(c == 0, density,
+                        c == 1, xvel,
+                        c == 2, yvel,
+                        c == 3, zvel,
+                        c == 4, pressure,
+                        temperature);
+    // Eliminate some performance loss of the select by bounding and unrolling 'c':
+    Q.bound(c, 0, 6).unroll(c);
+    return Q;
+}
 
-    // XXX: Need to handle boundary conditions here
-    for (int z = 0; z < Q.extent(2); z++) {
-        for (int y = 0; y < Q.extent(1); y++) {
-            for (int x = 0; x < Q.extent(0); x++) {
-                const double dxinv = 1.0 / dx;
-                const double c     = sqrt(GAMMA*Q(x,y,z,4)/Q(x,y,z,0));
-                double courx, coury, courz;
-                courx = ( c+abs(Q(x,y,z,1)) ) * dxinv;
-                coury = ( c+abs(Q(x,y,z,2)) ) * dxinv;
-                courz = ( c+abs(Q(x,y,z,3)) ) * dxinv;
+Func build_courno(Func Q) {
+    // XXX: this can be combined with ctoprim, as a final element in
+    // the tuple. Don't do that optimization yet, to get a faithful
+    // performance comparison.
 
-                courmx = max( courmx, courx );
-                courmy = max( courmy, coury );
-                courmz = max( courmz, courz );
+    // XXX: This needs to be a local reduction and then have an
+    // external global reduction of the local values, as in the
+    // Fortran code.
+    RDom r(0, global_w, 0, global_h, 0, global_d);
 
-            }
-        }
-    }
-    courno = max(courmx, max(courmy, max(courmz, courno)));
+    Expr dxinv = Expr(1.0 / dx);
+    Expr c     = sqrt(Expr(GAMMA)*Q(r.x,r.y,r.z,4)/Q(r.x,r.y,r.z,0));
+
+    Expr courx = ( c+abs(Q(r.x,r.y,r.z,1)) ) * dxinv;
+    Expr coury = ( c+abs(Q(r.x,r.y,r.z,2)) ) * dxinv;
+    Expr courz = ( c+abs(Q(r.x,r.y,r.z,3)) ) * dxinv;
+
+    Expr courmx = max( Expr(-Huge()), courx );
+    Expr courmy = max( Expr(-Huge()), coury );
+    Expr courmz = max( Expr(-Huge()), courz );
+
+    Expr maxcourpt = max(courmx, max(courmy, courmz));
+
+    // Not called 'courno' because the actual value of courno is the
+    // max of this value and the old value of courno.
+    Func helper("helper");
+    helper() = maximum(r, maxcourpt);
+    return helper;
+}
+
+void build_pipeline(Func UAccessor, Func QAccessor) {
+    ctoprim = build_ctoprim(UAccessor);
+    courno_func  = build_courno(QAccessor);
+}
+
+void ctoprim_fort(DistributedImage<double> &U, DistributedImage<double> &Q, double &courno) {
+    // const double CV    = 8.3333333333e6;
+    // double CVinv = 1.0 / CV;
+
+    // // XXX: Need to handle boundary conditions here. Is it easier to
+    // // just implement in Halide now? These aren't terribly difficult
+    // // loops here. Or should we verify these two C loops to make sure
+    // // we have indexing/ordering correct first?
+    // for (int z = 0; z < Q.extent(2); z++) {
+    //     for (int y = 0; y < Q.extent(1); y++) {
+    //         for (int x = 0; x < Q.extent(0); x++) {
+    //             const double rhoinv = 1.0/U(x,y,z,0);
+    //             Q(x,y,z,0) = U(x,y,z,0);
+    //             Q(x,y,z,1) = U(x,y,z,1)*rhoinv;
+    //             Q(x,y,z,2) = U(x,y,z,2)*rhoinv;
+    //             Q(x,y,z,3) = U(x,y,z,3)*rhoinv;
+
+    //             double eint = U(x,y,z,4)*rhoinv - 0.5*(pow(Q(x,y,z,1),2) + pow(Q(x,y,z,2),2) + pow(Q(x,y,z,3),2));
+
+    //             Q(x,y,z,4) = (GAMMA-1.0)*eint*U(x,y,z,0);
+    //             Q(x,y,z,5) = eint * CVinv;
+    //         }
+    //     }
+    // }
+
+    // double courmx, courmy, courmz;
+    // courmx = -Huge(); courmy = -Huge(); courmz = -Huge();
+
+    // // XXX: Need to handle boundary conditions here
+    // for (int z = 0; z < Q.extent(2); z++) {
+    //     for (int y = 0; y < Q.extent(1); y++) {
+    //         for (int x = 0; x < Q.extent(0); x++) {
+    //             const double dxinv = 1.0 / dx;
+    //             const double c     = sqrt(GAMMA*Q(x,y,z,4)/Q(x,y,z,0));
+    //             double courx, coury, courz;
+    //             courx = ( c+abs(Q(x,y,z,1)) ) * dxinv;
+    //             coury = ( c+abs(Q(x,y,z,2)) ) * dxinv;
+    //             courz = ( c+abs(Q(x,y,z,3)) ) * dxinv;
+
+    //             courmx = max( courmx, courx );
+    //             courmy = max( courmy, coury );
+    //             courmz = max( courmz, courz );
+
+    //         }
+    //     }
+    // }
+    // courno = max(courmx, max(courmy, max(courmz, courno)));
 }
 
 void advance(DistributedImage<double> &U, DistributedImage<double> &Q, double &dt) {
@@ -138,14 +209,19 @@ void advance(DistributedImage<double> &U, DistributedImage<double> &Q, double &d
     const double OneQuarter    = 1.0/4.0;
     const double ThreeQuarters = 3.0/4.0;
 
-    double courno = 1e-50, courno_proc = 1e-50;
-    ctoprim(U, Q, courno);
-    parallel_reduce(courno, courno_proc, MPI_MAX);
-    dt = cfl / courno;
-    if (parallel_IOProcessor()) {
-        std::cout << "dt,courno " << dt << " " << courno << "\n";
-    }
+    // double courno = 1e-50, courno_proc = 1e-50;
+    // ctoprim(U, Q, courno);
+    // parallel_reduce(courno, courno_proc, MPI_MAX);
 
+    double courno = 1e-50;
+    ctoprim.realize(Q);
+    courno = max(evaluate<double>(courno_func), courno);
+    // XXX: parallel_reduce courno
+    dt = cfl / courno;
+
+    if (parallel_IOProcessor()) {
+        std::cout << std::scientific << "dt,courno " << std::setprecision(std::numeric_limits<double>::digits10) << dt << " " << courno << "\n";
+    }
 }
 
 } // anonymous namespace
@@ -157,10 +233,29 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 
-    const int w = std::stoi(argv[1]), h = std::stoi(argv[2]), d = std::stoi(argv[3]);
-    Var x("x"), y("y"), z("z"), c("c");
+    global_w = std::stoi(argv[1]);
+    global_h = std::stoi(argv[2]);
+    global_d = std::stoi(argv[3]);
 
-    DistributedImage<double> U(w, h, d, nc), Q(w, h, d, 6);
+    // XXX: should probably make the component the innermost
+    // dimension, then w,h,d.
+    DistributedImage<double> U(global_w, global_h, global_d, nc), Q(global_w, global_h, global_d, 6);
+
+    // Impose periodic boundary conditions on U and Q
+    std::vector<std::pair<Expr, Expr>>
+        global_bounds_U = {std::make_pair(0, global_w), std::make_pair(0, global_h),
+                           std::make_pair(0, global_d), std::make_pair(0, nc)},
+        global_bounds_Q = {std::make_pair(0, global_w), std::make_pair(0, global_h),
+                           std::make_pair(0, global_d), std::make_pair(0, 6)};
+    Func Ut, Qt;
+    Ut(x,y,z,c) = U(x,y,z,c);
+    Qt(x,y,z,c) = Q(x,y,z,c);
+    Func UAccessor("UAccessor"), QAccessor("QAccessor");
+    UAccessor = BoundaryConditions::repeat_image(Ut, global_bounds_U);
+    QAccessor = BoundaryConditions::repeat_image(Qt, global_bounds_Q);
+
+    build_pipeline(UAccessor, QAccessor);
+
     U.set_domain(x, y, z, c);
     U.allocate();
     Q.set_domain(x, y, z, c);
