@@ -46,7 +46,7 @@ Var x("x"), y("y"), z("z"), c("c");
 Param<double> timestep;
 Func ctoprim("ctoprim"), courno_func("courno");
 Func diffterm("diffterm"), hypterm("hypterm");
-Func Uonethird("Uonethird"), Utwothirds("Utwothirds");
+Func Uonethird("Uonethird"), Utwothirds("Utwothirds"), Uone("Uone");
 
 void init_data(DistributedImage<double> &data) {
     // XXX: make this a Halide stage as well so that we can
@@ -581,6 +581,17 @@ Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
     return Utwothirds;
 }
 
+Func build_Uone(Func U, Func Unew, Func D, Func F) {
+    Expr OneThird  = Expr(1.0)/Expr(3.0);
+    Expr TwoThirds = Expr(2.0)/Expr(3.0);
+
+    Func Uone("Uone");
+    Uone(x,y,z,c) = OneThird * U(x,y,z,c) +
+        TwoThirds * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
+    return Uone;
+}
+
+
 void build_pipeline(Func UAccessor, Func UnewAccessor, Func QAccessor, Func DAccessor, Func FAccessor) {
     ctoprim = build_ctoprim(UAccessor);
     courno_func  = build_courno(QAccessor);
@@ -588,6 +599,7 @@ void build_pipeline(Func UAccessor, Func UnewAccessor, Func QAccessor, Func DAcc
     hypterm = build_hypterm(UAccessor, QAccessor);
     Uonethird = build_Uonethird(UAccessor, DAccessor, FAccessor);
     Utwothirds = build_Utwothirds(UAccessor, UnewAccessor, DAccessor, FAccessor);
+    Uone = build_Uone(UAccessor, UnewAccessor, DAccessor, FAccessor);
 
     ctoprim.compile_jit();
     courno_func.compile_jit();
@@ -595,6 +607,7 @@ void build_pipeline(Func UAccessor, Func UnewAccessor, Func QAccessor, Func DAcc
     hypterm.compile_jit();
     Uonethird.compile_jit();
     Utwothirds.compile_jit();
+    Uone.compile_jit();
 }
 
 void ctoprim_fort(DistributedImage<double> &U, DistributedImage<double> &Q, double &courno) {
@@ -689,6 +702,16 @@ void advance(DistributedImage<double> &U, DistributedImage<double> &Unew,
     std::swap(U, Unew);
     // Calculate U at time N+2/3
     Utwothirds.realize(Unew);
+    std::swap(U, Unew);
+    ctoprim.realize(Q);
+    // Calculate D at time N+2/3
+    diffterm.realize(D);
+    // Calculate F at time N+2/3
+    hypterm.realize(F);
+
+    std::swap(U, Unew);
+    // Calculate U at time N+1
+    Uone.realize(U);
 }
 
 } // anonymous namespace
