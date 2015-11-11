@@ -31,10 +31,10 @@ const int imz  = 3;
 const int iene = 4;
 const int nc = 5;
 
-const int qu    = 2;
-const int qv    = 3;
-const int qw    = 4;
-const int qpres = 5;
+const int qu    = 1;
+const int qv    = 2;
+const int qw    = 3;
+const int qpres = 4;
 
 const double dx = (prob_hi - prob_lo)/n_cell;
 
