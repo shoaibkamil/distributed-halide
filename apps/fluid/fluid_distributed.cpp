@@ -631,54 +631,6 @@ void build_pipeline(Func UAccessor, Func UnewAccessor, Func QAccessor, Func DAcc
     Uone.compile_jit();
 }
 
-void ctoprim_fort(DistributedImage<double> &U, DistributedImage<double> &Q, double &courno) {
-    // const double CV    = 8.3333333333e6;
-    // double CVinv = 1.0 / CV;
-
-    // // XXX: Need to handle boundary conditions here. Is it easier to
-    // // just implement in Halide now? These aren't terribly difficult
-    // // loops here. Or should we verify these two C loops to make sure
-    // // we have indexing/ordering correct first?
-    // for (int z = 0; z < Q.extent(2); z++) {
-    //     for (int y = 0; y < Q.extent(1); y++) {
-    //         for (int x = 0; x < Q.extent(0); x++) {
-    //             const double rhoinv = 1.0/U(x,y,z,0);
-    //             Q(x,y,z,0) = U(x,y,z,0);
-    //             Q(x,y,z,1) = U(x,y,z,1)*rhoinv;
-    //             Q(x,y,z,2) = U(x,y,z,2)*rhoinv;
-    //             Q(x,y,z,3) = U(x,y,z,3)*rhoinv;
-
-    //             double eint = U(x,y,z,4)*rhoinv - 0.5*(pow(Q(x,y,z,1),2) + pow(Q(x,y,z,2),2) + pow(Q(x,y,z,3),2));
-
-    //             Q(x,y,z,4) = (GAMMA-1.0)*eint*U(x,y,z,0);
-    //             Q(x,y,z,5) = eint * CVinv;
-    //         }
-    //     }
-    // }
-
-    // double courmx, courmy, courmz;
-    // courmx = -Huge(); courmy = -Huge(); courmz = -Huge();
-
-    // // XXX: Need to handle boundary conditions here
-    // for (int z = 0; z < Q.extent(2); z++) {
-    //     for (int y = 0; y < Q.extent(1); y++) {
-    //         for (int x = 0; x < Q.extent(0); x++) {
-    //             const double dxinv = 1.0 / dx;
-    //             const double c     = sqrt(GAMMA*Q(x,y,z,4)/Q(x,y,z,0));
-    //             double courx, coury, courz;
-    //             courx = ( c+abs(Q(x,y,z,1)) ) * dxinv;
-    //             coury = ( c+abs(Q(x,y,z,2)) ) * dxinv;
-    //             courz = ( c+abs(Q(x,y,z,3)) ) * dxinv;
-
-    //             courmx = max( courmx, courx );
-    //             courmy = max( courmy, coury );
-    //             courmz = max( courmz, courz );
-
-    //         }
-    //     }
-    // }
-    // courno = max(courmx, max(courmy, max(courmz, courno)));
-}
 
 void advance(DistributedImage<double> &U, DistributedImage<double> &Unew,
              DistributedImage<double> &Q,
@@ -688,10 +640,6 @@ void advance(DistributedImage<double> &U, DistributedImage<double> &Unew,
     const double TwoThirds     = 2.0/3.0;
     const double OneQuarter    = 1.0/4.0;
     const double ThreeQuarters = 3.0/4.0;
-
-    // double courno = 1e-50, courno_proc = 1e-50;
-    // ctoprim(U, Q, courno);
-    // parallel_reduce(courno, courno_proc, MPI_MAX);
 
     double courno = 1e-50;
     ctoprim.realize(Q);
@@ -802,20 +750,6 @@ int main(int argc, char **argv) {
         advance(U, Unew, Q, D, F, dt);
         time = time + dt;
     }
-
-    // Func clamped;
-    // clamped(x, y, z) = input(clamp(x, 0, input.global_width() - 1),
-    //                          clamp(y, 0, input.global_height() - 1),
-    //                          clamp(z, 0, input.global_channels() - 1));
-    // Func heat3d;
-    // Expr c0 = 0.5f, c1 = -0.25f;
-    // heat3d(x, y, z) = c0 * clamped(x, y, z) + c1 * (clamped(x-1, y, z) + clamped(x+1, y, z) +
-    //                                               clamped(x, y-1, z) + clamped(x, y+1, z) +
-    //                                               clamped(x, y, z-1) + clamped(x, y, z+1));
-    // heat3d
-    //     .tile(x, y, xi, yi, 8, 8).vectorize(xi).unroll(yi)
-    //     .parallel(z)
-    //     .distribute(z);
 
     // output.set_domain(x, y, z);
     // output.placement().distribute(z);
