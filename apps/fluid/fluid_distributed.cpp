@@ -47,6 +47,11 @@ Param<double> timestep;
 Func ctoprim("ctoprim"), courno_func("courno");
 Func diffterm("diffterm"), hypterm("hypterm");
 Func Uonethird("Uonethird"), Utwothirds("Utwothirds"), Uone("Uone");
+ImageParam Up(Float(64), 4),
+    Unewp(Float(64), 4),
+    Qp(Float(64), 4),
+    Dp(Float(64), 4),
+    Fp(Float(64), 4);
 
 void init_data(DistributedImage<double> &data) {
     // XXX: make this a Halide stage as well so that we can
@@ -691,7 +696,7 @@ void advance(DistributedImage<double> &U, DistributedImage<double> &Unew,
     // Calculate U at time N+1/3
     Uonethird.realize(Unew);
     // Swap so that ctoprim/hypterm read from Unew (U <- Unew)
-    std::swap(U, Unew);
+    Up.set(Unew);
     ctoprim.realize(Q);
     // Calculate D at time N+1/3
     diffterm.realize(D);
@@ -699,17 +704,17 @@ void advance(DistributedImage<double> &U, DistributedImage<double> &Unew,
     hypterm.realize(F);
 
     // Swap back (U <- U)
-    std::swap(U, Unew);
+    Up.set(U);
     // Calculate U at time N+2/3
     Utwothirds.realize(Unew);
-    std::swap(U, Unew); // U <- Unew
+    Up.set(Unew); // U <- Unew
     ctoprim.realize(Q);
     // Calculate D at time N+2/3
     diffterm.realize(D);
     // Calculate F at time N+2/3
     hypterm.realize(F);
 
-    std::swap(U, Unew); // U <- U
+    Up.set(U); // U <- U
     // Calculate U at time N+1
     Uone.realize(U);
 }
@@ -738,10 +743,12 @@ int main(int argc, char **argv) {
                            std::make_pair(0, global_d), std::make_pair(0, nc)},
         global_bounds_Q = {std::make_pair(0, global_w), std::make_pair(0, global_h),
                            std::make_pair(0, global_d), std::make_pair(0, 6)};
-    Func Ut, Unewt, Qt;
-    Ut(x,y,z,c) = U(x,y,z,c);
-    Unewt(x,y,z,c) = Unew(x,y,z,c);
-    Qt(x,y,z,c) = Q(x,y,z,c);
+    Func Ut, Unewt, Qt, Dt, Ft;
+    Ut(x,y,z,c) = Up(x,y,z,c);
+    Unewt(x,y,z,c) = Unewp(x,y,z,c);
+    Qt(x,y,z,c) = Qp(x,y,z,c);
+    Dt(x,y,z,c) = Dp(x,y,z,c);
+    Ft(x,y,z,c) = Fp(x,y,z,c);
     Func UAccessor("UAccessor"), UnewAccessor("UnewAccessor"), QAccessor("QAccessor");
     Func DAccessor("DAccessor"), FAccessor("FAccessor");
     UAccessor = BoundaryConditions::repeat_image(Ut, global_bounds_U);
@@ -761,6 +768,12 @@ int main(int argc, char **argv) {
     D.allocate();
     F.set_domain(x, y, z, c);
     F.allocate();
+
+    Up.set(U);
+    Unewp.set(Unew);
+    Qp.set(Q);
+    Dp.set(D);
+    Fp.set(F);
 
     init_data(U);
 
