@@ -53,6 +53,22 @@ ImageParam Up(Float(64), 4),
     Dp(Float(64), 4),
     Fp(Float(64), 4);
 
+template <typename T>
+static void print_imgflat4d(DistributedImage<T> &img) {
+    assert(img.dimensions() == 4);
+    std::cout << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
+    for (int c = 0; c < img.extent(3); c++) {
+        for (int z = 0; z < img.extent(2); z++) {
+            for (int y = 0; y < img.extent(1); y++) {
+                for (int x = 0; x < img.extent(0); x++) {
+                    std::cout << img(x,y,z,c) << " ";
+                }
+            }
+        }
+    }
+    std::cout << "\n";
+}
+
 void init_data(DistributedImage<double> &data) {
     // XXX: make this a Halide stage as well so that we can
     // parallelize it the same way as in the Fortran code
