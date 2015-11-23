@@ -43,7 +43,7 @@ const double GAMMA = 1.4;
 
 // Halide globals
 int global_w = 0, global_h = 0, global_d = 0;
-Var x("x"), y("y"), z("z"), c("c");
+Var x("x"), y("y"), z("z"), c("c"), xo("xo"), xi("xi"), yo("yo"), yi("yi"), zo("zo"), zi("zi"), tile("tile");
 Param<double> timestep;
 Func init_data("init_data");
 Func ctoprim("ctoprim"), courno_func("courno");
@@ -113,6 +113,7 @@ Func build_init_data() {
                            c == imz, rholoc*wvel,
                            rholoc*(eloc + (pow(uvel, 2)+pow(vvel,2)+pow(wvel,2))/2));
     init.bound(c, 0, 5).unroll(c);
+    init.parallel(z);
     return init;
 }
 
@@ -132,7 +133,7 @@ Func build_ctoprim(Func U) {
     pressure = Expr(GAMMA-1.0) * eint * U(x,y,z,irho);
     temperature = eint * Expr(CVinv);
 
-    Func Q;
+    Func Q("ctoprim");
     //Q(x,y,z) = Tuple(density, xvel, yvel, zvel, pressure, temperature);
     Q(x,y,z,c) = select(c == 0, density,
                         c == 1, xvel,
@@ -142,7 +143,7 @@ Func build_ctoprim(Func U) {
                         temperature);
     // Eliminate some performance loss of the select by bounding and unrolling 'c':
     Q.bound(c, 0, 6).unroll(c);
-    Q.compute_root();
+    Q.parallel(z);
     return Q;
 }
 
@@ -171,7 +172,7 @@ Func build_courno(Func Q) {
 
     // Not called 'courno' because the actual value of courno is the
     // max of this value and the old value of courno.
-    Func helper("helper");
+    Func helper("courno");
     helper() = maximum(r, maxcourpt);
     helper.compute_root();
     return helper;
@@ -196,7 +197,8 @@ Func build_diffterm(Func Q) {
     Func difflux("difflux");
     // Pure step handles irho case
     difflux(x,y,z,c) = Expr(0.0);
-    difflux.compute_root();
+    difflux.bound(c, 0, 5);
+    difflux.compute_root().parallel(z);
 
     Expr ux_calc =
         (ALP*(Q(x+1,y,z,qu)-Q(x-1,y,z,qu))
@@ -214,7 +216,7 @@ Func build_diffterm(Func Q) {
          + GAM*(Q(x+3,y,z,qw)-Q(x-3,y,z,qw))
          + DEL*(Q(x+4,y,z,qw)-Q(x-4,y,z,qw)))*dxinv;
 
-    Func loop1, ux, vx, wx;
+    Func loop1("loop1"), ux("ux"), vx("vx"), wx("wx");
     // Do it this way so that ux, vx and wx are calculated in the same
     // loop nest.
     loop1(x, y, z) = {ux_calc, vx_calc, wx_calc};
@@ -222,6 +224,7 @@ Func build_diffterm(Func Q) {
     vx(x, y, z) = loop1(x,y,z)[1];
     wx(x, y, z) = loop1(x,y,z)[2];
     loop1.compute_root();
+    loop1.parallel(z);
 
     Expr uy_calc =
         (ALP*(Q(x,y+1,z,qu)-Q(x,y-1,z,qu))
@@ -241,12 +244,13 @@ Func build_diffterm(Func Q) {
          + GAM*(Q(x,y+3,z,qw)-Q(x,y-3,z,qw))
          + DEL*(Q(x,y+4,z,qw)-Q(x,y-4,z,qw)))*dxinv;
 
-    Func loop2, uy, vy, wy;
+    Func loop2("loop2"), uy("uy"), vy("vy"), wy("wy");
     loop2(x, y, z) = {uy_calc, vy_calc, wy_calc};
     uy(x, y, z) = loop2(x,y,z)[0];
     vy(x, y, z) = loop2(x,y,z)[1];
     wy(x, y, z) = loop2(x,y,z)[2];
     loop2.compute_root();
+    loop2.parallel(z);
 
     Expr uz_calc =
         (ALP*(Q(x,y,z+1,qu)-Q(x,y,z-1,qu))
@@ -266,12 +270,21 @@ Func build_diffterm(Func Q) {
          + GAM*(Q(x,y,z+3,qw)-Q(x,y,z-3,qw))
          + DEL*(Q(x,y,z+4,qw)-Q(x,y,z-4,qw)))*dxinv;
 
-    Func loop3, uz, vz, wz;
-    loop3(x, y, z) = {uz_calc, vz_calc, wz_calc};
-    uz(x, y, z) = loop3(x,y,z)[0];
-    vz(x, y, z) = loop3(x,y,z)[1];
-    wz(x, y, z) = loop3(x,y,z)[2];
-    loop3.compute_root();
+    Func loop3("loop3"), uz("uz"), vz("vz"), wz("wz");
+    // loop3(x, y, z) = {uz_calc, vz_calc, wz_calc};
+    // uz(x, y, z) = loop3(x,y,z)[0];
+    // vz(x, y, z) = loop3(x,y,z)[1];
+    // wz(x, y, z) = loop3(x,y,z)[2];
+    // loop3.compute_root().parallel(z);
+    uz(x, y, z) = uz_calc;
+    vz(x, y, z) = vz_calc;
+    wz(x, y, z) = wz_calc;
+
+    uz.compute_at(difflux, z);
+    vz.compute_at(difflux, z);
+    wz.compute_at(difflux, z);
+    
+    //loop3.tile(y, z, yi, zi, 4, 4).reorder(zi, x, yi, y, z).parallel(z);
 
     Expr uxx = (CENTER*Q(x,y,z,qu)
                 + OFF1*(Q(x+1,y,z,qu)+Q(x-1,y,z,qu))
@@ -303,6 +316,7 @@ Func build_diffterm(Func Q) {
 
     // Update 0: imx
     difflux(x,y,z,imx) = Expr(eta)*(FourThirds*uxx + uyy + uzz + OneThird*(vyx+wzx));
+    difflux.update(0).parallel(z);
 
     Expr vxx = (CENTER*Q(x,y,z,qv)
                 + OFF1*(Q(x+1,y,z,qv)+Q(x-1,y,z,qv))
@@ -334,6 +348,7 @@ Func build_diffterm(Func Q) {
 
     // Update 1: imy
     difflux(x,y,z,imy) = Expr(eta)*(vxx + FourThirds*vyy + vzz + OneThird*(uxy+wzy));
+    difflux.update(1).parallel(z);
 
     Expr wxx = (CENTER*Q(x,y,z,qw)
                 + OFF1*(Q(x+1,y,z,qw)+Q(x-1,y,z,qw))
@@ -365,6 +380,7 @@ Func build_diffterm(Func Q) {
 
     // Update 2: imz
     difflux(x,y,z,imz) = Expr(eta)*(wxx + wyy + FourThirds*wzz + OneThird*(uxz+vyz));
+    difflux.update(2).parallel(z);
 
     Expr txx = (CENTER*Q(x,y,z,6)
                 + OFF1*(Q(x+1,y,z,6)+Q(x-1,y,z,6))
@@ -403,6 +419,7 @@ Func build_diffterm(Func Q) {
 
     // Update 3: iene
     difflux(x,y,z,iene) = Expr(alam)*(txx+tyy+tzz) + mechwork;
+    difflux.update(3).parallel(z);
 
     return difflux;
 }
@@ -472,7 +489,7 @@ Func build_hypterm(Func U, Func Q) {
                                c == 3, flux_imz_calc,
                                flux_iene_calc);
     loop1.bound(c, 0, 5).unroll(c).compute_root();
-
+    loop1.parallel(z);
 
     unp1 = Q(x,y+1,z,qv);
     unp2 = Q(x,y+2,z,qv);
@@ -529,7 +546,7 @@ Func build_hypterm(Func U, Func Q) {
                                c == 3, flux_imz_calc,
                                flux_iene_calc);
     loop2.bound(c, 0, 5).unroll(c).compute_root();
-
+    loop2.parallel(z);
 
     unp1 = Q(x,y,z+1,qw);
     unp2 = Q(x,y,z+2,qw);
@@ -585,7 +602,8 @@ Func build_hypterm(Func U, Func Q) {
                               c == 3, flux_imz_calc,
                               flux_iene_calc);
     flux.bound(c, 0, 5).unroll(c).compute_root();
-
+    flux.parallel(z);
+    
     return flux;
 }
 
@@ -593,6 +611,7 @@ Func build_Uonethird(Func U, Func D, Func F) {
     Func Uonethird("Uonethird");
     Uonethird(x, y, z, c) = U(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c));
     Uonethird.compute_root();
+    Uonethird.parallel(z);
     return Uonethird;
 }
 
@@ -604,6 +623,7 @@ Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
     Utwothirds(x, y, z, c) = ThreeQuarters * U(x,y,z,c) +
         OneQuarter * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
     Utwothirds.compute_root();
+    Utwothirds.parallel(z);
     return Utwothirds;
 }
 
@@ -615,6 +635,7 @@ Func build_Uone(Func U, Func Unew, Func D, Func F) {
     Uone(x,y,z,c) = OneThird * U(x,y,z,c) +
         TwoThirds * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
     Uone.compute_root();
+    Uone.parallel(z);
     return Uone;
 }
 
@@ -629,13 +650,16 @@ void build_pipeline(Func UAccessor, Func UnewAccessor, Func QAccessor, Func DAcc
     Utwothirds = build_Utwothirds(UAccessor, UnewAccessor, DAccessor, FAccessor);
     Uone = build_Uone(UAccessor, UnewAccessor, DAccessor, FAccessor);
 
-    ctoprim.compile_jit();
-    courno_func.compile_jit();
-    diffterm.compile_jit();
-    hypterm.compile_jit();
-    Uonethird.compile_jit();
-    Utwothirds.compile_jit();
-    Uone.compile_jit();
+    Target t = get_jit_target_from_environment();
+    t.set_feature(Target::Profile);
+    
+    ctoprim.compile_jit(t);
+    courno_func.compile_jit(t);
+    diffterm.compile_jit(t);
+    hypterm.compile_jit(t);
+    Uonethird.compile_jit(t);
+    Utwothirds.compile_jit(t);
+    Uone.compile_jit(t);
 }
 
 
@@ -753,20 +777,25 @@ int main(int argc, char **argv) {
     Dp.set(D);
     Fp.set(F);
 
-    init_data.realize(U);
+    MPITiming timing;
 
-    double time = 0, dt = 0;
-    timestep.set(dt);
-    for (int istep = 0; istep < nsteps; istep++) {
-        if (parallel_IOProcessor()) {
-            std::cout << "Advancing time step " << istep << ", time = " << time << "\n";
+    const int niters = 1;
+    for (int i = 0; i < niters; i++) {
+        init_data.realize(U);
+        double time = 0, dt = 0;
+        timestep.set(dt);
+        for (int istep = 0; istep < nsteps; istep++) {
+            if (parallel_IOProcessor()) {
+                std::cout << "Advancing time step " << istep << ", time = " << time << "\n";
+            }
+            timing.start();
+            advance(U, Unew, Q, D, F, dt);
+            timing.record(timing.stop());
+            time = time + dt;
         }
-        advance(U, Unew, Q, D, F, dt);
-        time = time + dt;
     }
-
-    print_imgflat4d(U);
-    exit(0);
+    timing.reduce(MPITiming::Median);
+    timing.nondistributed_report();
 
     // output.set_domain(x, y, z);
     // output.placement().distribute(z);
