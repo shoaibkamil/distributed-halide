@@ -13,7 +13,7 @@ int rank = 0, numprocs = 0;
 const int DM = 3;
 const int nsteps = 5;
 const int plot_int = 5;
-const int n_cell = 16;
+int n_cell = 0;
 const int max_grid_size = 64;
 const double cfl = 0.5;
 const double eta = 1.8e-4;
@@ -22,7 +22,7 @@ const double alam = 1.5e2;
 const double prob_lo     = -0.1e0;
 const double prob_hi     =  0.1e0;
 const int lo = 0;
-const int hi = n_cell-1;
+int hi = 0;
 
 const int irho = 0;
 const int imx  = 1;
@@ -36,7 +36,8 @@ const int qv    = 2;
 const int qw    = 3;
 const int qpres = 4;
 
-const double dx = (prob_hi - prob_lo)/n_cell;
+// double dx = (prob_hi - prob_lo)/n_cell;
+double dx = 0.0;
 
 const double GAMMA = 1.4;
 
@@ -705,6 +706,11 @@ int main(int argc, char **argv) {
     global_w = std::stoi(argv[1]);
     global_h = std::stoi(argv[2]);
     global_d = std::stoi(argv[3]);
+
+    assert(global_w == global_h && global_h == global_d && "Unimplemented non-cubical.");
+    n_cell = global_w;
+    dx = (prob_hi - prob_lo)/n_cell;
+    hi = n_cell-1;
 
     // XXX: should probably make the component the innermost
     // dimension, then w,h,d.
