@@ -11,7 +11,8 @@ int rank = 0, numprocs = 0;
 
 // Input parameters
 const int DM = 3;
-const int nsteps = 5;
+// const int nsteps = 5;
+const int nsteps = 1;
 const int plot_int = 5;
 int n_cell = 0;
 const int max_grid_size = 64;
@@ -179,6 +180,8 @@ Func build_courno(Func Q) {
 }
 
 Func build_diffterm(Func Q) {
+    const int tysize = 2, tzsize = 2;
+    
     Expr OneThird   = Expr(1.0)/Expr(3.0);
     Expr TwoThirds  = Expr(2.0)/Expr(3.0);
     Expr FourThirds = Expr(4.0)/Expr(3.0);
@@ -198,7 +201,8 @@ Func build_diffterm(Func Q) {
     // Pure step handles irho case
     difflux(x,y,z,c) = Expr(0.0);
     difflux.bound(c, 0, 5);
-    difflux.compute_root().parallel(z);
+    //difflux.compute_root().parallel(z).vectorize(x, 4);
+    difflux.compute_root().tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
 
     Expr ux_calc =
         (ALP*(Q(x+1,y,z,qu)-Q(x-1,y,z,qu))
@@ -228,9 +232,10 @@ Func build_diffterm(Func Q) {
     ux(x, y, z) = ux_calc;
     vx(x, y, z) = vx_calc;
     wx(x, y, z) = wx_calc;
-    ux.compute_at(difflux, y);
-    vx.compute_at(difflux, y);
-    wx.compute_at(difflux, y);
+    ux.compute_at(difflux, y).vectorize(x, 4);
+    //ux.compute_root().vectorize(x, 4).parallel(z);
+    vx.compute_at(difflux, y).vectorize(x, 4);
+    wx.compute_at(difflux, y).vectorize(x, 4);
 
     Expr uy_calc =
         (ALP*(Q(x,y+1,z,qu)-Q(x,y-1,z,qu))
@@ -260,9 +265,10 @@ Func build_diffterm(Func Q) {
     uy(x, y, z) = uy_calc;
     vy(x, y, z) = vy_calc;
     wy(x, y, z) = wy_calc;
-    uy.compute_at(difflux, y);
-    vy.compute_at(difflux, y);
-    wy.compute_at(difflux, y);
+    uy.compute_at(difflux, y).vectorize(x, 4);
+    vy.compute_at(difflux, y).vectorize(x, 4);
+    //vy.compute_root().vectorize(x, 4).parallel(z);
+    wy.compute_at(difflux, y).vectorize(x, 4);
     
     Expr uz_calc =
         (ALP*(Q(x,y,z+1,qu)-Q(x,y,z-1,qu))
@@ -292,8 +298,8 @@ Func build_diffterm(Func Q) {
     vz(x, y, z) = vz_calc;
     wz(x, y, z) = wz_calc;
 
-    uz.compute_at(difflux, z);
-    vz.compute_at(difflux, z);
+    uz.compute_at(difflux, z).vectorize(x, 4);
+    vz.compute_at(difflux, z).vectorize(x, 4);
     wz.compute_at(difflux, z);
     
     //loop3.tile(y, z, yi, zi, 4, 4).reorder(zi, x, yi, y, z).parallel(z);
@@ -328,7 +334,8 @@ Func build_diffterm(Func Q) {
 
     // Update 0: imx
     difflux(x,y,z,imx) = Expr(eta)*(FourThirds*uxx + uyy + uzz + OneThird*(vyx+wzx));
-    difflux.update(0).parallel(z);
+    //difflux.update(0).parallel(z).vectorize(x, 4);
+    difflux.update(0).tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
 
     Expr vxx = (CENTER*Q(x,y,z,qv)
                 + OFF1*(Q(x+1,y,z,qv)+Q(x-1,y,z,qv))
@@ -360,7 +367,8 @@ Func build_diffterm(Func Q) {
 
     // Update 1: imy
     difflux(x,y,z,imy) = Expr(eta)*(vxx + FourThirds*vyy + vzz + OneThird*(uxy+wzy));
-    difflux.update(1).parallel(z);
+    //difflux.update(1).parallel(z).vectorize(x, 4);
+    difflux.update(1).tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
 
     Expr wxx = (CENTER*Q(x,y,z,qw)
                 + OFF1*(Q(x+1,y,z,qw)+Q(x-1,y,z,qw))
@@ -392,7 +400,8 @@ Func build_diffterm(Func Q) {
 
     // Update 2: imz
     difflux(x,y,z,imz) = Expr(eta)*(wxx + wyy + FourThirds*wzz + OneThird*(uxz+vyz));
-    difflux.update(2).parallel(z);
+    //difflux.update(2).parallel(z).vectorize(x, 4);
+    difflux.update(2).tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
 
     Expr txx = (CENTER*Q(x,y,z,6)
                 + OFF1*(Q(x+1,y,z,6)+Q(x-1,y,z,6))
@@ -431,7 +440,8 @@ Func build_diffterm(Func Q) {
 
     // Update 3: iene
     difflux(x,y,z,iene) = Expr(alam)*(txx+tyy+tzz) + mechwork;
-    difflux.update(3).parallel(z);
+    //difflux.update(3).parallel(z).vectorize(x, 4);
+    difflux.update(3).tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
 
     return difflux;
 }
