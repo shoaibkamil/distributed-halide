@@ -447,6 +447,10 @@ Func build_diffterm(Func Q) {
 }
 
 Func build_hypterm(Func U, Func Q) {
+    const int tysize = 2, tzsize = 2;
+
+    Func flux("flux");
+
     Expr OneThird   = Expr(1.0)/Expr(3.0);
     Expr TwoThirds  = Expr(2.0)/Expr(3.0);
     Expr FourThirds = Expr(4.0)/Expr(3.0);
@@ -513,11 +517,16 @@ Func build_hypterm(Func U, Func Q) {
     // loop1.bound(c, 0, 5).unroll(c).compute_root();
     // loop1.parallel(z);
     Func rho("rho"), mx("mx"), my("my"), mz("mz"), ene("ene");
+    Func rho_2("rho"), mx_2("mx"), my_2("my"), mz_2("mz"), ene_2("ene");
+
     rho(x, y, z) = flux_irho_calc;
     mx(x, y, z) = flux_imx_calc;
     my(x, y, z) = flux_imy_calc;
     mz(x, y, z) = flux_imz_calc;
     ene(x, y, z) = flux_iene_calc;
+
+    //ene.compute_at(flux, y);
+    //ene.compute_at(flux, z);
     
     unp1 = Q(x,y+1,z,qv);
     unp2 = Q(x,y+2,z,qv);
@@ -575,12 +584,13 @@ Func build_hypterm(Func U, Func Q) {
     //                            flux_iene_calc);
     // loop2.bound(c, 0, 5).unroll(c).compute_root();
     // loop2.parallel(z);
-    Func rho_2("rho"), mx_2("mx"), my_2("my"), mz_2("mz"), ene_2("ene");
     rho_2(x, y, z) = flux_irho_calc;
     mx_2(x, y, z) = flux_imx_calc;
     my_2(x, y, z) = flux_imy_calc;
     mz_2(x, y, z) = flux_imz_calc;
     ene_2(x, y, z) = flux_iene_calc;
+
+    //ene_2.compute_at(flux, z);
     
     unp1 = Q(x,y,z+1,qw);
     unp2 = Q(x,y,z+2,qw);
@@ -591,25 +601,25 @@ Func build_hypterm(Func U, Func Q) {
     unm3 = Q(x,y,z-3,qw);
     unm4 = Q(x,y,z-4,qw);
 
-    flux_irho_calc=rho(x,y,z) -
+    flux_irho_calc=rho_2(x,y,z) -
         (ALP*(U(x,y,z+1,imz)-U(x,y,z-1,imz))
          + BET*(U(x,y,z+2,imz)-U(x,y,z-2,imz))
          + GAM*(U(x,y,z+3,imz)-U(x,y,z-3,imz))
          + DEL*(U(x,y,z+4,imz)-U(x,y,z-4,imz)))*dxinv;
 
-    flux_imx_calc=mx(x,y,z) -
+    flux_imx_calc=mx_2(x,y,z) -
         (ALP*(U(x,y,z+1,imx)*unp1-U(x,y,z-1,imx)*unm1)
          + BET*(U(x,y,z+2,imx)*unp2-U(x,y,z-2,imx)*unm2)
          + GAM*(U(x,y,z+3,imx)*unp3-U(x,y,z-3,imx)*unm3)
          + DEL*(U(x,y,z+4,imx)*unp4-U(x,y,z-4,imx)*unm4))*dxinv;
 
-    flux_imy_calc=my(x,y,z) -
+    flux_imy_calc=my_2(x,y,z) -
         (ALP*(U(x,y,z+1,imy)*unp1-U(x,y,z-1,imy)*unm1)
          + BET*(U(x,y,z+2,imy)*unp2-U(x,y,z-2,imy)*unm2)
          + GAM*(U(x,y,z+3,imy)*unp3-U(x,y,z-3,imy)*unm3)
          + DEL*(U(x,y,z+4,imy)*unp4-U(x,y,z-4,imy)*unm4))*dxinv;
 
-    flux_imz_calc=mz(x,y,z) -
+    flux_imz_calc=mz_2(x,y,z) -
         (ALP*(U(x,y,z+1,imz)*unp1-U(x,y,z-1,imz)*unm1
               + (Q(x,y,z+1,qpres)-Q(x,y,z-1,qpres)))
          + BET*(U(x,y,z+2,imz)*unp2-U(x,y,z-2,imz)*unm2
@@ -619,7 +629,7 @@ Func build_hypterm(Func U, Func Q) {
          + DEL*(U(x,y,z+4,imz)*unp4-U(x,y,z-4,imz)*unm4
                 + (Q(x,y,z+4,qpres)-Q(x,y,z-4,qpres))))*dxinv;
 
-    flux_iene_calc=ene(x,y,z) -
+    flux_iene_calc=ene_2(x,y,z) -
         (ALP*(U(x,y,z+1,iene)*unp1-U(x,y,z-1,iene)*unm1
               + (Q(x,y,z+1,qpres)*unp1-Q(x,y,z-1,qpres)*unm1))
          + BET*(U(x,y,z+2,iene)*unp2-U(x,y,z-2,iene)*unm2
@@ -629,14 +639,14 @@ Func build_hypterm(Func U, Func Q) {
          + DEL*(U(x,y,z+4,iene)*unp4-U(x,y,z-4,iene)*unm4
                 + (Q(x,y,z+4,qpres)*unp4-Q(x,y,z-4,qpres)*unm4)))*dxinv;
 
-    Func flux("flux");
     flux(x, y, z, c) = select(c == 0, flux_irho_calc,
                               c == 1, flux_imx_calc,
                               c == 2, flux_imy_calc,
                               c == 3, flux_imz_calc,
                               flux_iene_calc);
     flux.bound(c, 0, 5).unroll(c).compute_root();
-    flux.parallel(z);
+    //flux.tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
+    flux.parallel(z).vectorize(x, 4);
     
     return flux;
 }
@@ -828,7 +838,8 @@ int main(int argc, char **argv) {
             time = time + dt;
         }
     }
-    timing.reduce(MPITiming::Median);
+    //timing.reduce(MPITiming::Median);
+    timing.reduce(MPITiming::Mean);
     timing.nondistributed_report();
 
     // output.set_domain(x, y, z);
