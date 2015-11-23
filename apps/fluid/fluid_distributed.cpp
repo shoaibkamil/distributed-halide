@@ -219,12 +219,18 @@ Func build_diffterm(Func Q) {
     Func loop1("loop1"), ux("ux"), vx("vx"), wx("wx");
     // Do it this way so that ux, vx and wx are calculated in the same
     // loop nest.
-    loop1(x, y, z) = {ux_calc, vx_calc, wx_calc};
-    ux(x, y, z) = loop1(x,y,z)[0];
-    vx(x, y, z) = loop1(x,y,z)[1];
-    wx(x, y, z) = loop1(x,y,z)[2];
-    loop1.compute_root();
-    loop1.parallel(z);
+    // loop1(x, y, z) = {ux_calc, vx_calc, wx_calc};
+    // ux(x, y, z) = loop1(x,y,z)[0];
+    // vx(x, y, z) = loop1(x,y,z)[1];
+    // wx(x, y, z) = loop1(x,y,z)[2];
+    // loop1.compute_root();
+    // loop1.parallel(z);
+    ux(x, y, z) = ux_calc;
+    vx(x, y, z) = vx_calc;
+    wx(x, y, z) = wx_calc;
+    ux.compute_at(difflux, y);
+    vx.compute_at(difflux, y);
+    wx.compute_at(difflux, y);
 
     Expr uy_calc =
         (ALP*(Q(x,y+1,z,qu)-Q(x,y-1,z,qu))
@@ -245,13 +251,19 @@ Func build_diffterm(Func Q) {
          + DEL*(Q(x,y+4,z,qw)-Q(x,y-4,z,qw)))*dxinv;
 
     Func loop2("loop2"), uy("uy"), vy("vy"), wy("wy");
-    loop2(x, y, z) = {uy_calc, vy_calc, wy_calc};
-    uy(x, y, z) = loop2(x,y,z)[0];
-    vy(x, y, z) = loop2(x,y,z)[1];
-    wy(x, y, z) = loop2(x,y,z)[2];
-    loop2.compute_root();
-    loop2.parallel(z);
-
+    // loop2(x, y, z) = {uy_calc, vy_calc, wy_calc};
+    // uy(x, y, z) = loop2(x,y,z)[0];
+    // vy(x, y, z) = loop2(x,y,z)[1];
+    // wy(x, y, z) = loop2(x,y,z)[2];
+    // loop2.compute_root();
+    // loop2.parallel(z);
+    uy(x, y, z) = uy_calc;
+    vy(x, y, z) = vy_calc;
+    wy(x, y, z) = wy_calc;
+    uy.compute_at(difflux, y);
+    vy.compute_at(difflux, y);
+    wy.compute_at(difflux, y);
+    
     Expr uz_calc =
         (ALP*(Q(x,y,z+1,qu)-Q(x,y,z-1,qu))
          + BET*(Q(x,y,z+2,qu)-Q(x,y,z-2,qu))
