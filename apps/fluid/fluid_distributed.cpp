@@ -45,6 +45,7 @@ const double GAMMA = 1.4;
 int global_w = 0, global_h = 0, global_d = 0;
 Var x("x"), y("y"), z("z"), c("c");
 Param<double> timestep;
+Func init_data("init_data");
 Func ctoprim("ctoprim"), courno_func("courno");
 Func diffterm("diffterm"), hypterm("hypterm");
 Func Uonethird("Uonethird"), Utwothirds("Utwothirds"), Uone("Uone");
@@ -70,36 +71,6 @@ static void print_imgflat4d(DistributedImage<T> &img) {
     std::cout << "\n";
 }
 
-void init_data(DistributedImage<double> &data) {
-    // XXX: make this a Halide stage as well so that we can
-    // parallelize it the same way as in the Fortran code
-    // (init_data.f90)
-    const double twopi = 2.0 * 3.141592653589793238462643383279502884197;
-    const double scale = (prob_hi - prob_lo)/twopi;
-    for (int z = 0; z < data.extent(2); z++) {
-        const double zloc = (double)z * dx/scale;
-        for (int y = 0; y < data.extent(1); y++) {
-            const double yloc = (double)y * dx/scale;
-            for (int x = 0; x < data.extent(0); x++) {
-                const double xloc = (double)x * dx/scale;
-
-                const double uvel   = 1.1e4*sin(1*xloc)*sin(2*yloc)*sin(3*zloc);
-                const double vvel   = 1.0e4*sin(2*xloc)*sin(4*yloc)*sin(1*zloc);
-                const double wvel   = 1.2e4*sin(3*xloc)*cos(2*yloc)*sin(2*zloc);
-                const double rholoc = 1.0e-3 + 1.0e-5*sin(1*xloc)*cos(2*yloc)*cos(3*zloc);
-                const double eloc   = 2.5e9  + 1.0e-3*sin(2*xloc)*cos(2*yloc)*sin(2*zloc);
-
-                // Conserved variables
-                data(x, y, z, irho) = rholoc;
-                data(x, y, z, imx)  = rholoc*uvel;
-                data(x, y, z, imy)  = rholoc*vvel;
-                data(x, y, z, imz)  = rholoc*wvel;
-                data(x, y, z, iene) = rholoc*(eloc + (pow(uvel, 2)+pow(vvel,2)+pow(wvel,2))/2);
-            }
-        }
-    }
-}
-
 inline bool parallel_IOProcessor() {
     return false;
     //return rank == 0;
@@ -119,6 +90,29 @@ double abs(double a) {
 
 double Huge() {
     return std::numeric_limits<double>::max();
+}
+
+Func build_init_data() {
+    Expr twopi = Expr(2.0 * 3.141592653589793238462643383279502884197);
+    Expr scale = Expr(prob_hi - prob_lo)/twopi;
+
+    Expr zloc = z * Expr(dx)/scale;
+    Expr yloc = y * Expr(dx)/scale;
+    Expr xloc = x * Expr(dx)/scale;
+    
+    Expr uvel   = Expr(1.1e4)*sin(1*xloc)*sin(2*yloc)*sin(3*zloc);
+    Expr vvel   = Expr(1.0e4)*sin(2*xloc)*sin(4*yloc)*sin(1*zloc);
+    Expr wvel   = Expr(1.2e4)*sin(3*xloc)*cos(2*yloc)*sin(2*zloc);
+    Expr rholoc = Expr(1.0e-3) + Expr(1.0e-5)*sin(1*xloc)*cos(2*yloc)*cos(3*zloc);
+    Expr eloc   = Expr(2.5e9)  + Expr(1.0e-3)*sin(2*xloc)*cos(2*yloc)*sin(2*zloc);
+
+    Func init;
+    init(x,y,z,c) = select(c == irho, rholoc,
+                           c == imx, rholoc*uvel,
+                           c == imy, rholoc*vvel,
+                           c == imz, rholoc*wvel,
+                           rholoc*(eloc + (pow(uvel, 2)+pow(vvel,2)+pow(wvel,2))/2));
+    return init;
 }
 
 Func build_ctoprim(Func U) {
@@ -625,6 +619,7 @@ Func build_Uone(Func U, Func Unew, Func D, Func F) {
 
 
 void build_pipeline(Func UAccessor, Func UnewAccessor, Func QAccessor, Func DAccessor, Func FAccessor) {
+    init_data = build_init_data();
     ctoprim = build_ctoprim(UAccessor);
     courno_func  = build_courno(QAccessor);
     diffterm = build_diffterm(QAccessor);
@@ -757,7 +752,7 @@ int main(int argc, char **argv) {
     Dp.set(D);
     Fp.set(F);
 
-    init_data(U);
+    init_data.realize(U);
 
     double time = 0, dt = 0;
     timestep.set(dt);
