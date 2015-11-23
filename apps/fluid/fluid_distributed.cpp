@@ -112,6 +112,7 @@ Func build_init_data() {
                            c == imy, rholoc*vvel,
                            c == imz, rholoc*wvel,
                            rholoc*(eloc + (pow(uvel, 2)+pow(vvel,2)+pow(wvel,2))/2));
+    init.bound(c, 0, 5).unroll(c);
     return init;
 }
 
