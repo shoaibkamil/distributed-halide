@@ -13,7 +13,7 @@ int rank = 0, numprocs = 0;
 const int DM = 3;
 const int nsteps = 5;
 const int plot_int = 5;
-const int n_cell = 128;
+const int n_cell = 16;
 const int max_grid_size = 64;
 const double cfl = 0.5;
 const double eta = 1.8e-4;
@@ -100,7 +100,8 @@ void init_data(DistributedImage<double> &data) {
 }
 
 inline bool parallel_IOProcessor() {
-    return rank == 0;
+    return false;
+    //return rank == 0;
 }
 
 void parallel_reduce(double &a, double &b, MPI_Op op) {
@@ -145,6 +146,7 @@ Func build_ctoprim(Func U) {
                         temperature);
     // Eliminate some performance loss of the select by bounding and unrolling 'c':
     Q.bound(c, 0, 6).unroll(c);
+    Q.compute_root();
     return Q;
 }
 
@@ -175,6 +177,7 @@ Func build_courno(Func Q) {
     // max of this value and the old value of courno.
     Func helper("helper");
     helper() = maximum(r, maxcourpt);
+    helper.compute_root();
     return helper;
 }
 
@@ -197,6 +200,7 @@ Func build_diffterm(Func Q) {
     Func difflux("difflux");
     // Pure step handles irho case
     difflux(x,y,z,c) = Expr(0.0);
+    difflux.compute_root();
 
     Expr ux_calc =
         (ALP*(Q(x+1,y,z,qu)-Q(x-1,y,z,qu))
@@ -221,6 +225,7 @@ Func build_diffterm(Func Q) {
     ux(x, y, z) = loop1(x,y,z)[0];
     vx(x, y, z) = loop1(x,y,z)[1];
     wx(x, y, z) = loop1(x,y,z)[2];
+    loop1.compute_root();
 
     Expr uy_calc =
         (ALP*(Q(x,y+1,z,qu)-Q(x,y-1,z,qu))
@@ -245,6 +250,7 @@ Func build_diffterm(Func Q) {
     uy(x, y, z) = loop2(x,y,z)[0];
     vy(x, y, z) = loop2(x,y,z)[1];
     wy(x, y, z) = loop2(x,y,z)[2];
+    loop2.compute_root();
 
     Expr uz_calc =
         (ALP*(Q(x,y,z+1,qu)-Q(x,y,z-1,qu))
@@ -269,6 +275,7 @@ Func build_diffterm(Func Q) {
     uz(x, y, z) = loop3(x,y,z)[0];
     vz(x, y, z) = loop3(x,y,z)[1];
     wz(x, y, z) = loop3(x,y,z)[2];
+    loop3.compute_root();
 
     Expr uxx = (CENTER*Q(x,y,z,qu)
                 + OFF1*(Q(x+1,y,z,qu)+Q(x-1,y,z,qu))
@@ -589,6 +596,7 @@ Func build_hypterm(Func U, Func Q) {
 Func build_Uonethird(Func U, Func D, Func F) {
     Func Uonethird("Uonethird");
     Uonethird(x, y, z, c) = U(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c));
+    Uonethird.compute_root();
     return Uonethird;
 }
 
@@ -599,6 +607,7 @@ Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
     Func Utwothirds("Utwothirds");
     Utwothirds(x, y, z, c) = ThreeQuarters * U(x,y,z,c) +
         OneQuarter * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
+    Utwothirds.compute_root();
     return Utwothirds;
 }
 
@@ -609,6 +618,7 @@ Func build_Uone(Func U, Func Unew, Func D, Func F) {
     Func Uone("Uone");
     Uone(x,y,z,c) = OneThird * U(x,y,z,c) +
         TwoThirds * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
+    Uone.compute_root();
     return Uone;
 }
 
@@ -718,8 +728,10 @@ int main(int argc, char **argv) {
     UAccessor = BoundaryConditions::repeat_image(Ut, global_bounds_U);
     UnewAccessor = BoundaryConditions::repeat_image(Unewt, global_bounds_U);
     QAccessor = BoundaryConditions::repeat_image(Qt, global_bounds_Q);
-    DAccessor(x,y,z,c) = D(x,y,z,c);
-    FAccessor(x,y,z,c) = F(x,y,z,c);
+    // DAccessor(x,y,z,c) = D(x,y,z,c);
+    // FAccessor(x,y,z,c) = F(x,y,z,c);
+    DAccessor = BoundaryConditions::repeat_image(Dt, global_bounds_U);
+    FAccessor = BoundaryConditions::repeat_image(Ft, global_bounds_U);
     build_pipeline(UAccessor, UnewAccessor, QAccessor, DAccessor, FAccessor);
 
     U.set_domain(x, y, z, c);
@@ -750,6 +762,9 @@ int main(int argc, char **argv) {
         advance(U, Unew, Q, D, F, dt);
         time = time + dt;
     }
+
+    print_imgflat4d(U);
+    exit(0);
 
     // output.set_domain(x, y, z);
     // output.placement().distribute(z);
