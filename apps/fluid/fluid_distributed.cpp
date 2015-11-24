@@ -52,6 +52,7 @@ Func init_data("init_data");
 Func ctoprim("ctoprim"), courno_func("courno");
 Func diffterm("diffterm"), hypterm("hypterm");
 Func Uonethird("Uonethird"), Utwothirds("Utwothirds"), Uone("Uone");
+Func full_pipeline;
 ImageParam Up(Float(64), 4, "U"),
     Unewp(Float(64), 4, "Unew"),
     Qp(Float(64), 4, "Q"),
@@ -116,7 +117,7 @@ Func build_init_data() {
                            c == imz, rholoc*wvel,
                            rholoc*(eloc + (pow(uvel, 2)+pow(vvel,2)+pow(wvel,2))/2));
     init.bound(c, 0, 5).unroll(c);
-    init.parallel(z);
+    init.compute_root().parallel(z);
     return init;
 }
 
@@ -146,7 +147,7 @@ Func build_ctoprim(Func U) {
                         temperature);
     // Eliminate some performance loss of the select by bounding and unrolling 'c':
     Q.bound(c, 0, 6).unroll(c);
-    Q.parallel(z);
+    Q.compute_root().parallel(z);
     return Q;
 }
 
@@ -405,23 +406,23 @@ Func build_diffterm(Func Q) {
     //difflux.update(2).parallel(z).vectorize(x, 4);
     difflux.update(2).tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
 
-    Expr txx = (CENTER*Q(x,y,z,6)
-                + OFF1*(Q(x+1,y,z,6)+Q(x-1,y,z,6))
-                + OFF2*(Q(x+2,y,z,6)+Q(x-2,y,z,6))
-                + OFF3*(Q(x+3,y,z,6)+Q(x-3,y,z,6))
-                + OFF4*(Q(x+4,y,z,6)+Q(x-4,y,z,6)))*pow(dxinv,2);
+    Expr txx = (CENTER*Q(x,y,z,5)
+                + OFF1*(Q(x+1,y,z,5)+Q(x-1,y,z,5))
+                + OFF2*(Q(x+2,y,z,5)+Q(x-2,y,z,5))
+                + OFF3*(Q(x+3,y,z,5)+Q(x-3,y,z,5))
+                + OFF4*(Q(x+4,y,z,5)+Q(x-4,y,z,5)))*pow(dxinv,2);
 
-    Expr tyy = (CENTER*Q(x,y,z,6)
-                + OFF1*(Q(x,y+1,z,6)+Q(x,y-1,z,6))
-                + OFF2*(Q(x,y+2,z,6)+Q(x,y-2,z,6))
-                + OFF3*(Q(x,y+3,z,6)+Q(x,y-3,z,6))
-                + OFF4*(Q(x,y+4,z,6)+Q(x,y-4,z,6)))*pow(dxinv,2);
+    Expr tyy = (CENTER*Q(x,y,z,5)
+                + OFF1*(Q(x,y+1,z,5)+Q(x,y-1,z,5))
+                + OFF2*(Q(x,y+2,z,5)+Q(x,y-2,z,5))
+                + OFF3*(Q(x,y+3,z,5)+Q(x,y-3,z,5))
+                + OFF4*(Q(x,y+4,z,5)+Q(x,y-4,z,5)))*pow(dxinv,2);
 
-    Expr tzz = (CENTER*Q(x,y,z,6)
-                + OFF1*(Q(x,y,z+1,6)+Q(x,y,z-1,6))
-                + OFF2*(Q(x,y,z+2,6)+Q(x,y,z-2,6))
-                + OFF3*(Q(x,y,z+3,6)+Q(x,y,z-3,6))
-                + OFF4*(Q(x,y,z+4,6)+Q(x,y,z-4,6)))*pow(dxinv,2);
+    Expr tzz = (CENTER*Q(x,y,z,5)
+                + OFF1*(Q(x,y,z+1,5)+Q(x,y,z-1,5))
+                + OFF2*(Q(x,y,z+2,5)+Q(x,y,z-2,5))
+                + OFF3*(Q(x,y,z+3,5)+Q(x,y,z-3,5))
+                + OFF4*(Q(x,y,z+4,5)+Q(x,y,z-4,5)))*pow(dxinv,2);
 
     Expr divu  = TwoThirds*(ux(x,y,z)+vy(x,y,z)+wz(x,y,z));
     Expr tauxx = Expr(2.0)*ux(x,y,z) - divu;
@@ -656,7 +657,7 @@ Func build_hypterm(Func U, Func Q) {
 Func build_Uonethird(Func U, Func D, Func F) {
     Func Uonethird("Uonethird");
     Uonethird(x, y, z, c) = U(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c));
-    Uonethird.compute_root();
+    Uonethird.compute_root().bound(c, 0, nc);
     Uonethird.parallel(z);
     return Uonethird;
 }
@@ -668,7 +669,7 @@ Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
     Func Utwothirds("Utwothirds");
     Utwothirds(x, y, z, c) = ThreeQuarters * U(x,y,z,c) +
         OneQuarter * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
-    Utwothirds.compute_root();
+    Utwothirds.compute_root().bound(c, 0, nc);
     Utwothirds.parallel(z);
     return Utwothirds;
 }
@@ -680,73 +681,50 @@ Func build_Uone(Func U, Func Unew, Func D, Func F) {
     Func Uone("Uone");
     Uone(x,y,z,c) = OneThird * U(x,y,z,c) +
         TwoThirds * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
-    Uone.compute_root();
+    Uone.compute_root().bound(c, 0, nc);
     Uone.parallel(z);
     return Uone;
 }
 
 
-void build_pipeline(Func UAccessor, Func UnewAccessor, Func QAccessor, Func DAccessor, Func FAccessor) {
-    init_data = build_init_data();
-    ctoprim = build_ctoprim(UAccessor);
-    courno_func  = build_courno(QAccessor);
-    diffterm = build_diffterm(QAccessor);
-    hypterm = build_hypterm(UAccessor, QAccessor);
-    Uonethird = build_Uonethird(UAccessor, DAccessor, FAccessor);
-    Utwothirds = build_Utwothirds(UAccessor, UnewAccessor, DAccessor, FAccessor);
-    Uone = build_Uone(UAccessor, UnewAccessor, DAccessor, FAccessor);
+void build_pipeline(Func UAccessor) {
+    init_data = build_init_data(); // () -> U
+    
+    ctoprim = build_ctoprim(UAccessor); // U -> Q
+    courno_func  = build_courno(ctoprim); // Q -> scalar
+    diffterm = build_diffterm(ctoprim); // Q -> D
+    hypterm = build_hypterm(UAccessor, ctoprim); // U, Q -> F
+    Uonethird = build_Uonethird(UAccessor, diffterm, hypterm); // U, D, F -> U'
+
+    Func ctoprim2, diffterm2, hypterm2;
+    ctoprim2 = build_ctoprim(Uonethird); // U' -> Q'
+    diffterm2 = build_diffterm(ctoprim2); // Q' -> D'
+    hypterm2 = build_hypterm(Uonethird, ctoprim2); // U', Q' -> F'
+    Utwothirds = build_Utwothirds(UAccessor, Uonethird, diffterm2, hypterm2); // U, U', D', F' -> U''
+
+    Func ctoprim3, diffterm3, hypterm3;
+    ctoprim3 = build_ctoprim(Utwothirds); // U'' -> Q''
+    diffterm3 = build_diffterm(ctoprim3); // Q'' -> D''
+    hypterm3 = build_hypterm(Utwothirds, ctoprim3); // U'', Q'' -> F''
+    Uone = build_Uone(UAccessor, Utwothirds, diffterm3, hypterm3); // U, U'', D'', F'' -> U'''
+
+    full_pipeline(x, y, z, c) = Uone(x, y, z, c);
+    full_pipeline.bound(c, 0, nc);
 }
 
 
-void advance(DistributedImage<double> &U, DistributedImage<double> &Unew,
-             DistributedImage<double> &Q,
-             DistributedImage<double> &D, DistributedImage<double> &F,
-             double &dt) {
-    const double OneThird      = 1.0/3.0;
-    const double TwoThirds     = 2.0/3.0;
-    const double OneQuarter    = 1.0/4.0;
-    const double ThreeQuarters = 3.0/4.0;
-
+void advance(DistributedImage<double> &U, double &dt) {
     double courno = 1e-50;
-    ctoprim.realize(Q);
     courno = max(evaluate<double>(courno_func), courno);
     // XXX: parallel_reduce courno
     dt = cfl / courno;
     timestep.set(dt);
 
-    if (parallel_IOProcessor()) {
-        std::cout << std::scientific << "dt,courno " << std::setprecision(std::numeric_limits<double>::digits10) << dt << " " << courno << "\n";
-    }
-
-    // Calculate D at time N. (D = diffterm)
-    diffterm.realize(D);
-    // Calculate F at time N (N = hypterm)
-    hypterm.realize(F);
-
-    // Calculate U at time N+1/3
-    Uonethird.realize(Unew);
-    // Swap so that ctoprim/hypterm read from Unew (U <- Unew)
-    Up.set(Unew);
-    ctoprim.realize(Q);
-    // Calculate D at time N+1/3
-    diffterm.realize(D);
-    // Calculate F at time N+1/3
-    hypterm.realize(F);
-
-    // Swap back (U <- U)
-    Up.set(U);
-    // Calculate U at time N+2/3
-    Utwothirds.realize(Unew);
-    Up.set(Unew); // U <- Unew
-    ctoprim.realize(Q);
-    // Calculate D at time N+2/3
-    diffterm.realize(D);
-    // Calculate F at time N+2/3
-    hypterm.realize(F);
-
-    Up.set(U); // U <- U
-    // Calculate U at time N+1
-    Uone.realize(U);
+    full_pipeline.realize(U);
+    
+    // if (parallel_IOProcessor()) {
+    //     std::cout << std::scientific << "dt,courno " << std::setprecision(std::numeric_limits<double>::digits10) << dt << " " << courno << "\n";
+    // }
 }
 
 } // anonymous namespace
@@ -769,59 +747,27 @@ int main(int argc, char **argv) {
 
     // XXX: should probably make the component the innermost
     // dimension, then w,h,d.
-    DistributedImage<double> U(global_w, global_h, global_d, nc, "U"), Unew(global_w, global_h, global_d, nc, "Unew"), Q(global_w, global_h, global_d, 6, "Q");
-    DistributedImage<double> D(global_w, global_h, global_d, nc, "D"), F(global_w, global_h, global_d, nc, "F");
+    DistributedImage<double> U(global_w, global_h, global_d, nc, "U");
 
     // Impose periodic boundary conditions on U and Q
     std::vector<std::pair<Expr, Expr>>
         global_bounds_U = {std::make_pair(0, global_w), std::make_pair(0, global_h),
-                           std::make_pair(0, global_d), std::make_pair(0, nc)},
-        global_bounds_Q = {std::make_pair(0, global_w), std::make_pair(0, global_h),
-                           std::make_pair(0, global_d), std::make_pair(0, 6)};
-    Func Ut, Unewt, Qt, Dt, Ft;
+                           std::make_pair(0, global_d), std::make_pair(0, nc)};
+    Func Ut;
     Ut(x,y,z,c) = Up(x,y,z,c);
-    Unewt(x,y,z,c) = Unewp(x,y,z,c);
-    Qt(x,y,z,c) = Qp(x,y,z,c);
-    Dt(x,y,z,c) = Dp(x,y,z,c);
-    Ft(x,y,z,c) = Fp(x,y,z,c);
-    Func UAccessor("UAccessor"), UnewAccessor("UnewAccessor"), QAccessor("QAccessor");
-    Func DAccessor("DAccessor"), FAccessor("FAccessor");
+    Func UAccessor("UAccessor");
     UAccessor = BoundaryConditions::repeat_image(Ut, global_bounds_U);
-    UnewAccessor = BoundaryConditions::repeat_image(Unewt, global_bounds_U);
-    QAccessor = BoundaryConditions::repeat_image(Qt, global_bounds_Q);
-    // DAccessor(x,y,z,c) = D(x,y,z,c);
-    // FAccessor(x,y,z,c) = F(x,y,z,c);
-    DAccessor = BoundaryConditions::repeat_image(Dt, global_bounds_U);
-    FAccessor = BoundaryConditions::repeat_image(Ft, global_bounds_U);
-    build_pipeline(UAccessor, UnewAccessor, QAccessor, DAccessor, FAccessor);
+    build_pipeline(UAccessor);
 
     U.set_domain(x, y, z, c);
     U.allocate();
-    Unew.set_domain(x, y, z, c);
-    Unew.allocate();
-    Q.set_domain(x, y, z, c);
-    Q.allocate();
-    D.set_domain(x, y, z, c);
-    D.allocate();
-    F.set_domain(x, y, z, c);
-    F.allocate();
-
     Up.set(U);
-    Unewp.set(Unew);
-    Qp.set(Q);
-    Dp.set(D);
-    Fp.set(F);
 
     Target t = get_jit_target_from_environment();
     //t.set_feature(Target::Profile);
     init_data.compile_jit(t);
-    ctoprim.compile_jit(t);
     courno_func.compile_jit(t);
-    diffterm.compile_jit(t);
-    hypterm.compile_jit(t);
-    Uonethird.compile_jit(t);
-    Utwothirds.compile_jit(t);
-    Uone.compile_jit(t);
+    full_pipeline.compile_jit(t);
     
     MPITiming timing;
 
@@ -835,32 +781,32 @@ int main(int argc, char **argv) {
                 std::cout << "Advancing time step " << istep << ", time = " << time << "\n";
             }
             timing.start();
-            advance(U, Unew, Q, D, F, dt);
+            advance(U, dt);
             timing.record(timing.stop());
             time = time + dt;
         }
     }
     //timing.reduce(MPITiming::Median);
-    // timing.reduce(MPITiming::Mean);
-    // timing.nondistributed_report();
+    timing.reduce(MPITiming::Mean);
+    timing.nondistributed_report();
 
-    std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
-    of << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
-    for (int c = 0; c < U.extent(3); c++) {
-        const int gc = U.global(3, c);
-        for (int z = 0; z < U.extent(2); z++) {
-            const int gz = U.global(2, z);
-            for (int y = 0; y < U.extent(1); y++) {
-                const int gy = U.global(1, y);
-                for (int x = 0; x < U.extent(0); x++) {
-                    const int gx = U.global(0, x);
-                    of << gx << " " << gy << " " << gz << " " << gc << ": " << U(x,y,z,c) << "\n";
-                }
-            }
-        }
-    }
-    of << "\n";
-    of.close();
+    // std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
+    // of << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
+    // for (int c = 0; c < U.extent(3); c++) {
+    //     const int gc = U.global(3, c);
+    //     for (int z = 0; z < U.extent(2); z++) {
+    //         const int gz = U.global(2, z);
+    //         for (int y = 0; y < U.extent(1); y++) {
+    //             const int gy = U.global(1, y);
+    //             for (int x = 0; x < U.extent(0); x++) {
+    //                 const int gx = U.global(0, x);
+    //                 of << gx << " " << gy << " " << gz << " " << gc << ": " << U(x,y,z,c) << "\n";
+    //             }
+    //         }
+    //     }
+    // }
+    // of << "\n";
+    // of.close();
     
     // output.set_domain(x, y, z);
     // output.placement().distribute(z);
