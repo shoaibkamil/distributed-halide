@@ -3,13 +3,23 @@
 import sys
 
 keep_going = True
+coord_key = True
 
 filea, fileb = sys.argv[1:]
 
 def parse_values(filename):
     with open(filename, "r") as f:
-        strvalues = f.read().split()
-        values = map(float, strvalues)
+        if coord_key:
+            values = {}
+            for line in f:
+                if len(line.strip()) == 0:
+                    continue
+                vals = line.replace(":", "").split()
+                x, y, z, c, value = int(vals[0]), int(vals[1]), int(vals[2]), int(vals[3]), float(vals[4])
+                values[(x, y, z, c)] = value
+        else:
+            strvalues = f.read().split()
+            values = map(float, strvalues)
     return values
 
 def rel_eq(a, b):
@@ -20,6 +30,18 @@ def rel_eq(a, b):
 
 def pct_diff(a, b):
     return abs(a-b)/b
+
+def compare_values_coordkey(a, b):
+    max_err = -float("inf")
+    for coord in a.keys():
+        aval = a[coord]
+        bval = b[coord]
+        if not rel_eq(aval, bval):
+            if not keep_going:
+                assert False, "Unimplemented"
+            else:
+                print "Values are not the same: coordinate %s, %.13f (%s) versus %.13f (%s)" % (str(coord), aval, filea, bval, fileb)
+    return True, 0, 0, 0
 
 def compare_values(a, b):
     max_err = -float("inf")
@@ -51,7 +73,10 @@ bvalues = parse_values(fileb)
 
 check(len(avalues) == len(bvalues),
       "Lengths are not the same: %d versus %d" % (len(avalues), len(bvalues)))
-compare = compare_values(avalues, bvalues)
+if coord_key:
+    compare = compare_values_coordkey(avalues, bvalues)
+else:
+    compare = compare_values(avalues, bvalues)
 check(compare[0],
       "Values are not the same: value # %d, %.13f (%s) versus %.13f (%s)" % (compare[1]+1, compare[2], filea, compare[3], fileb))
 

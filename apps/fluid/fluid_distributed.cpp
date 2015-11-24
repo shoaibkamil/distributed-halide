@@ -1,6 +1,8 @@
 #include "Halide.h"
 #include "mpi_timing.h"
 #include <iomanip>
+#include <iostream>
+#include <fstream>
 using namespace Halide;
 
 // Implements Compressible Navier-Stokes (CNS) simulation.
@@ -12,7 +14,7 @@ int rank = 0, numprocs = 0;
 // Input parameters
 const int DM = 3;
 // const int nsteps = 5;
-const int nsteps = 1;
+const int nsteps = 5;
 const int plot_int = 5;
 int n_cell = 0;
 const int max_grid_size = 64;
@@ -50,11 +52,11 @@ Func init_data("init_data");
 Func ctoprim("ctoprim"), courno_func("courno");
 Func diffterm("diffterm"), hypterm("hypterm");
 Func Uonethird("Uonethird"), Utwothirds("Utwothirds"), Uone("Uone");
-ImageParam Up(Float(64), 4),
-    Unewp(Float(64), 4),
-    Qp(Float(64), 4),
-    Dp(Float(64), 4),
-    Fp(Float(64), 4);
+ImageParam Up(Float(64), 4, "U"),
+    Unewp(Float(64), 4, "Unew"),
+    Qp(Float(64), 4, "Q"),
+    Dp(Float(64), 4, "D"),
+    Fp(Float(64), 4, "F");
 
 template <typename T>
 static void print_imgflat4d(DistributedImage<T> &img) {
@@ -693,17 +695,6 @@ void build_pipeline(Func UAccessor, Func UnewAccessor, Func QAccessor, Func DAcc
     Uonethird = build_Uonethird(UAccessor, DAccessor, FAccessor);
     Utwothirds = build_Utwothirds(UAccessor, UnewAccessor, DAccessor, FAccessor);
     Uone = build_Uone(UAccessor, UnewAccessor, DAccessor, FAccessor);
-
-    Target t = get_jit_target_from_environment();
-    t.set_feature(Target::Profile);
-    
-    ctoprim.compile_jit(t);
-    courno_func.compile_jit(t);
-    diffterm.compile_jit(t);
-    hypterm.compile_jit(t);
-    Uonethird.compile_jit(t);
-    Utwothirds.compile_jit(t);
-    Uone.compile_jit(t);
 }
 
 
@@ -778,8 +769,8 @@ int main(int argc, char **argv) {
 
     // XXX: should probably make the component the innermost
     // dimension, then w,h,d.
-    DistributedImage<double> U(global_w, global_h, global_d, nc), Unew(global_w, global_h, global_d, nc), Q(global_w, global_h, global_d, 6);
-    DistributedImage<double> D(global_w, global_h, global_d, nc), F(global_w, global_h, global_d, nc);
+    DistributedImage<double> U(global_w, global_h, global_d, nc, "U"), Unew(global_w, global_h, global_d, nc, "Unew"), Q(global_w, global_h, global_d, 6, "Q");
+    DistributedImage<double> D(global_w, global_h, global_d, nc, "D"), F(global_w, global_h, global_d, nc, "F");
 
     // Impose periodic boundary conditions on U and Q
     std::vector<std::pair<Expr, Expr>>
@@ -821,6 +812,17 @@ int main(int argc, char **argv) {
     Dp.set(D);
     Fp.set(F);
 
+    Target t = get_jit_target_from_environment();
+    //t.set_feature(Target::Profile);
+    init_data.compile_jit(t);
+    ctoprim.compile_jit(t);
+    courno_func.compile_jit(t);
+    diffterm.compile_jit(t);
+    hypterm.compile_jit(t);
+    Uonethird.compile_jit(t);
+    Utwothirds.compile_jit(t);
+    Uone.compile_jit(t);
+    
     MPITiming timing;
 
     const int niters = 1;
@@ -839,9 +841,27 @@ int main(int argc, char **argv) {
         }
     }
     //timing.reduce(MPITiming::Median);
-    timing.reduce(MPITiming::Mean);
-    timing.nondistributed_report();
+    // timing.reduce(MPITiming::Mean);
+    // timing.nondistributed_report();
 
+    std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
+    of << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
+    for (int c = 0; c < U.extent(3); c++) {
+        const int gc = U.global(3, c);
+        for (int z = 0; z < U.extent(2); z++) {
+            const int gz = U.global(2, z);
+            for (int y = 0; y < U.extent(1); y++) {
+                const int gy = U.global(1, y);
+                for (int x = 0; x < U.extent(0); x++) {
+                    const int gx = U.global(0, x);
+                    of << gx << " " << gy << " " << gz << " " << gc << ": " << U(x,y,z,c) << "\n";
+                }
+            }
+        }
+    }
+    of << "\n";
+    of.close();
+    
     // output.set_domain(x, y, z);
     // output.placement().distribute(z);
     // output.allocate();
@@ -874,6 +894,6 @@ int main(int argc, char **argv) {
 
     // timing.gather(MPITiming::Max);
     // timing.report();
-    // MPI_Finalize();
+    MPI_Finalize();
     return 0;
 }
