@@ -375,7 +375,7 @@ public:
             // Update step accessing the same buffer as its pure
             // step. That's fine, but merge the 'need' region to
             // encompass both.
-            internal_assert(is_update);
+            // internal_assert(is_update);
             merge_boxes(it->second, b);
             _need_bounds[func] = it->second;
         }
@@ -1077,6 +1077,12 @@ public:
             string loop_var = remove_suffix(let->name);
             string funcname = first_token(let->name);
             string stage_prefix = funcname + "." + second_token(let->name);
+            internal_assert(distributed_bounds.find(loop_var + ".loop_min")
+                            != distributed_bounds.end());
+            internal_assert(distributed_bounds.find(loop_var + ".loop_max")
+                            != distributed_bounds.end());
+            internal_assert(distributed_bounds.find(loop_var + ".loop_extent")
+                            != distributed_bounds.end());
             Expr oldmin = distributed_bounds.at(loop_var + ".loop_min"),
                 oldmax = distributed_bounds.at(loop_var + ".loop_max"),
                 oldextent = distributed_bounds.at(loop_var + ".loop_extent");
@@ -1085,6 +1091,7 @@ public:
             // Check if this dimension was fused, and get the inner
             // extent if so.
             Expr inner;
+            internal_assert(env.find(funcname) != env.end());
             for (Split s : env.at(funcname).schedule().splits()) {
                 if (s.is_fuse() && ends_with(loop_var, s.old_var)) {
                     internal_assert(!inner.defined());
@@ -1231,6 +1238,7 @@ class LowerComputeRankFunctions : public IRMutator {
     // Returns true if the given name is a split (or fuse) dimension
     // of the given function.
     bool var_is_split(const string &func, const string &var) const {
+        internal_assert(env.find(func) != env.end());
         for (const Split &sp : env.at(func).schedule().splits()) {
             if (ends_with(var, sp.outer) || ends_with(var, sp.inner)) {
                 return true;
@@ -1369,7 +1377,7 @@ class SetBufferBounds : public IRGraphVisitor {
     void set_bounds(const string &name, Stmt s, bool is_update = false) {
         map<string, Box> required = boxes_required(s);
         Box provided = box_provided(s, name);
-        internal_assert(buffers.find(name) != buffers.end());
+        internal_assert(buffers.find(name) != buffers.end()) << name;
         AbstractBuffer &buf = buffers.at(name);
         internal_assert(!buf.is_image());
         if (!is_update) {
@@ -1413,6 +1421,7 @@ public:
     }
 
     void visit(const Realize *op) {
+        internal_assert(buffers.find(op->name) != buffers.end()) << op->name;
         AbstractBuffer &buf = buffers.at(op->name);
         internal_assert(!buf.is_image());
         Box b = box_touched(op->body, op->name);
@@ -1423,7 +1432,7 @@ public:
     void visit(const ProducerConsumer *op) {
         set_bounds(op->name, op->produce);
         if (op->update.defined()) set_bounds(op->name, op->update, true);
-
+        internal_assert(buffers.find(op->name) != buffers.end());
         AbstractBuffer &buf = buffers.at(op->name);
         internal_assert(!buf.is_image());
         // We say that a producer with no consumer (i.e. the end of
