@@ -343,23 +343,30 @@ public:
 
     // Set the shape of this buffer.
     void set_shape(const Box &b) {
-        internal_assert(_shape.empty());
         internal_assert(!is_input_image());
-        internal_assert(_dimensions == -1);
         internal_assert(b.size() > 0);
-        set_dimensions(b.size());
-        _shape = Box(b.size());
-        for (unsigned i = 0; i < b.size(); i++) {
-            _shape[i] = Interval(b[i].min, b[i].max);
+        if (_shape.empty()) {
+            internal_assert(_dimensions == -1);
+            set_dimensions(b.size());
+            _shape = Box(b.size());
+            for (unsigned i = 0; i < b.size(); i++) {
+                _shape[i] = Interval(b[i].min, b[i].max);
+            }
+        } else {
+            internal_assert(_dimensions == (int)b.size());
+            merge_boxes(_shape, b);
         }
     }
 
     // Set the region produced of this buffer.
     void set_have_bounds(const Box &b) {
-        internal_assert(_bounds.empty());
-        _bounds = Box(b.size());
-        for (unsigned i = 0; i < b.size(); i++) {
-            _bounds[i] = Interval(b[i].min, b[i].max);
+        if (_bounds.empty()) {
+            _bounds = Box(b.size());
+            for (unsigned i = 0; i < b.size(); i++) {
+                _bounds[i] = Interval(b[i].min, b[i].max);
+            }
+        } else {
+            merge_boxes(_bounds, b);
         }
     }
 
