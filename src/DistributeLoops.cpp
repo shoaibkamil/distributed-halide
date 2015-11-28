@@ -428,87 +428,40 @@ private:
     vector<Expr> _footprint;
 };
 
-// Build a set of all the variables referenced. This traverses through
-// any Let statements that are in the given environment, meaning both
-// the "let" variable and the variables used to define it in the Let
-// statement are in the resulting set.
-class GetVariablesInExpr : public IRVisitor {
-    using IRVisitor::visit;
-    void visit(const Variable *var) {
-        names.insert(var->name);
-        if (env.contains(var->name)) {
-            Expr value = env.get(var->name);
-            value.accept(this);
-        }
-        IRVisitor::visit(var);
-    }
-public:
-    const Scope<Expr> &env;
-    set<string> names;
-    GetVariablesInExpr(const Scope<Expr> &e) : env(e) {}
-};
-
 // Build a list of all input buffers using a particular variable as an
 // index.
 class FindBuffersUsingVariable : public IRVisitor {
-    Scope<Expr> env;
     using IRVisitor::visit;
 
-    void visit(const Let *let) {
-        env.push(let->name, let->value);
-        IRVisitor::visit(let);
-        env.pop(let->name);
-    }
-
-    void visit(const LetStmt *let) {
-        env.push(let->name, let->value);
-        IRVisitor::visit(let);
-        env.pop(let->name);
-    }
-
     void visit(const Call *call) {
-        GetVariablesInExpr vars(env);
-        for (Expr arg : call->args) {
-            arg.accept(&vars);
-        }
-        if (vars.names.count(name)) {
-            // These are the only two call types that can be buffer references.
-            if (call->call_type == Call::Image) {
-                if (call->image.defined()) {
-                    buffers.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::InputImage, call->image.name(), (Buffer)call->image));
-                } else {
-                    buffers.push_back(AbstractBuffer(call->param.type(), AbstractBuffer::InputImage, call->param.name(), call->param.get_buffer()));
-                }
-            } else if (call->call_type == Call::Halide) {
-                internal_assert(call->func.outputs() == 1);
-                buffers.push_back(AbstractBuffer(call->func.output_types()[0], AbstractBuffer::Halide, call->func.name()));
+        // These are the only two call types that can be buffer references.
+        if (call->call_type == Call::Image) {
+            if (call->image.defined()) {
+                buffers.push_back(AbstractBuffer(call->image.type(), AbstractBuffer::InputImage, call->image.name(), (Buffer)call->image));
+            } else {
+                buffers.push_back(AbstractBuffer(call->param.type(), AbstractBuffer::InputImage, call->param.name(), call->param.get_buffer()));
             }
-
+        } else if (call->call_type == Call::Halide) {
+            internal_assert(call->func.outputs() == 1);
+            buffers.push_back(AbstractBuffer(call->func.output_types()[0], AbstractBuffer::Halide, call->func.name()));
         }
+
         IRVisitor::visit(call);
     }
 
     void visit(const Provide *op) {
-        GetVariablesInExpr vars(env);
-        for (Expr arg : op->args) {
-            arg.accept(&vars);
-        }
-        if (vars.names.count(name)) {
-            internal_assert(op->values.size() == 1);
-            buffers.push_back(AbstractBuffer(op->values[0].type(), AbstractBuffer::Halide, op->name));
-        }
+        internal_assert(op->values.size() == 1);
+        buffers.push_back(AbstractBuffer(op->values[0].type(), AbstractBuffer::Halide, op->name));
         IRVisitor::visit(op);
     }
 public:
-    string name;
     vector<AbstractBuffer> buffers;
-    FindBuffersUsingVariable(string n) : name(n) {}
 };
 
 // Return a list of the buffers used in the given for loop.
-map<string, AbstractBuffer> buffers_used(const For *for_loop) {
-    FindBuffersUsingVariable find(for_loop->name);
-    for_loop->body.accept(&find);
+map<string, AbstractBuffer> buffers_used(const ProducerConsumer *op) {
+    FindBuffersUsingVariable find;
+    op->accept(&find);
     vector<AbstractBuffer> buffers(find.buffers.begin(), find.buffers.end());
     map<string, AbstractBuffer> result;
 
@@ -1360,17 +1313,16 @@ public:
 
     using IRVisitor::visit;
 
-    void visit(const For *for_loop) {
-        string funcname = first_token(for_loop->name);
+    void visit(const ProducerConsumer *op) {
         map<string, AbstractBuffer> bufs;
-        bufs = buffers_used(for_loop);
+        bufs = buffers_used(op);
         for (auto &it : bufs) {
             if (distributed_functions.count(it.first)) {
                 it.second.set_distributed();
             }
         }
         buffers.insert(bufs.begin(), bufs.end());
-        IRVisitor::visit(for_loop);
+        IRVisitor::visit(op);
     }
 };
 
