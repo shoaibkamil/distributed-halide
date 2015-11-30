@@ -1087,11 +1087,11 @@ int main(int argc, char **argv) {
         in.placement().distribute(y);
         in.allocate();
 
-        Expr clamped_x = clamp(x, 0, in.global_width()-1),
-            clamped_y = clamp(y, 0, in.global_height()-1);
         RDom r(0, in.width(), 0, in.height());
-        Func f;
-        f() = maximum(r, in(r.x, r.y));
+        Func f("ff"), g("gg");
+        g(x, y) = in(x, y);
+        g.compute_root();
+        f() = maximum(r, g(r.x, r.y));
 
         for (int y = 0; y < in.height(); y++) {
             for (int x = 0; x < in.width(); x++) {
@@ -1099,12 +1099,20 @@ int main(int argc, char **argv) {
             }
         }
 
-        int result = evaluate<int>(f);
+        int local_result = evaluate<int>(f);
         int global_result = 0;
-        MPI_Allreduce(&result, &global_result, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-        const int correct = (in.global_width() - 1) + (in.global_height() - 1);
-        if (global_result != correct) {
-            printf("[rank %d] result = %d instead of %d\n", rank, global_result, correct);
+        MPI_Allreduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+        const int local_correct = in.global(0, in.width() - 1) + in.global(1, in.height() - 1);
+        if (local_result != local_correct) {
+            printf("[rank %d] local result = %d instead of %d\n", rank, local_result, local_correct);
+            MPI_Finalize();
+            return -1;
+        }
+
+        const int global_correct = (in.global_width() - 1) + (in.global_height() - 1);
+        if (global_result != global_correct) {
+            printf("[rank %d] result = %d instead of %d\n", rank, global_result, global_correct);
             MPI_Finalize();
             return -1;
         }
