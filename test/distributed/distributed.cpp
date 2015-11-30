@@ -1118,6 +1118,40 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        DistributedImage<double> U(10, 10, 10, 5, "U");
+
+        Var cc;
+        U.set_domain(x, y, z, cc);
+        U.placement().distribute(z);
+        U.allocate();
+
+        Func Q("Q");
+        Q(x, y, z, cc) = Expr(1.0) + U(x, y, z, cc);
+        Q.bound(cc, 0, 5).unroll(cc);
+        Q.compute_root().distribute(z).parallel(z);
+        
+        RDom r(0, U.global_extent(0), 0, U.global_extent(1), 0, U.global_extent(2));
+
+        Expr c     = sqrt(Expr(3.0)*Q(r.x,r.y,r.z,4)/Q(r.x,r.y,r.z,0));
+        Expr courx = Q(r.x,r.y,r.z,1);
+        Expr coury = Q(r.x,r.y,r.z,2);
+        Expr courz = Q(r.x,r.y,r.z,3);
+
+        Expr huge = 100;
+        Expr courmx = max( Expr(-huge), courx );
+        Expr courmy = max( Expr(-huge), coury );
+        Expr courmz = max( Expr(-huge), courz );
+
+        Expr maxcourpt = max(courmx, max(courmy, courmz));
+
+        Func helper("courno");
+        helper() = maximum(r, maxcourpt);
+
+        double local_result = evaluate<double>(helper);
+        assert(local_result >= 0);
+    }
+    
     printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();

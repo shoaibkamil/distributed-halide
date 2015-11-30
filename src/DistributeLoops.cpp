@@ -344,7 +344,7 @@ public:
     // Set the shape of this buffer.
     void set_shape(const Box &b) {
         internal_assert(!is_input_image());
-        internal_assert(b.size() > 0);
+        //internal_assert(b.size() > 0);
         if (_shape.empty()) {
             internal_assert(_dimensions == -1);
             set_dimensions(b.size());
@@ -889,9 +889,9 @@ Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required, S
     Stmt sendwait, recvwait;
     for (const auto it : required) {
         const AbstractBuffer &in = it;
-        // No border exchanges needed for non-distributed buffers or
-        // output images.
-        if (!in.distributed() || in.is_output_image()) continue;
+        // No border exchanges needed for non-distributed buffers, 
+        // output images, or scalar buffers (zero dimensional).
+        if (!in.distributed() || in.is_output_image() || in.dimensions() == 0) continue;
 
         Stmt sendstmt = communicate_intersection(Send, in, func);
         Stmt sendwaitstmt = waitall_isend(in.name());
@@ -937,6 +937,7 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
                        const vector<AbstractBuffer> &provided) {
     for (const auto it : required) {
         const AbstractBuffer &in = it;
+        if (in.dimensions() == 0) continue;
         const Box &b = in.shape();
         if (!in.is_image()) continue;
         if (in.is_input_image()) {
@@ -951,6 +952,7 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
 
     for (const auto it : provided) {
         const AbstractBuffer &out = it;
+        if (out.dimensions() == 0) continue;
         const Box &b = out.have();
         if (!out.is_image()) continue;
         ChangeDistributedLoopBuffers change(out.name(), out.name(), b, false);
