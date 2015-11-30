@@ -14,7 +14,7 @@ int rank = 0, numprocs = 0;
 // Input parameters
 const int DM = 3;
 // const int nsteps = 5;
-const int nsteps = 5;
+const int nsteps = 1;
 const int plot_int = 5;
 int n_cell = 0;
 const int max_grid_size = 64;
@@ -52,7 +52,10 @@ Func init_data("init_data");
 Func ctoprim("ctoprim"), courno_func("courno");
 Func diffterm("diffterm"), hypterm("hypterm");
 Func Uonethird("Uonethird"), Utwothirds("Utwothirds"), Uone("Uone");
-Func full_pipeline;
+Func full_pipeline("full_pipeline");
+
+DistributedImage<double> U;
+    
 ImageParam Up(Float(64), 4, "U"),
     Unewp(Float(64), 4, "Unew"),
     Qp(Float(64), 4, "Q"),
@@ -110,14 +113,14 @@ Func build_init_data() {
     Expr rholoc = Expr(1.0e-3) + Expr(1.0e-5)*sin(1*xloc)*cos(2*yloc)*cos(3*zloc);
     Expr eloc   = Expr(2.5e9)  + Expr(1.0e-3)*sin(2*xloc)*cos(2*yloc)*sin(2*zloc);
 
-    Func init;
+    Func init("init");
     init(x,y,z,c) = select(c == irho, rholoc,
                            c == imx, rholoc*uvel,
                            c == imy, rholoc*vvel,
                            c == imz, rholoc*wvel,
                            rholoc*(eloc + (pow(uvel, 2)+pow(vvel,2)+pow(wvel,2))/2));
     init.bound(c, 0, 5).unroll(c);
-    init.compute_root().parallel(z);
+    init.compute_root().distribute(z).parallel(z);
     return init;
 }
 
@@ -147,7 +150,7 @@ Func build_ctoprim(Func U) {
                         temperature);
     // Eliminate some performance loss of the select by bounding and unrolling 'c':
     Q.bound(c, 0, 6).unroll(c);
-    Q.compute_root().parallel(z);
+    Q.compute_root().distribute(z).parallel(z);
     return Q;
 }
 
@@ -159,7 +162,8 @@ Func build_courno(Func Q) {
     // XXX: This needs to be a local reduction and then have an
     // external global reduction of the local values, as in the
     // Fortran code.
-    RDom r(0, global_w, 0, global_h, 0, global_d);
+
+    RDom r(0, U.extent(0), 0, U.extent(1), 0, U.extent(2));
 
     Expr dxinv = Expr(1.0 / dx);
     Expr c     = sqrt(Expr(GAMMA)*Q(r.x,r.y,r.z,4)/Q(r.x,r.y,r.z,0));
@@ -205,7 +209,7 @@ Func build_diffterm(Func Q) {
     difflux(x,y,z,c) = Expr(0.0);
     difflux.bound(c, 0, 5);
     //difflux.compute_root().parallel(z).vectorize(x, 4);
-    difflux.compute_root().tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
+    difflux.compute_root().distribute(z).parallel(z).vectorize(x, 4);
 
     Expr ux_calc =
         (ALP*(Q(x+1,y,z,qu)-Q(x-1,y,z,qu))
@@ -338,7 +342,7 @@ Func build_diffterm(Func Q) {
     // Update 0: imx
     difflux(x,y,z,imx) = Expr(eta)*(FourThirds*uxx + uyy + uzz + OneThird*(vyx+wzx));
     //difflux.update(0).parallel(z).vectorize(x, 4);
-    difflux.update(0).tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
+    difflux.update(0).parallel(z).distribute(z).vectorize(x, 4);
 
     Expr vxx = (CENTER*Q(x,y,z,qv)
                 + OFF1*(Q(x+1,y,z,qv)+Q(x-1,y,z,qv))
@@ -371,7 +375,7 @@ Func build_diffterm(Func Q) {
     // Update 1: imy
     difflux(x,y,z,imy) = Expr(eta)*(vxx + FourThirds*vyy + vzz + OneThird*(uxy+wzy));
     //difflux.update(1).parallel(z).vectorize(x, 4);
-    difflux.update(1).tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
+    difflux.update(1).parallel(z).distribute(z).vectorize(x, 4);
 
     Expr wxx = (CENTER*Q(x,y,z,qw)
                 + OFF1*(Q(x+1,y,z,qw)+Q(x-1,y,z,qw))
@@ -404,7 +408,7 @@ Func build_diffterm(Func Q) {
     // Update 2: imz
     difflux(x,y,z,imz) = Expr(eta)*(wxx + wyy + FourThirds*wzz + OneThird*(uxz+vyz));
     //difflux.update(2).parallel(z).vectorize(x, 4);
-    difflux.update(2).tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
+    difflux.update(2).parallel(z).distribute(z).vectorize(x, 4);
 
     Expr txx = (CENTER*Q(x,y,z,5)
                 + OFF1*(Q(x+1,y,z,5)+Q(x-1,y,z,5))
@@ -444,7 +448,7 @@ Func build_diffterm(Func Q) {
     // Update 3: iene
     difflux(x,y,z,iene) = Expr(alam)*(txx+tyy+tzz) + mechwork;
     //difflux.update(3).parallel(z).vectorize(x, 4);
-    difflux.update(3).tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
+    difflux.update(3).parallel(z).distribute(z).vectorize(x, 4);
 
     return difflux;
 }
@@ -647,17 +651,17 @@ Func build_hypterm(Func U, Func Q) {
                               c == 2, flux_imy_calc,
                               c == 3, flux_imz_calc,
                               flux_iene_calc);
-    flux.bound(c, 0, 5).unroll(c).compute_root();
-    //flux.tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
+    flux.bound(c, 0, 5).unroll(c).compute_root().distribute(z);
     flux.parallel(z).vectorize(x, 4);
-    
+    //flux.tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
+
     return flux;
 }
 
 Func build_Uonethird(Func U, Func D, Func F) {
     Func Uonethird("Uonethird");
     Uonethird(x, y, z, c) = U(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c));
-    Uonethird.compute_root().bound(c, 0, nc);
+    Uonethird.compute_root().distribute(z).bound(c, 0, nc);
     Uonethird.parallel(z);
     return Uonethird;
 }
@@ -669,7 +673,7 @@ Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
     Func Utwothirds("Utwothirds");
     Utwothirds(x, y, z, c) = ThreeQuarters * U(x,y,z,c) +
         OneQuarter * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
-    Utwothirds.compute_root().bound(c, 0, nc);
+    Utwothirds.compute_root().distribute(z).bound(c, 0, nc);
     Utwothirds.parallel(z);
     return Utwothirds;
 }
@@ -681,8 +685,8 @@ Func build_Uone(Func U, Func Unew, Func D, Func F) {
     Func Uone("Uone");
     Uone(x,y,z,c) = OneThird * U(x,y,z,c) +
         TwoThirds * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
-    Uone.compute_root().bound(c, 0, nc);
-    Uone.parallel(z);
+    Uone.compute_root().distribute(z).bound(c, 0, nc);
+    Uone.parallel(z).vectorize(x, 4);
     return Uone;
 }
 
@@ -691,7 +695,7 @@ void build_pipeline(Func UAccessor) {
     init_data = build_init_data(); // () -> U
     
     ctoprim = build_ctoprim(UAccessor); // U -> Q
-    courno_func  = build_courno(ctoprim); // Q -> scalar
+
     diffterm = build_diffterm(ctoprim); // Q -> D
     hypterm = build_hypterm(UAccessor, ctoprim); // U, Q -> F
     Uonethird = build_Uonethird(UAccessor, diffterm, hypterm); // U, D, F -> U'
@@ -713,15 +717,14 @@ void build_pipeline(Func UAccessor) {
 }
 
 
-void advance(DistributedImage<double> &U, double &dt) {
+void advance(DistributedImage<double> &U, DistributedImage<double> &Utmp, double &dt) {
     double courno = 1e-50;
     courno = max(evaluate<double>(courno_func), courno);
     // XXX: parallel_reduce courno
     dt = cfl / courno;
     timestep.set(dt);
 
-    full_pipeline.realize(U);
-    
+    full_pipeline.realize(Utmp);
     // if (parallel_IOProcessor()) {
     //     std::cout << std::scientific << "dt,courno " << std::setprecision(std::numeric_limits<double>::digits10) << dt << " " << courno << "\n";
     // }
@@ -747,30 +750,40 @@ int main(int argc, char **argv) {
 
     // XXX: should probably make the component the innermost
     // dimension, then w,h,d.
-    DistributedImage<double> U(global_w, global_h, global_d, nc, "U");
+    U = DistributedImage<double>(global_w, global_h, global_d, nc, "U");
+    DistributedImage<double> Uout(global_w, global_h, global_d, nc);
 
     // Impose periodic boundary conditions on U and Q
     std::vector<std::pair<Expr, Expr>>
         global_bounds_U = {std::make_pair(0, global_w), std::make_pair(0, global_h),
                            std::make_pair(0, global_d), std::make_pair(0, nc)};
-    Func Ut;
+    Func Ut("Ut");
     Ut(x,y,z,c) = Up(x,y,z,c);
     Func UAccessor("UAccessor");
     UAccessor = BoundaryConditions::repeat_image(Ut, global_bounds_U);
     build_pipeline(UAccessor);
 
+    full_pipeline.distribute(z);
+
+    Uout.set_domain(x, y, z, c);
+    Uout.placement().distribute(z);
+    Uout.allocate();
+
     U.set_domain(x, y, z, c);
-    U.allocate();
+    U.placement().distribute(z);
+    U.allocate(full_pipeline, Uout);
     Up.set(U);
 
+    // Now that we've distributed input, we can build local reduction domains.
+    courno_func = build_courno(ctoprim); // Q -> scalar
+    
     Target t = get_jit_target_from_environment();
     //t.set_feature(Target::Profile);
     init_data.compile_jit(t);
     courno_func.compile_jit(t);
     full_pipeline.compile_jit(t);
     
-    MPITiming timing;
-
+    MPITiming timing(MPI_COMM_WORLD);
     const int niters = 1;
     for (int i = 0; i < niters; i++) {
         init_data.realize(U);
@@ -781,14 +794,15 @@ int main(int argc, char **argv) {
                 std::cout << "Advancing time step " << istep << ", time = " << time << "\n";
             }
             timing.start();
-            advance(U, dt);
+            advance(U, Uout, dt);
             timing.record(timing.stop());
             time = time + dt;
         }
     }
-    //timing.reduce(MPITiming::Median);
+    // timing.reduce(MPITiming::Median);
     timing.reduce(MPITiming::Mean);
-    timing.nondistributed_report();
+    timing.gather(MPITiming::Max);
+    timing.report();
 
     // std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
     // of << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
