@@ -892,7 +892,7 @@ Stmt exchange_data(const string &func, const vector<AbstractBuffer> &required, S
     Stmt sendwait, recvwait;
     for (const auto it : required) {
         const AbstractBuffer &in = it;
-        // No border exchanges needed for non-distributed buffers, 
+        // No border exchanges needed for non-distributed buffers,
         // output images, or scalar buffers (zero dimensional).
         if (!in.distributed() || in.is_output_image() || in.dimensions() == 0) continue;
 
@@ -1191,6 +1191,7 @@ class LowerComputeRankFunctions : public IRMutator {
         const vector<string> &args = env.at(func).args();
         const Box &b = required_regions.at(func);
         internal_assert(b.size() == args.size());
+
         for (int i = 0; i < (int)args.size(); i++) {
             if (ends_with(loop_var, args[i])) {
                 return b[i];
@@ -1201,12 +1202,19 @@ class LowerComputeRankFunctions : public IRMutator {
     }
 
     // Returns true if the given name is a split (or fuse) dimension
-    // of the given function.
+    // of the given function or any of its update stages.
     bool var_is_split(const string &func, const string &var) const {
         internal_assert(env.find(func) != env.end());
         for (const Split &sp : env.at(func).schedule().splits()) {
             if (ends_with(var, sp.outer) || ends_with(var, sp.inner)) {
                 return true;
+            }
+        }
+        for (const UpdateDefinition &update : env.at(func).updates()) {
+            for (const Split &sp : update.schedule.splits()) {
+                if (ends_with(var, sp.outer) || ends_with(var, sp.inner)) {
+                    return true;
+                }
             }
         }
         return false;
