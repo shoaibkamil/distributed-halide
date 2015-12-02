@@ -104,7 +104,8 @@ public:
 
     /** Mark this Buffer as distributed with the given allocated and
         local sizes. */
-    EXPORT void set_distributed(const std::vector<int> &allocated_sizes,
+    EXPORT void set_distributed(const std::vector<int> &allocated_mins,
+                                const std::vector<int> &allocated_sizes,
                                 const std::vector<Expr> &symbolic_allocated_extents,
                                 const std::vector<Expr> &symbolic_allocated_mins,
                                 const std::vector<Expr> &symbolic_local_extents,

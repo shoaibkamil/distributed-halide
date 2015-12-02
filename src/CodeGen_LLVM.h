@@ -257,6 +257,9 @@ protected:
     llvm::Value *buffer_extent(llvm::Value *, int);
     llvm::Value *buffer_stride(llvm::Value *, int);
     llvm::Value *buffer_elem_size(llvm::Value *);
+    llvm::Value *buffer_d_min(llvm::Value *, int);
+    llvm::Value *buffer_d_extent(llvm::Value *, int);
+    llvm::Value *buffer_d_stride(llvm::Value *, int);
     llvm::Value *buffer_host_ptr(llvm::Value *);
     llvm::Value *buffer_dev_ptr(llvm::Value *);
     llvm::Value *buffer_host_dirty_ptr(llvm::Value *);
@@ -265,6 +268,9 @@ protected:
     llvm::Value *buffer_extent_ptr(llvm::Value *, int);
     llvm::Value *buffer_stride_ptr(llvm::Value *, int);
     llvm::Value *buffer_elem_size_ptr(llvm::Value *);
+    llvm::Value *buffer_d_min_ptr(llvm::Value *, int);
+    llvm::Value *buffer_d_extent_ptr(llvm::Value *, int);
+    llvm::Value *buffer_d_stride_ptr(llvm::Value *, int);
     // @}
 
     /** Generate a pointer into a named buffer at a given index, of a

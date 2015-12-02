@@ -216,8 +216,10 @@ public:
         _dimensions = buffer.dimensions();
         for (int i = 0; i < buffer.dimensions(); i++) {
             if (_distributed) {
-                Expr min = buffer.allocated_min(i);
-                Expr max = min + buffer.allocated_extent(i) - 1;
+                // These symbols are in global coordinates.
+                Expr min = Var(name + ".d_min." + std::to_string(i));
+                Expr extent = Var(name + ".d_extent." + std::to_string(i));
+                Expr max = min + extent - 1;
                 _shape.push_back(Interval(min, max));
                 // These are parameterized by rank and number of processors.
                 Expr havemin = buffer.local_min(i);

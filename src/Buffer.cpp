@@ -34,12 +34,13 @@ struct BufferContents {
     /** What is the name of the buffer? Useful for debugging symbols. */
     std::string name;
 
-    bool distributed;
     int allocated_min[4], allocated_extent[4];
     Expr symbolic_allocated_min[4], symbolic_allocated_extent[4];
     Expr symbolic_local_min[4], symbolic_local_extent[4];
 
-    void set_distributed(int x_size_allocated, int y_size_allocated,
+    void set_distributed(int x_min_local, int y_min_local,
+                         int z_min_local, int w_min_local,
+                         int x_size_allocated, int y_size_allocated,
                          int z_size_allocated, int w_size_allocated,
                          Expr x_size_allocated_symbolic, Expr y_size_allocated_symbolic,
                          Expr z_size_allocated_symbolic, Expr w_size_allocated_symbolic,
@@ -95,7 +96,27 @@ struct BufferContents {
         symbolic_local_min[2] = z_min_local_symbolic;
         symbolic_local_min[3] = w_min_local_symbolic;
 
-        distributed = true;
+        buf.is_distributed = true;
+        // TODO: Right now these are global concrete
+        // coordinates. Eventually we should change the codegen to
+        // insert symbols for the global variables, along with some
+        // notion of the distribution. That way the DistributeLoops
+        // backend can calculate local mins in global
+        // coordinates. Doing it the current way means that with AoT
+        // compilation, one will need to recompile the pipeline to run
+        // with different numbers of ranks.
+        buf.d_min[0] = x_min_local;
+        buf.d_min[1] = y_min_local;
+        buf.d_min[2] = z_min_local;
+        buf.d_min[3] = w_min_local;
+        buf.d_extent[0] = x_size_allocated;
+        buf.d_extent[1] = y_size_allocated;
+        buf.d_extent[2] = z_size_allocated;
+        buf.d_extent[3] = w_size_allocated;
+        buf.d_stride[0] = 1;
+        buf.d_stride[1] = x_size_allocated;
+        buf.d_stride[2] = x_size_allocated*y_size_allocated;
+        buf.d_stride[3] = x_size_allocated*y_size_allocated*z_size_allocated;
 
         size = size + 32;
         allocation = (uint8_t *)realloc(allocation, (size_t)size);
@@ -157,14 +178,15 @@ struct BufferContents {
         buf.min[2] = 0;
         buf.min[3] = 0;
 
-        distributed = false;
+        buf.is_distributed = false;
+
     }
 
     BufferContents(Type t, const buffer_t *b, const std::string &n) :
         type(t), allocation(NULL), name(n.empty() ? unique_name('b') : n) {
         buf = *b;
         user_assert(t.width == 1) << "Can't create of a buffer of a vector type";
-        distributed = false;
+        buf.is_distributed = false;
     }
 };
 
@@ -329,16 +351,21 @@ int Buffer::free_dev_buffer() {
 
 bool Buffer::distributed() const {
     user_assert(defined()) << "Buffer is undefined\n";
-    return contents.ptr->distributed;
+    return contents.ptr->buf.is_distributed;
 }
 
-void Buffer::set_distributed(const std::vector<int> &allocated_sizes,
+void Buffer::set_distributed(const std::vector<int> &allocated_mins,
+                             const std::vector<int> &allocated_sizes,
                              const std::vector<Expr> &symbolic_allocated_extents,
                              const std::vector<Expr> &symbolic_allocated_mins,
                              const std::vector<Expr> &symbolic_local_extents,
                              const std::vector<Expr> &symbolic_local_mins) {
     user_assert(defined()) << "Buffer is undefined\n";
-    contents.ptr->set_distributed(size_or_zero(allocated_sizes, 0),
+    contents.ptr->set_distributed(size_or_zero(allocated_mins, 0),
+                                  size_or_zero(allocated_mins, 1),
+                                  size_or_zero(allocated_mins, 2),
+                                  size_or_zero(allocated_mins, 3),
+                                  size_or_zero(allocated_sizes, 0),
                                   size_or_zero(allocated_sizes, 1),
                                   size_or_zero(allocated_sizes, 2),
                                   size_or_zero(allocated_sizes, 3),
@@ -363,28 +390,28 @@ void Buffer::set_distributed(const std::vector<int> &allocated_sizes,
 Expr Buffer::allocated_extent(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
+    user_assert(distributed()) << "Calling local function on non-distributed buffer.";
     return contents.ptr->symbolic_allocated_extent[dim];
 }
 
 Expr Buffer::allocated_min(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
+    user_assert(distributed()) << "Calling local function on non-distributed buffer.";
     return contents.ptr->symbolic_allocated_min[dim];
 }
 
 Expr Buffer::local_extent(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
+    user_assert(distributed()) << "Calling local function on non-distributed buffer.";
     return contents.ptr->symbolic_local_extent[dim];
 }
 
 Expr Buffer::local_min(int dim) const {
     user_assert(defined()) << "Buffer is undefined\n";
     user_assert(dim >= 0 && dim < 4) << "We only support 4-dimensional buffers for now";
-    user_assert(contents.ptr->distributed) << "Calling local function on non-distributed buffer.";
+    user_assert(distributed()) << "Calling local function on non-distributed buffer.";
     return contents.ptr->symbolic_local_min[dim];
 }
 
