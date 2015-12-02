@@ -1152,8 +1152,6 @@ int main(int argc, char **argv) {
         assert(local_result >= 0);
     }
 
-#if 0
-    // XXX: this test is failing
     {
         const int w = 10;
         DistributedImage<int> in(w);
@@ -1187,15 +1185,10 @@ int main(int argc, char **argv) {
                 in(lx) = x;
             }
         }
-
-        // Copy the buffer
-        Buffer derived(Int(32), in.get_buffer().raw_buffer(), in.name());
-        // Modify mins
-        derived.set_allocated_min(0, 0);
         
         const int niters = 1;
         for (int i = 0; i < niters; i++) {
-            f.realize(derived);
+            f.realize(in);
             f1.realize(in_correct);
         }
         
@@ -1210,7 +1203,7 @@ int main(int argc, char **argv) {
         }
 
     }
-    
+#if 0
     // XXX: this test is failing
     {
         DistributedImage<int> in(10);

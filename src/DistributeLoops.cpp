@@ -735,10 +735,11 @@ public:
             }
             Stmt newprovide = Provide::make(newname, provide->values, newargs);
             if (trace_provides) {
-                Stmt p = Evaluate::make(print_when(rank() == 0, {string("rank"), rank(),
+                Stmt p = Evaluate::make(print({string("rank"), rank(),
                                 string("providing to"), provide->name,
-                                string("global ["), provide->args[0], provide->args[1], string("],"),
-                                string("local ["), newargs[0], newargs[1], string("] ="),
+                                string("global ["), provide->args[0], string("],"),
+                                string("box ["), box[0].min, string("],"),
+                                string("local ["), newargs[0], string("] ="),
                                 provide->values[0]}));
                 newprovide = Block::make(p, newprovide);
             }
@@ -955,7 +956,7 @@ Stmt update_io_buffers(Stmt loop, const string &func, const vector<AbstractBuffe
     for (const auto it : provided) {
         const AbstractBuffer &out = it;
         if (out.dimensions() == 0) continue;
-        const Box &b = out.have();
+        const Box &b = out.shape();
         if (!out.is_image()) continue;
         ChangeDistributedLoopBuffers change(out.name(), out.name(), b, false);
         loop = change.mutate(loop);
@@ -1408,7 +1409,14 @@ public:
             // An output won't have a Realize node, so we have to set
             // the shape here.
             Box b = box_touched(op->produce, op->name);
-            buf.set_shape(b);
+            Box shape(b.size());
+            for (unsigned i = 0; i < b.size(); i++) {
+                Expr min = Var(op->name + ".d_min." + std::to_string(i));
+                Expr extent = Var(op->name + ".d_extent." + std::to_string(i));
+                Expr max = min + extent - 1;
+                shape[i] = Interval(min, max);
+            }
+            buf.set_shape(shape);
         }
 
         IRGraphVisitor::visit(op);
