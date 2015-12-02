@@ -14,7 +14,7 @@ int rank = 0, numprocs = 0;
 // Input parameters
 const int DM = 3;
 // const int nsteps = 5;
-const int nsteps = 1;
+const int nsteps = 2;
 const int plot_int = 5;
 int n_cell = 0;
 const int max_grid_size = 64;
@@ -83,23 +83,52 @@ inline bool parallel_IOProcessor() {
     //return rank == 0;
 }
 
-void parallel_reduce(double &a, double &b, MPI_Op op) {
-
+// Reduces local 'a' into global 'b'.
+static void parallel_reduce(double &a, double &b, MPI_Op op) {
+    MPI_Allreduce(&a, &b, 1, MPI_DOUBLE, op, MPI_COMM_WORLD);
 }
 
-double max(double a, double b) {
+static double max(double a, double b) {
     return a > b ? a : b;
 }
 
-double abs(double a) {
+static double abs(double a) {
     return a < 0 ? -a : a;
 }
 
-double Huge() {
+static double Huge() {
     return std::numeric_limits<double>::max();
 }
 
-Func build_init_data() {
+static void init_data_C() {
+    const double twopi = 2.0 * 3.141592653589793238462643383279502884197;
+    const double scale = (prob_hi - prob_lo)/twopi;
+    int minz = 0,
+        maxz = global_d;
+    for (int z = 0; z < U.extent(2); z++) {
+        for (int y = 0; y < U.extent(1); y++) {
+            for (int x = 0; x < U.extent(0); x++) {
+                const double zloc = U.global(2, z) * dx/scale;
+                const double yloc = U.global(1, y) * dx/scale;
+                const double xloc = U.global(0, x) * dx/scale;
+
+                const double uvel   = 1.1e4*sin(1*xloc)*sin(2*yloc)*sin(3*zloc);
+                const double vvel   = 1.0e4*sin(2*xloc)*sin(4*yloc)*sin(1*zloc);
+                const double wvel   = 1.2e4*sin(3*xloc)*cos(2*yloc)*sin(2*zloc);
+                const double rholoc = 1.0e-3 + 1.0e-5*sin(1*xloc)*cos(2*yloc)*cos(3*zloc);
+                const double eloc   = 2.5e9  + 1.0e-3*sin(2*xloc)*cos(2*yloc)*sin(2*zloc);
+                
+                U(x, y, z, irho) = rholoc;
+                U(x, y, z, imx) = rholoc*uvel;
+                U(x, y, z, imy) = rholoc*vvel;
+                U(x, y, z, imz) = rholoc*wvel;
+                U(x, y, z, iene) = rholoc*(eloc + (pow(uvel, 2)+pow(vvel,2)+pow(wvel,2))/2);
+            }
+        }
+    }
+}
+    
+static Func build_init_data() {
     Expr twopi = Expr(2.0 * 3.141592653589793238462643383279502884197);
     Expr scale = Expr(prob_hi - prob_lo)/twopi;
 
@@ -124,7 +153,7 @@ Func build_init_data() {
     return init;
 }
 
-Func build_ctoprim(Func U) {
+static Func build_ctoprim(Func U) {
     const double CV    = 8.3333333333e6;
     const double CVinv = 1.0 / CV;
 
@@ -154,7 +183,7 @@ Func build_ctoprim(Func U) {
     return Q;
 }
 
-Func build_courno(Func Q) {
+static Func build_courno(Func Q) {
     // XXX: this can be combined with ctoprim, as a final element in
     // the tuple. Don't do that optimization yet, to get a faithful
     // performance comparison.
@@ -186,7 +215,7 @@ Func build_courno(Func Q) {
     return helper;
 }
 
-Func build_diffterm(Func Q) {
+static Func build_diffterm(Func Q) {
     const int tysize = 2, tzsize = 2;
     
     Expr OneThird   = Expr(1.0)/Expr(3.0);
@@ -453,7 +482,7 @@ Func build_diffterm(Func Q) {
     return difflux;
 }
 
-Func build_hypterm(Func U, Func Q) {
+static Func build_hypterm(Func U, Func Q) {
     const int tysize = 2, tzsize = 2;
 
     Func flux("flux");
@@ -658,7 +687,7 @@ Func build_hypterm(Func U, Func Q) {
     return flux;
 }
 
-Func build_Uonethird(Func U, Func D, Func F) {
+static Func build_Uonethird(Func U, Func D, Func F) {
     Func Uonethird("Uonethird");
     Uonethird(x, y, z, c) = U(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c));
     Uonethird.compute_root().distribute(z).bound(c, 0, nc);
@@ -666,7 +695,7 @@ Func build_Uonethird(Func U, Func D, Func F) {
     return Uonethird;
 }
 
-Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
+static Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
     Expr OneQuarter    = Expr(1.0)/Expr(4.0);
     Expr ThreeQuarters = Expr(3.0)/Expr(4.0);
 
@@ -678,7 +707,7 @@ Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
     return Utwothirds;
 }
 
-Func build_Uone(Func U, Func Unew, Func D, Func F) {
+static Func build_Uone(Func U, Func Unew, Func D, Func F) {
     Expr OneThird  = Expr(1.0)/Expr(3.0);
     Expr TwoThirds = Expr(2.0)/Expr(3.0);
 
@@ -691,8 +720,8 @@ Func build_Uone(Func U, Func Unew, Func D, Func F) {
 }
 
 
-void build_pipeline(Func UAccessor) {
-    init_data = build_init_data(); // () -> U
+static void build_pipeline(Func UAccessor) {
+    // init_data = build_init_data(); // () -> U
     
     ctoprim = build_ctoprim(UAccessor); // U -> Q
 
@@ -717,14 +746,14 @@ void build_pipeline(Func UAccessor) {
 }
 
 
-void advance(DistributedImage<double> &U, DistributedImage<double> &Utmp, double &dt) {
-    double courno = 1e-50;
-    courno = max(evaluate<double>(courno_func), courno);
-    // XXX: parallel_reduce courno
+static void advance(DistributedImage<double> &U, double &dt) {
+    double courno = 1e-50, local_courno = 1e-50;
+    local_courno = max(evaluate<double>(courno_func), local_courno);
+    parallel_reduce(local_courno, courno, MPI_MAX);
     dt = cfl / courno;
     timestep.set(dt);
 
-    full_pipeline.realize(Utmp);
+    full_pipeline.realize(U);
     // if (parallel_IOProcessor()) {
     //     std::cout << std::scientific << "dt,courno " << std::setprecision(std::numeric_limits<double>::digits10) << dt << " " << courno << "\n";
     // }
@@ -758,7 +787,7 @@ int main(int argc, char **argv) {
         global_bounds_U = {std::make_pair(0, global_w), std::make_pair(0, global_h),
                            std::make_pair(0, global_d), std::make_pair(0, nc)};
     Func Ut("Ut");
-    Ut(x,y,z,c) = Up(x,y,z,c);
+    Ut(x,y,z,c) = U(x,y,z,c);
     Func UAccessor("UAccessor");
     UAccessor = BoundaryConditions::repeat_image(Ut, global_bounds_U);
     build_pipeline(UAccessor);
@@ -772,21 +801,21 @@ int main(int argc, char **argv) {
     U.set_domain(x, y, z, c);
     U.placement().distribute(z);
     U.allocate(full_pipeline, Uout);
-    Up.set(U);
 
     // Now that we've distributed input, we can build local reduction domains.
     courno_func = build_courno(ctoprim); // Q -> scalar
     
     Target t = get_jit_target_from_environment();
     //t.set_feature(Target::Profile);
-    init_data.compile_jit(t);
+    // init_data.compile_jit(t);
     courno_func.compile_jit(t);
     full_pipeline.compile_jit(t);
     
     MPITiming timing(MPI_COMM_WORLD);
     const int niters = 1;
     for (int i = 0; i < niters; i++) {
-        init_data.realize(U);
+        //init_data.realize(U);
+        init_data_C();
         double time = 0, dt = 0;
         timestep.set(dt);
         for (int istep = 0; istep < nsteps; istep++) {
@@ -794,7 +823,7 @@ int main(int argc, char **argv) {
                 std::cout << "Advancing time step " << istep << ", time = " << time << "\n";
             }
             timing.start();
-            advance(U, Uout, dt);
+            advance(U, dt);
             timing.record(timing.stop());
             time = time + dt;
         }
@@ -804,23 +833,23 @@ int main(int argc, char **argv) {
     timing.gather(MPITiming::Max);
     timing.report();
 
-    // std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
-    // of << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
-    // for (int c = 0; c < U.extent(3); c++) {
-    //     const int gc = U.global(3, c);
-    //     for (int z = 0; z < U.extent(2); z++) {
-    //         const int gz = U.global(2, z);
-    //         for (int y = 0; y < U.extent(1); y++) {
-    //             const int gy = U.global(1, y);
-    //             for (int x = 0; x < U.extent(0); x++) {
-    //                 const int gx = U.global(0, x);
-    //                 of << gx << " " << gy << " " << gz << " " << gc << ": " << U(x,y,z,c) << "\n";
-    //             }
-    //         }
-    //     }
-    // }
-    // of << "\n";
-    // of.close();
+    std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
+    of << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
+    for (int c = 0; c < U.extent(3); c++) {
+        const int gc = U.global(3, c);
+        for (int z = 0; z < U.extent(2); z++) {
+            const int gz = U.global(2, z);
+            for (int y = 0; y < U.extent(1); y++) {
+                const int gy = U.global(1, y);
+                for (int x = 0; x < U.extent(0); x++) {
+                    const int gx = U.global(0, x);
+                    of << gx << " " << gy << " " << gz << " " << gc << ": " << U(x,y,z,c) << "\n";
+                }
+            }
+        }
+    }
+    of << "\n";
+    of.close();
     
     // output.set_domain(x, y, z);
     // output.placement().distribute(z);
