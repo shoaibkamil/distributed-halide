@@ -1186,7 +1186,7 @@ int main(int argc, char **argv) {
             }
         }
         
-        const int niters = 1;
+        const int niters = 5;
         for (int i = 0; i < niters; i++) {
             f.realize(in);
             f1.realize(in_correct);
