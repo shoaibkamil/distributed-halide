@@ -30,6 +30,7 @@ using std::string;
 using std::vector;
 using std::set;
 using std::map;
+using std::pair;
 
 namespace {
 const bool profiling = false;
@@ -152,6 +153,215 @@ Box simplify_box(const Box &b, const Scope<Expr> &env) {
     }
     return result;
 }
+
+// Construct a list of all variables used within an Expr.
+class GetVariablesInExpr : public IRGraphVisitor {
+public:
+    vector<const Variable *> vars;
+    using IRGraphVisitor::visit;
+    void visit(const Variable *v) {
+        IRGraphVisitor::visit(v);
+        vars.push_back(v);
+    }
+};
+
+// Construct a closure of all required variable definitions around the
+// visited Expr.
+class CaptureScope : public IRVisitor {
+    const Scope<Interval> &_for_env;
+    const Scope<Expr> &_env;
+
+    // Add all required values from the environment to the scope.
+    void capture(const Variable *v) {
+        if (_env.contains(v->name)) {
+            GetVariablesInExpr vars;
+            Expr val = _env.get(v->name);
+            val.accept(&vars);
+            for (const Variable *vv : vars.vars) {
+                capture(vv);
+            }
+            if (scope.contains(v->name)) {
+                internal_assert(val.same_as(scope.ref(v->name)));
+            } else {
+                scope.push(v->name, val);
+            }
+        } else if (_for_env.contains(v->name)) {
+            GetVariablesInExpr vars;
+            Interval val = _for_env.get(v->name);
+            val.min.accept(&vars);
+            val.max.accept(&vars);
+            for (const Variable *vv : vars.vars) {
+                capture(vv);
+            }
+        }
+    }
+public:
+    Scope<Expr> scope;
+    CaptureScope(const Scope<Interval> &for_env, const Scope<Expr> &env) : _for_env(for_env), _env(env) {}
+
+    using IRVisitor::visit;
+
+    void visit(const Variable *v) {
+        IRVisitor::visit(v);
+        capture(v);
+    }
+};
+
+// A Box with an accompanying lexical closure. This allows us to
+// reference a Box in terms of variables defined within a stage
+// outside of that stage.
+class ClosedScopeBox {
+    vector<string> _topological_scope;
+    Scope<Expr> _scope;
+    Box _box;
+
+    void topo_visit(const string &name, vector<string> &result,
+                    set<string> &unvisited, set<string> &temp) const {
+        internal_assert(!temp.count(name)) << "DAG has a cycle.\n";
+        if (!unvisited.count(name)) return;
+        temp.insert(name);
+        Expr val;
+        if (_scope.contains(name)) {
+            GetVariablesInExpr vars;
+            val = _scope.get(name);
+            val.accept(&vars);
+            for (const Variable *v : vars.vars) {
+                topo_visit(v->name, result, unvisited, temp);
+            }
+        }
+        unvisited.erase(name);
+        temp.erase(name);
+        if (val.defined()) {
+            // TODO: this may be inefficient.
+            result.insert(result.begin(), name);
+        }
+    }
+
+    // Because Scope objects are not ordered, we need to perform a
+    // topological sort before we can inject the scope as an ordered
+    // sequence of LetStmts. Here we use Tarjan's algorithm to perform
+    // the sort.
+    vector<string> topo_sort() const {
+        vector<string> result;
+        set<string> unvisited, temp;
+        for (auto it = _scope.cbegin(), ite = _scope.cend(); it != ite; ++it) {
+            unvisited.insert(it.name());
+        }
+
+        while (!unvisited.empty()) {
+            topo_visit(*unvisited.begin(), result, unvisited, temp);
+        }
+
+        return result;
+    }
+
+public:
+    ClosedScopeBox() {}
+
+    ClosedScopeBox(const Box &b, const Scope<Interval> &for_env, const Scope<Expr> &env) : _box(b) {
+        CaptureScope capture(for_env, env);
+        for (unsigned i = 0; i < b.size(); i++) {
+            b[i].min.accept(&capture);
+            b[i].max.accept(&capture);
+        }
+        _scope.swap(capture.scope);
+        _topological_scope = topo_sort();
+    }
+
+    // Use this instead of copy constructor or assignment operator.
+    void swap(ClosedScopeBox &other) {
+        std::swap(_box, other._box);
+        _scope.swap(other._scope);
+        _topological_scope.swap(other._topological_scope);
+    }
+
+    Stmt inject_scope(Stmt body) const {
+        Stmt stmt = body;
+        for (const string &var : _topological_scope) {
+            stmt = LetStmt::make(var, _scope.get(var), stmt);
+        }
+        return stmt;
+    }
+
+    void merge(const ClosedScopeBox &other) {
+        merge_boxes(_box, other._box);
+        for (auto it = other._scope.cbegin(), ite = other._scope.cend(); it != ite; ++it) {
+            if (_scope.contains(it.name())) {
+                internal_assert(it.value().same_as(_scope.ref(it.name())));
+            } else {
+                _scope.push(it.name(), it.value());
+            }
+        }
+        // We don't have to resort because this is just a partial ordering.
+        _topological_scope.insert(_topological_scope.end(), other._topological_scope.begin(),
+                                  other._topological_scope.end());
+    }
+
+    const Box &box() const { return _box; }
+};
+
+// Constructs a map of buffer -> region required across all consumers.
+class MergeAllRequiredRegions : public IRGraphVisitor {
+    const FuncValueBounds &func_bounds;
+    // Environment on for loop variables
+    Scope<Interval> for_env;
+    // Environment on let variables
+    Scope<Expr> env;
+public:
+    map<string, ClosedScopeBox> regions;
+
+    MergeAllRequiredRegions(const FuncValueBounds &fb) : func_bounds(fb) {}
+
+    using IRGraphVisitor::visit;
+
+    void visit(const For *for_loop) {
+        for_env.push(for_loop->name, Interval(for_loop->min, for_loop->min + for_loop->extent - 1));
+        IRGraphVisitor::visit(for_loop);
+        for_env.pop(for_loop->name);
+    }
+
+    void visit(const LetStmt *let) {
+        Interval I = bounds_of_expr_in_scope(let->value, for_env, func_bounds);
+        internal_assert(I.min.defined() == I.max.defined());
+        if (I.min.defined()) {
+            for_env.push(let->name, I);
+        }
+        env.push(let->name, let->value);
+        IRGraphVisitor::visit(let);
+        if (I.min.defined()) {
+            for_env.pop(let->name);
+        }
+        env.pop(let->name);
+    }
+
+    void visit(const Let *let) {
+        Interval I = bounds_of_expr_in_scope(let->value, for_env, func_bounds);
+        internal_assert(I.min.defined() == I.max.defined());
+        if (I.min.defined()) {
+            for_env.push(let->name, I);
+        }
+        env.push(let->name, let->value);
+        IRGraphVisitor::visit(let);
+        if (I.min.defined()) {
+            for_env.pop(let->name);
+        }
+        env.pop(let->name);
+    }
+
+    void visit(const Call *op) {
+        map<string, Box> required = boxes_required(op, for_env, func_bounds);
+        for (auto it : required) {
+            const string &name = it.first;
+            ClosedScopeBox b(it.second, for_env, env);
+            if (regions.find(name) != regions.end()) {
+                regions[name].merge(b);
+            } else {
+                regions[name].swap(b);
+            }
+        }
+        IRGraphVisitor::visit(op);
+    }
+};
 
 // Computes the intersection of the two given boxes. Makes a "best
 // effort" to determine if the boxes do not intersect, but if the box
@@ -1119,67 +1329,7 @@ public:
 // compute_rank(). Must occur after DistributeLoops.
 class LowerComputeRankFunctions : public IRMutator {
     const map<string, Function> &env;
-    map<string, Box> required_regions;
-
-    class MergeAllRequiredRegions : public IRVisitor {
-        const FuncValueBounds &func_bounds;
-        Scope<Interval> scope;
-        vector<std::pair<string, Expr> > lets;
-    public:
-        map<string, Box> regions;
-
-        MergeAllRequiredRegions(const FuncValueBounds &fb) : func_bounds(fb) {}
-
-        using IRVisitor::visit;
-
-        void visit(const For *for_loop) {
-            scope.push(for_loop->name, Interval(for_loop->min, for_loop->min + for_loop->extent - 1));
-            IRVisitor::visit(for_loop);
-            scope.pop(for_loop->name);
-        }
-
-        void visit(const LetStmt *let) {
-            Interval I = bounds_of_expr_in_scope(let->value, scope, func_bounds);
-            internal_assert(I.min.defined() == I.max.defined());
-            if (I.min.defined()) {
-                scope.push(let->name, I);
-            }
-            lets.push_back(std::make_pair(let->name, let->value));
-            IRVisitor::visit(let);
-            if (I.min.defined()) {
-                scope.pop(let->name);
-            }
-            lets.pop_back();
-        }
-
-        void visit(const Let *let) {
-            Interval I = bounds_of_expr_in_scope(let->value, scope, func_bounds);
-            internal_assert(I.min.defined() == I.max.defined());
-            if (I.min.defined()) {
-                scope.push(let->name, I);
-            }
-            lets.push_back(std::make_pair(let->name, let->value));
-            IRVisitor::visit(let);
-            if (I.min.defined()) {
-                scope.pop(let->name);
-            }
-            lets.pop_back();
-        }
-
-        void visit(const Call *op) {
-            map<string, Box> required = boxes_required(op, scope, func_bounds);
-            for (auto it : required) {
-                string name = it.first;
-                if (regions.find(name) != regions.end()) {
-                    Box b = regions[name];
-                    merge_boxes(b, it.second);
-                    regions[name] = simplify_box(b, lets);
-                } else {
-                    regions[name] = simplify_box(it.second, lets);
-                }
-            }
-        }
-    };
+    map<string, ClosedScopeBox> required_regions;
 
     // For a loop variable corresponding to a function argument (not a
     // split loop variable), return an Interval containing the min and
@@ -1189,12 +1339,12 @@ class LowerComputeRankFunctions : public IRMutator {
         internal_assert(required_regions.find(func) != required_regions.end());
         internal_assert(env.find(func) != env.end());
         const vector<string> &args = env.at(func).args();
-        const Box &b = required_regions.at(func);
-        internal_assert(b.size() == args.size());
+        const ClosedScopeBox &b = required_regions.at(func);
+        internal_assert(b.box().size() == args.size());
 
         for (int i = 0; i < (int)args.size(); i++) {
             if (ends_with(loop_var, args[i])) {
-                return b[i];
+                return b.box()[i];
             }
         }
         internal_assert(false) << loop_var;
@@ -1252,6 +1402,9 @@ public:
             } else {
                 internal_assert(false) << let->name;
             }
+            // TODO: this inserts duplicate Lets that are not always optimized away.
+            const ClosedScopeBox &b = required_regions.at(funcname);
+            stmt = b.inject_scope(stmt);
         } else {
             IRMutator::visit(let);
         }

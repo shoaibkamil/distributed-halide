@@ -1243,60 +1243,59 @@ int main(int argc, char **argv) {
         }
     }
 
-#if 0
-    // XXX: this test is failing
-    {
-        DistributedImage<int> in(10);
+//     // XXX: this test is failing
+//     {
+//         DistributedImage<int> in(10);
 
-        Func clamped;
-        clamped(x) = in(clamp(x, 0, in.global_width()-1));
-        Func f;
-        f(x) = clamped(x-1);
-        f.distribute(x);
-        Func init;
-        init(x) = x;
-        init.distribute(x);
+//         Func clamped;
+//         clamped(x) = in(clamp(x, 0, in.global_width()-1));
+//         Func f;
+//         f(x) = clamped(x-1);
+//         f.distribute(x);
+//         Func init;
+//         init(x) = x;
+//         init.distribute(x);
 
-        DistributedImage<int> out(10);
-        out.set_domain(x);
-        out.placement().distribute(x);
-        out.allocate();
-        in.set_domain(x);
-        in.placement().distribute(x);
-        in.allocate(f, out);
+//         DistributedImage<int> out(10);
+//         out.set_domain(x);
+//         out.placement().distribute(x);
+//         out.allocate();
+//         in.set_domain(x);
+//         in.placement().distribute(x);
+//         in.allocate(f, out);
 
-        init.realize(in);
+//         init.realize(in);
 
-        for (int r = 0; r < numprocs; r++) {
-            if (rank == r) {
-                std::cout << "rank " << r << "\n";
-                print_img1d(in);
-                std::cout << "\n";
-            }
-            MPI_Barrier(MPI_COMM_WORLD);
-        }
+//         for (int r = 0; r < numprocs; r++) {
+//             if (rank == r) {
+//                 std::cout << "rank " << r << "\n";
+//                 print_img1d(in);
+//                 std::cout << "\n";
+//             }
+//             MPI_Barrier(MPI_COMM_WORLD);
+//         }
 
-        for (int x = 0; x < in.width(); x++) {
-            const int correct = in.global(0, x);
-            if (in(x) != correct) {
-                printf("[rank %d] in(%d) = %d instead of %d\n", rank, x, in(x), correct);
-                MPI_Abort(MPI_COMM_WORLD, -1);
-                return -1;
-            }
-        }
+//         for (int x = 0; x < in.width(); x++) {
+//             const int correct = in.global(0, x);
+//             if (in(x) != correct) {
+//                 printf("[rank %d] in(%d) = %d instead of %d\n", rank, x, in(x), correct);
+//                 MPI_Abort(MPI_COMM_WORLD, -1);
+//                 return -1;
+//             }
+//         }
 
-        f.realize(out);
-        for (int x = 0; x < out.width(); x++) {
-            const int gxm1 = out.global(0, x) == 0 ? 0 : out.global(0, x-1);
-            const int correct = gxm1;
-            if (out(x) != correct) {
-                printf("[rank %d] out(%d) = %d instead of %d\n", rank, x, out(x), correct);
-                MPI_Finalize();
-                return -1;
-            }
-        }
-    }
-#endif
+//         f.realize(out);
+//         for (int x = 0; x < out.width(); x++) {
+//             const int gxm1 = out.global(0, x) == 0 ? 0 : out.global(0, x-1);
+//             const int correct = gxm1;
+//             if (out(x) != correct) {
+//                 printf("[rank %d] out(%d) = %d instead of %d\n", rank, x, out(x), correct);
+//                 MPI_Finalize();
+//                 return -1;
+//             }
+//         }
+//     }
+
     printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();
