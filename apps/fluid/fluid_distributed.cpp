@@ -1,5 +1,6 @@
 #include "Halide.h"
 #include "mpi_timing.h"
+#include "omp.h"
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -55,7 +56,7 @@ Func Uonethird("Uonethird"), Utwothirds("Utwothirds"), Uone("Uone");
 Func full_pipeline("full_pipeline");
 
 DistributedImage<double> U;
-    
+
 ImageParam Up(Float(64), 4, "U"),
     Unewp(Float(64), 4, "Unew"),
     Qp(Float(64), 4, "Q"),
@@ -117,7 +118,7 @@ static void init_data_C() {
                 const double wvel   = 1.2e4*sin(3*xloc)*cos(2*yloc)*sin(2*zloc);
                 const double rholoc = 1.0e-3 + 1.0e-5*sin(1*xloc)*cos(2*yloc)*cos(3*zloc);
                 const double eloc   = 2.5e9  + 1.0e-3*sin(2*xloc)*cos(2*yloc)*sin(2*zloc);
-                
+
                 U(x, y, z, irho) = rholoc;
                 U(x, y, z, imx) = rholoc*uvel;
                 U(x, y, z, imy) = rholoc*vvel;
@@ -127,7 +128,7 @@ static void init_data_C() {
         }
     }
 }
-    
+
 static Func build_init_data() {
     Expr twopi = Expr(2.0 * 3.141592653589793238462643383279502884197);
     Expr scale = Expr(prob_hi - prob_lo)/twopi;
@@ -135,7 +136,7 @@ static Func build_init_data() {
     Expr zloc = z * Expr(dx)/scale;
     Expr yloc = y * Expr(dx)/scale;
     Expr xloc = x * Expr(dx)/scale;
-    
+
     Expr uvel   = Expr(1.1e4)*sin(1*xloc)*sin(2*yloc)*sin(3*zloc);
     Expr vvel   = Expr(1.0e4)*sin(2*xloc)*sin(4*yloc)*sin(1*zloc);
     Expr wvel   = Expr(1.2e4)*sin(3*xloc)*cos(2*yloc)*sin(2*zloc);
@@ -217,7 +218,7 @@ static Func build_courno(Func Q) {
 
 static Func build_diffterm(Func Q) {
     const int tysize = 2, tzsize = 2;
-    
+
     Expr OneThird   = Expr(1.0)/Expr(3.0);
     Expr TwoThirds  = Expr(2.0)/Expr(3.0);
     Expr FourThirds = Expr(4.0)/Expr(3.0);
@@ -305,7 +306,7 @@ static Func build_diffterm(Func Q) {
     vy.compute_at(difflux, y).vectorize(x, 4);
     //vy.compute_root().vectorize(x, 4).parallel(z);
     wy.compute_at(difflux, y).vectorize(x, 4);
-    
+
     Expr uz_calc =
         (ALP*(Q(x,y,z+1,qu)-Q(x,y,z-1,qu))
          + BET*(Q(x,y,z+2,qu)-Q(x,y,z-2,qu))
@@ -337,7 +338,7 @@ static Func build_diffterm(Func Q) {
     uz.compute_at(difflux, z).vectorize(x, 4);
     vz.compute_at(difflux, z).vectorize(x, 4);
     wz.compute_at(difflux, z);
-    
+
     //loop3.tile(y, z, yi, zi, 4, 4).reorder(zi, x, yi, y, z).parallel(z);
 
     Expr uxx = (CENTER*Q(x,y,z,qu)
@@ -563,7 +564,7 @@ static Func build_hypterm(Func U, Func Q) {
 
     //ene.compute_at(flux, y);
     //ene.compute_at(flux, z);
-    
+
     unp1 = Q(x,y+1,z,qv);
     unp2 = Q(x,y+2,z,qv);
     unp3 = Q(x,y+3,z,qv);
@@ -627,7 +628,7 @@ static Func build_hypterm(Func U, Func Q) {
     ene_2(x, y, z) = flux_iene_calc;
 
     //ene_2.compute_at(flux, z);
-    
+
     unp1 = Q(x,y,z+1,qw);
     unp2 = Q(x,y,z+2,qw);
     unp3 = Q(x,y,z+3,qw);
@@ -720,13 +721,13 @@ static Func build_Uone(Func U, Func Unew, Func D, Func F) {
 }
 
 
-static void build_pipeline(Func UAccessor) {
+static void build_pipeline(Func UAccessor, Func QAccessor) {
     // init_data = build_init_data(); // () -> U
-    
+
     ctoprim = build_ctoprim(UAccessor); // U -> Q
 
-    diffterm = build_diffterm(ctoprim); // Q -> D
-    hypterm = build_hypterm(UAccessor, ctoprim); // U, Q -> F
+    diffterm = build_diffterm(QAccessor); // Q -> D
+    hypterm = build_hypterm(UAccessor, QAccessor); // U, Q -> F
     Uonethird = build_Uonethird(UAccessor, diffterm, hypterm); // U, D, F -> U'
 
     Func ctoprim2, diffterm2, hypterm2;
@@ -745,11 +746,37 @@ static void build_pipeline(Func UAccessor) {
     full_pipeline.bound(c, 0, nc);
 }
 
-
-static void advance(DistributedImage<double> &U, double &dt) {
+static double courno_C(DistributedImage<double> &Q) {
     double courno = 1e-50, local_courno = 1e-50;
-    local_courno = max(evaluate<double>(courno_func), local_courno);
+
+    const double dxinv = 1.0 / dx;
+    double courmx = -Huge(), courmy = -Huge(), courmz = -Huge();
+    int x, y, z;
+    double c, courx, coury, courz;
+
+#pragma omp parallel for private(x,y,z,c,courx,coury,courz) reduction(max:courmx,courmy,courmz)
+    for (z = 0; z < Q.extent(2); z++) {
+        for (y = 0; y < Q.extent(1); y++) {
+            for (x = 0; x < Q.extent(0); x++) {
+                c     = sqrt(GAMMA*Q(x,y,z,4)/Q(x,y,z,0));
+                courx = ( c+abs(Q(x,y,z,1)) ) * dxinv;
+                coury = ( c+abs(Q(x,y,z,2)) ) * dxinv;
+                courz = ( c+abs(Q(x,y,z,3)) ) * dxinv;
+                courmx = max(courmx, courx);
+                courmy = max(courmy, coury);
+                courmz = max(courmz, courz);
+            }
+        }
+    }
+    local_courno = max(courmx, max(courmy, courmz));
     parallel_reduce(local_courno, courno, MPI_MAX);
+    return courno;
+}
+
+static void advance(DistributedImage<double> &U, DistributedImage<double> &Q, double &dt) {
+    ctoprim.realize(Q);
+
+    double courno = courno_C(Q);
     dt = cfl / courno;
     timestep.set(dt);
 
@@ -781,16 +808,30 @@ int main(int argc, char **argv) {
     // dimension, then w,h,d.
     U = DistributedImage<double>(global_w, global_h, global_d, nc, "U");
     DistributedImage<double> Uout(global_w, global_h, global_d, nc);
+    DistributedImage<double> Q(global_w, global_h, global_d, 6);
 
     // Impose periodic boundary conditions on U and Q
     std::vector<std::pair<Expr, Expr>>
         global_bounds_U = {std::make_pair(0, global_w), std::make_pair(0, global_h),
-                           std::make_pair(0, global_d), std::make_pair(0, nc)};
-    Func Ut("Ut");
+                           std::make_pair(0, global_d), std::make_pair(0, nc)},
+        global_bounds_Q = {std::make_pair(0, global_w), std::make_pair(0, global_h),
+                           std::make_pair(0, global_d), std::make_pair(0, 5)};
+
+    Func Ut("Ut"), Qt("Qt");
     Ut(x,y,z,c) = U(x,y,z,c);
-    Func UAccessor("UAccessor");
-    UAccessor = BoundaryConditions::repeat_image(Ut, global_bounds_U);
-    build_pipeline(UAccessor);
+    Qt(x,y,z,c) = Q(x,y,z,c);
+    Func UAccessor("UAccessor"), QAccessor("QAccessor");
+    UAccessor(x, y, z, c) = U(clamp(x, 0, U.global_extent(0)-1),
+                              clamp(y, 0, U.global_extent(1)-1),
+                              clamp(z, 0, U.global_extent(2)-1),
+                              clamp(c, 0, U.global_extent(3)-1));
+    QAccessor(x, y, z, c) = Q(clamp(x, 0, Q.global_extent(0)-1),
+                              clamp(y, 0, Q.global_extent(1)-1),
+                              clamp(z, 0, Q.global_extent(2)-1),
+                              clamp(c, 0, Q.global_extent(3)-1));
+    // UAccessor = BoundaryConditions::repeat_image(Ut, global_bounds_U);
+    // QAccessor = BoundaryConditions::repeat_image(Qt, global_bounds_Q);
+    build_pipeline(UAccessor, QAccessor);
 
     full_pipeline.distribute(z);
 
@@ -798,19 +839,23 @@ int main(int argc, char **argv) {
     Uout.placement().distribute(z);
     Uout.allocate();
 
+    Q.set_domain(x, y, z, c);
+    Q.placement().distribute(z);
+    Q.allocate(full_pipeline, Q);
+
     U.set_domain(x, y, z, c);
     U.placement().distribute(z);
     U.allocate(full_pipeline, Uout);
 
     // Now that we've distributed input, we can build local reduction domains.
-    courno_func = build_courno(ctoprim); // Q -> scalar
-    
+    //courno_func = build_courno(ctoprim); // Q -> scalar
+
     Target t = get_jit_target_from_environment();
     //t.set_feature(Target::Profile);
     // init_data.compile_jit(t);
-    courno_func.compile_jit(t);
+    //courno_func.compile_jit(t);
     full_pipeline.compile_jit(t);
-    
+
     MPITiming timing(MPI_COMM_WORLD);
     const int niters = 1;
     for (int i = 0; i < niters; i++) {
@@ -823,7 +868,7 @@ int main(int argc, char **argv) {
                 std::cout << "Advancing time step " << istep << ", time = " << time << "\n";
             }
             timing.start();
-            advance(U, dt);
+            advance(U, Q, dt);
             timing.record(timing.stop());
             time = time + dt;
         }
@@ -833,24 +878,24 @@ int main(int argc, char **argv) {
     timing.gather(MPITiming::Max);
     timing.report();
 
-    std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
-    of << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
-    for (int c = 0; c < U.extent(3); c++) {
-        const int gc = U.global(3, c);
-        for (int z = 0; z < U.extent(2); z++) {
-            const int gz = U.global(2, z);
-            for (int y = 0; y < U.extent(1); y++) {
-                const int gy = U.global(1, y);
-                for (int x = 0; x < U.extent(0); x++) {
-                    const int gx = U.global(0, x);
-                    of << gx << " " << gy << " " << gz << " " << gc << ": " << U(x,y,z,c) << "\n";
-                }
-            }
-        }
-    }
-    of << "\n";
-    of.close();
-    
+    // std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
+    // of << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
+    // for (int c = 0; c < U.extent(3); c++) {
+    //     const int gc = U.global(3, c);
+    //     for (int z = 0; z < U.extent(2); z++) {
+    //         const int gz = U.global(2, z);
+    //         for (int y = 0; y < U.extent(1); y++) {
+    //             const int gy = U.global(1, y);
+    //             for (int x = 0; x < U.extent(0); x++) {
+    //                 const int gx = U.global(0, x);
+    //                 of << gx << " " << gy << " " << gz << " " << gc << ": " << U(x,y,z,c) << "\n";
+    //             }
+    //         }
+    //     }
+    // }
+    // of << "\n";
+    // of.close();
+
     // output.set_domain(x, y, z);
     // output.placement().distribute(z);
     // output.allocate();
