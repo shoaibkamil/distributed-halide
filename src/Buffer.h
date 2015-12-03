@@ -106,19 +106,8 @@ public:
         local sizes. */
     EXPORT void set_distributed(const std::vector<int> &allocated_mins,
                                 const std::vector<int> &allocated_sizes,
-                                const std::vector<Expr> &symbolic_allocated_extents,
-                                const std::vector<Expr> &symbolic_allocated_mins,
                                 const std::vector<Expr> &symbolic_local_extents,
                                 const std::vector<Expr> &symbolic_local_mins);
-
-    /** Get the allocated extent of this buffer in the given
-        dimension. Only relevant for distributed. */
-    EXPORT Expr allocated_extent(int dim) const;
-
-    /** Get the coordinate in the function that this buffer represents
-     * that corresponds to the base address of the allocated
-     * buffer. Only relevant for distributed. */
-    EXPORT Expr allocated_min(int dim) const;
 
     /** Get the local extent of this buffer in the given
         dimension. Only relevant for distributed. */
