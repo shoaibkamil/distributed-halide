@@ -106,8 +106,12 @@ struct Bound {
 };
 
 struct NestedDistribution {
-    std::vector<Dim> dims;
-    NestedDistribution(const std::vector<Dim> &d) : dims(d.begin(), d.end()) {}
+    std::vector<std::pair<Dim, int>> dims;
+    NestedDistribution() {}
+    NestedDistribution(Dim inner, Dim outer, int p, int q) {
+        dims.push_back(std::make_pair(inner, p));
+        dims.push_back(std::make_pair(outer, q));
+    }
 };
 
 struct ScheduleContents;
@@ -168,8 +172,8 @@ public:
     /** The list of dimensions that are to be distributed jointly
      * (i.e. multi-dimensional distribution). */
     // @{
-    const std::vector<NestedDistribution> &nested_distributions() const;
-    std::vector<NestedDistribution> &nested_distributions();
+    const NestedDistribution &nested_distribution() const;
+    NestedDistribution &nested_distribution();
     // @}
 
     /** Any reduction domain associated with this schedule. */

@@ -1251,14 +1251,15 @@ int main(int argc, char **argv) {
                            clamp(y, 0, in.global_height()-1));
         Func f;
         f(x, y) = clamped(x, y);
-        f.distribute(x, y);
+        // Distribute f onto a grid of 2x2 processors:
+        f.distribute(x, y, 2, 2);
 
         DistributedImage<int> out(16, 16);
         out.set_domain(x, y);
-        out.placement().distribute(x, y);
+        out.placement().distribute(x, y, 2, 2);
         out.allocate();
         in.set_domain(x, y);
-        in.placement().distribute(x, y);
+        in.placement().distribute(x, y, 2, 2);
         in.allocate(f, out);
 
         for (int y = 0; y < in.height(); y++) {

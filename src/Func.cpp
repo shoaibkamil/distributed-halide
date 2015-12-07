@@ -305,7 +305,7 @@ Internal::ForType Stage::get_dim_type(VarOrRVar var) {
     return ForType::Serial;
 }
 
-void Stage::set_nested_distribution(VarOrRVar inner, VarOrRVar outer) {
+void Stage::set_nested_distribution(VarOrRVar inner, VarOrRVar outer, int p, int q) {
     bool found_inner = false, found_outer = false;
     Dim dinner, douter;
     for (const Dim &d : schedule.dims()) {
@@ -322,7 +322,7 @@ void Stage::set_nested_distribution(VarOrRVar inner, VarOrRVar outer) {
                    << ", could not find dimension " << inner.name()
                    << " or " << outer.name() << "\n";
     }
-    schedule.nested_distributions().push_back(NestedDistribution({dinner, douter}));
+    schedule.nested_distribution() = NestedDistribution({dinner, douter, p, q});
 }
 
 void Stage::set_dim_device_api(VarOrRVar var, DeviceAPI device_api) {
@@ -591,10 +591,10 @@ Stage &Stage::distribute(VarOrRVar var) {
     return *this;
 }
 
-Stage &Stage::distribute(VarOrRVar inner, VarOrRVar outer) {
+Stage &Stage::distribute(VarOrRVar inner, VarOrRVar outer, int p, int q) {
     distribute(inner);
     distribute(outer);
-    set_nested_distribution(inner, outer);
+    set_nested_distribution(inner, outer, p, q);
     return *this;
 }
 
@@ -929,9 +929,9 @@ Func &Func::distribute(VarOrRVar var) {
     return *this;
 }
 
-Func &Func::distribute(VarOrRVar inner, VarOrRVar outer) {
+Func &Func::distribute(VarOrRVar inner, VarOrRVar outer, int p, int q) {
     invalidate_cache();
-    Stage(func.schedule(), name()).distribute(inner, outer);
+    Stage(func.schedule(), name()).distribute(inner, outer, p, q);
     return *this;
 }
 

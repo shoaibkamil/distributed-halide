@@ -1261,33 +1261,29 @@ public:
                             != distributed_bounds.end());
             internal_assert(env.find(funcname) != env.end());
 
+            const Schedule &schedule = env.at(funcname).schedule();
             Expr oldmin = distributed_bounds.at(loop_var + ".loop_min"),
                 oldmax = distributed_bounds.at(loop_var + ".loop_max"),
                 oldextent = distributed_bounds.at(loop_var + ".loop_extent");
 
-            const Schedule &schedule = env.at(funcname).schedule();
-
-            // Check for nested distribution.
-            unsigned nested_size = 0;
-            // Should be 0 for innermost, n-1 for outermost.
-            unsigned nested_index = 0;
-            for (const NestedDistribution &n : schedule.nested_distributions()) {
-                for (unsigned i = 0; i < n.dims.size(); i++) {
-                    const Dim &d = n.dims[i];
+            const NestedDistribution &nested = schedule.nested_distribution();
+            bool is_nested = !nested.dims.empty();
+            int nested_size = -1, nested_index = -1, inner_nested_size = -1;
+            if (is_nested) {
+                inner_nested_size = nested.dims[0].second;
+                for (unsigned i = 0; i < nested.dims.size(); i++) {
+                    const auto &nd = nested.dims[i];
+                    const Dim &d = nd.first;
                     if (ends_with(loop_var, d.var)) {
-                        internal_assert(nested_size == 0);
-                        nested_size = n.dims.size();
+                        internal_assert(nested_index == -1);
+                        nested_size = nd.second;
                         nested_index = i;
                     }
                 }
             }
 
-            Expr nt = Var("NumProcessors");
-            if (nested_size) {
-                nt = cast(Int(32), pow(nt, 1.0f / (float)nested_size));
-            }
-
-            Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / nt));
+            Expr n = is_nested ? Expr(nested_size) : Var("NumProcessors");
+            Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / n));
 
             // Check if this dimension was fused, and get the inner
             // extent if so.
@@ -1315,18 +1311,17 @@ public:
             }
 
             Expr newmin, newmax;
-            if (nested_size > 0) {
-                internal_assert(nested_index < 2) << "3D unimplemented\n";
+            if (is_nested) {
+                internal_assert(nested_index >= 0 && nested_index < 2) << "3D unimplemented\n";
                 if (nested_index == 0) {
-                    newmin = oldmin + (Var("Rank") % nt) * Var(loop_var + ".SliceSize");
+                    newmin = oldmin + (Var("Rank") % inner_nested_size) * Var(loop_var + ".SliceSize");
                 } else if (nested_index == 1) {
-                    newmin = oldmin + (Var("Rank") / nt) * Var(loop_var + ".SliceSize");
+                    newmin = oldmin + (Var("Rank") / inner_nested_size) * Var(loop_var + ".SliceSize");
                 }
-                newmax = newmin + Var(loop_var + ".SliceSize") - 1;
             } else {
                 newmin = oldmin + Var(loop_var + ".SliceSize") * Var("Rank");
-                newmax = newmin + Var(loop_var + ".SliceSize") - 1;
             }
+            newmax = newmin + Var(loop_var + ".SliceSize") - 1;
 
             // We by default don't cap the new extent to make sure it
             // doesn't run over. That is because allocation bounds
