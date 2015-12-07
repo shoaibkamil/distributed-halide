@@ -105,6 +105,11 @@ struct Bound {
     Expr min, extent;
 };
 
+struct NestedDistribution {
+    std::vector<Dim> dims;
+    NestedDistribution(const std::vector<Dim> &d) : dims(d.begin(), d.end()) {}
+};
+
 struct ScheduleContents;
 
 struct Specialization {
@@ -158,6 +163,13 @@ public:
     // @{
     const std::vector<Dim> &dims() const;
     std::vector<Dim> &dims();
+    // @}
+
+    /** The list of dimensions that are to be distributed jointly
+     * (i.e. multi-dimensional distribution). */
+    // @{
+    const std::vector<NestedDistribution> &nested_distributions() const;
+    std::vector<NestedDistribution> &nested_distributions();
     // @}
 
     /** Any reduction domain associated with this schedule. */

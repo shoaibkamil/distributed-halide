@@ -1243,6 +1243,91 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        DistributedImage<int> in(16, 16);
+
+        Func clamped;
+        clamped(x, y) = in(clamp(x, 0, in.global_width()-1),
+                           clamp(y, 0, in.global_height()-1));
+        Func f;
+        f(x, y) = clamped(x, y);
+        f.distribute(x, y);
+
+        DistributedImage<int> out(16, 16);
+        out.set_domain(x, y);
+        out.placement().distribute(x, y);
+        out.allocate();
+        in.set_domain(x, y);
+        in.placement().distribute(x, y);
+        in.allocate(f, out);
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
+
+        const float sqrtn = sqrtf(numprocs);
+        const int isqrtn = (int)sqrtn;
+        const int xslice = (int)ceil(in.global_width() / sqrtn);
+        const int yslice = (int)ceil(in.global_height() / sqrtn);
+
+        for (int r = 0; r < numprocs; r++) {
+            if (rank == r) {
+                printf("[rank %d] input from (%d,%d) to (%d,%d)\n",
+                       rank, in.global(0, 0), in.global(1, 0),
+                       in.global(0, in.width()-1), in.global(1, in.height()-1));
+                fflush(stdout);
+            }
+            MPI_Barrier(MPI_COMM_WORLD);
+        }
+        assert(in.global(0, 0) == (rank % isqrtn) * xslice);
+        assert(in.global(0, in.width()-1) == (rank % isqrtn) * xslice + (xslice-1));
+        assert(in.local(0, (rank % isqrtn)*xslice) == 0);
+
+        assert(in.global(1, 0) == (rank / isqrtn) * yslice);
+        assert(in.global(1, in.height()-1) == (rank / isqrtn) * yslice + (yslice-1));
+        assert(in.local(1, (rank / isqrtn)*yslice) == 0);
+
+        assert(in.mine(0, 0) == (rank == 0));
+        assert(in.mine(in.global_width() - 1, in.global_height() - 1) == (rank == numprocs - 1));
+        assert(in.mine(-1, 0) == false);
+        assert(in.mine(in.global_width(), in.global_height()) == false);
+        if (numprocs > 1) {
+            assert(in.mine(xslice, 0) == (rank == 1));
+        }
+
+        assert(out.global(0, 0) == (rank % isqrtn) * xslice);
+        assert(out.global(0, out.width()-1) == (rank % isqrtn) * xslice + (xslice-1));
+        assert(out.local(0, (rank % isqrtn)*xslice) == 0);
+
+        assert(out.global(1, 0) == (rank / isqrtn) * yslice);
+        assert(out.global(1, out.height()-1) == (rank / isqrtn) * yslice + (yslice-1));
+        assert(out.local(1, (rank / isqrtn)*yslice) == 0);
+
+        assert(out.mine(0, 0) == (rank == 0));
+        assert(out.mine(out.global_width() - 1, out.global_height() - 1) == (rank == numprocs - 1));
+        assert(out.mine(-1, 0) == false);
+        assert(out.mine(out.global_width(), out.global_height()) == false);
+        if (numprocs > 1) {
+            assert(out.mine(xslice, 0) == (rank == 1));
+        }
+
+        f.realize(out.get_buffer());
+
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                const int gx = out.global(0, x), gy = out.global(1, y);
+                const int correct = gx + gy;
+                if (out(x, y) != correct) {
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
+                    MPI_Abort(MPI_COMM_WORLD, -1);
+                    return -1;
+                }
+            }
+        }
+    }
+
 //     // XXX: this test is failing
 //     {
 //         DistributedImage<int> in(10);

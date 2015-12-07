@@ -33,6 +33,7 @@ namespace Halide {
 namespace Internal {
 
 map<string, Box> get_boxes(Func f, bool cap_extents=false);
+Expr fold_pow(Expr e);
 
 struct IntInterval {
     int64_t min, max;
@@ -285,6 +286,8 @@ public:
         for (unsigned i = 0; i < b.size(); i++) {
             Expr min = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, substitute(env, b[i].min))));
             Expr max = simplify(Let::make("Rank", rank, Let::make("NumProcessors", num_processors, substitute(env, b[i].max))));
+            min = simplify(fold_pow(min));
+            max = simplify(fold_pow(max));
             int imin = 0, imax = 0;
             const int64_t *intmin = as_const_int(min);
             internal_assert(intmin != NULL) << min;

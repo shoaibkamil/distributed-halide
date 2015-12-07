@@ -69,6 +69,42 @@ public:
 
     map<string, Box> boxes;
 };
+
+// Constant-folds the pow_32 extern call.
+class ConstantFoldPow : public IRMutator {
+    float to_float(Expr e) const {
+        float result = 0;
+        if (const double *v = as_const_float(e)) {
+            result = (float)*v;
+        } else if (const int64_t *v = as_const_int(e)) {
+            result = (float)*v;
+        } else if (const uint64_t *v = as_const_uint(e)) {
+            result = (float)*v;
+        } else {
+            internal_assert(false) << e;
+        }
+        return result;
+    }
+
+    Expr compute_pow32(Expr a, Expr b) const {
+        float fa = to_float(a), fb = to_float(b);
+        double result = std::pow(fa, fb);
+        return FloatImm::make(Float(32), (float)result);
+    }
+public:
+    using IRMutator::visit;
+
+    void visit(const Call *op) {
+        if (op->call_type == Call::Extern && op->name == "pow_f32") {
+            internal_assert(op->args.size() == 2);
+            Expr a = mutate(op->args[0]), b = mutate(op->args[1]);
+            expr = compute_pow32(a, b);
+        } else {
+            IRMutator::visit(op);
+        }
+    }
+};
+
 }
 
 // Lower the given function enough to get bounds information on
@@ -98,6 +134,13 @@ map<string, Box> get_boxes(Func f, bool cap_extents) {
     GetBoxes get;
     s.accept(&get);
     return get.boxes;
+}
+
+// Nested distribution code makes use of the pow_f32 extern call,
+// which is not constant folded by the normal simplification
+// process. We do it manually here.
+Expr fold_pow(Expr e) {
+    return ConstantFoldPow().mutate(e);
 }
 
 }

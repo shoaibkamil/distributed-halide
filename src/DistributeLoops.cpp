@@ -1252,22 +1252,47 @@ public:
             string loop_var = remove_suffix(let->name);
             string funcname = first_token(let->name);
             string stage_prefix = funcname + "." + second_token(let->name);
+
             internal_assert(distributed_bounds.find(loop_var + ".loop_min")
                             != distributed_bounds.end());
             internal_assert(distributed_bounds.find(loop_var + ".loop_max")
                             != distributed_bounds.end());
             internal_assert(distributed_bounds.find(loop_var + ".loop_extent")
                             != distributed_bounds.end());
+            internal_assert(env.find(funcname) != env.end());
+
             Expr oldmin = distributed_bounds.at(loop_var + ".loop_min"),
                 oldmax = distributed_bounds.at(loop_var + ".loop_max"),
                 oldextent = distributed_bounds.at(loop_var + ".loop_extent");
-            Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / Var("NumProcessors")));
+
+            const Schedule &schedule = env.at(funcname).schedule();
+
+            // Check for nested distribution.
+            unsigned nested_size = 0;
+            // Should be 0 for innermost, n-1 for outermost.
+            unsigned nested_index = 0;
+            for (const NestedDistribution &n : schedule.nested_distributions()) {
+                for (unsigned i = 0; i < n.dims.size(); i++) {
+                    const Dim &d = n.dims[i];
+                    if (ends_with(loop_var, d.var)) {
+                        internal_assert(nested_size == 0);
+                        nested_size = n.dims.size();
+                        nested_index = i;
+                    }
+                }
+            }
+
+            Expr nt = Var("NumProcessors");
+            if (nested_size) {
+                nt = cast(Int(32), pow(nt, 1.0f / (float)nested_size));
+            }
+
+            Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / nt));
 
             // Check if this dimension was fused, and get the inner
             // extent if so.
             Expr inner;
-            internal_assert(env.find(funcname) != env.end());
-            for (Split s : env.at(funcname).schedule().splits()) {
+            for (Split s : schedule.splits()) {
                 if (s.is_fuse() && ends_with(loop_var, s.old_var)) {
                     internal_assert(!inner.defined());
                     Var inner_extent(stage_prefix + "." + s.inner + ".loop_extent");
@@ -1289,8 +1314,20 @@ public:
                 slice_size = numrows * inner;
             }
 
-            Expr newmin = oldmin + Var(loop_var + ".SliceSize") * Var("Rank"),
+            Expr newmin, newmax;
+            if (nested_size > 0) {
+                internal_assert(nested_index < 2) << "3D unimplemented\n";
+                if (nested_index == 0) {
+                    newmin = oldmin + (Var("Rank") % nt) * Var(loop_var + ".SliceSize");
+                } else if (nested_index == 1) {
+                    newmin = oldmin + (Var("Rank") / nt) * Var(loop_var + ".SliceSize");
+                }
                 newmax = newmin + Var(loop_var + ".SliceSize") - 1;
+            } else {
+                newmin = oldmin + Var(loop_var + ".SliceSize") * Var("Rank");
+                newmax = newmin + Var(loop_var + ".SliceSize") - 1;
+            }
+
             // We by default don't cap the new extent to make sure it
             // doesn't run over. That is because allocation bounds
             // inference will allocate a buffer big enough for the
@@ -1428,11 +1465,14 @@ public:
     }
 
     void visit(const For *for_loop) {
-        IRMutator::visit(for_loop);
         ForType newtype = get_new_type(for_loop->for_type);
         if (newtype != for_loop->for_type) {
-            stmt = For::make(for_loop->name, for_loop->min, for_loop->extent,
-                             newtype, for_loop->device_api, for_loop->body);
+            stmt = For::make(for_loop->name, for_loop->min,
+                             for_loop->extent,
+                             newtype, for_loop->device_api,
+                             mutate(for_loop->body));
+        } else {
+            IRMutator::visit(for_loop);
         }
     }
 };

@@ -44,6 +44,7 @@ class Stage {
     Internal::Schedule schedule;
     void set_dim_type(VarOrRVar var, Internal::ForType t);
     Internal::ForType get_dim_type(VarOrRVar var);
+    void set_nested_distribution(VarOrRVar inner, VarOrRVar outer);
     void set_dim_device_api(VarOrRVar var, DeviceAPI device_api);
     void split(const std::string &old, const std::string &outer, const std::string &inner, Expr factor, bool exact);
     std::string stage_name;
@@ -66,6 +67,7 @@ public:
     EXPORT Stage &fuse(VarOrRVar inner, VarOrRVar outer, VarOrRVar fused);
     EXPORT Stage &serial(VarOrRVar var);
     EXPORT Stage &distribute(VarOrRVar var);
+    EXPORT Stage &distribute(VarOrRVar inner, VarOrRVar outer);
     EXPORT Stage &parallel(VarOrRVar var);
     EXPORT Stage &vectorize(VarOrRVar var);
     EXPORT Stage &unroll(VarOrRVar var);
@@ -830,8 +832,10 @@ public:
     /** Mark a dimension to be traversed serially. This is the default. */
     EXPORT Func &serial(VarOrRVar var);
 
-    /** Mark a dimension to be traversed in a distributed fashion. */
+    /** Mark a dimension or dimensions to be traversed in a
+     * distributed fashion. */
     EXPORT Func &distribute(VarOrRVar var);
+    EXPORT Func &distribute(VarOrRVar inner, VarOrRVar outer);
 
     /** Mark a dimension to be traversed in parallel */
     EXPORT Func &parallel(VarOrRVar var);
