@@ -1393,6 +1393,52 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        DistributedImage<int> in(100, 100);
+
+        Func clamped;
+        clamped(x, y) = in(clamp(x, 0, in.global_width()-1),
+                           clamp(y, 0, in.global_height()-1));
+        Func f, g;
+        f(x, y) = clamped(x, y);
+        g(x, y) = f(x, y-1) + f(x, y+1);
+        // Use the helper function to determine the best process grid arrangement.
+        std::pair<int, int> proc_grid = approx_factors_near_sqrt(numprocs);
+        const int p = proc_grid.first, q = proc_grid.second;
+        f.compute_root().distribute(x, y, p, q);
+        g.compute_root().distribute(x, y, p, q);
+
+        DistributedImage<int> out(100, 100);
+        out.set_domain(x, y);
+        out.placement().distribute(x, y, p, q);
+        out.allocate();
+        in.set_domain(x, y);
+        in.placement().distribute(x, y, p, q);
+        in.allocate(g, out);
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
+
+        g.realize(out.get_buffer());
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                const int ymax = out.global_height() - 1;
+                const int gyp1 = out.global(1, y+1) >= ymax ? ymax : out.global(1, y+1),
+                    gym1 = out.global(1, y) == 0 ? 0 : out.global(1, y-1);
+                const int gx = out.global(0, x);
+                const int correct = gx + gym1 + gx + gyp1;
+                if (out(x, y) != correct) {
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
+                    MPI_Abort(MPI_COMM_WORLD, -1);
+                    return -1;
+                }
+            }
+        }
+    }
+
 //     // XXX: this test is failing
 //     {
 //         DistributedImage<int> in(10);
