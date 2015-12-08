@@ -120,7 +120,12 @@ struct meta_and<T1, Args...> : std::integral_constant<bool, T1::value && meta_an
 template<typename To, typename... Args>
 struct all_are_convertible : meta_and<std::is_convertible<Args, To>...> {};
 
-}
-}
+} // Internal
+
+/** Returns two numbers p, q such that p*q <= n and |p-sqrt(n)|,
+ * |q-sqrt(n)| are minimized. */
+EXPORT std::pair<int, int> approx_factors_near_sqrt(int val);
+
+} // Halide
 
 #endif

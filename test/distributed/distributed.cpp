@@ -1329,6 +1329,27 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        const auto p0 = approx_factors_near_sqrt(0), p1 = approx_factors_near_sqrt(1),
+            p2 = approx_factors_near_sqrt(2), p4 = approx_factors_near_sqrt(4),
+            p8 = approx_factors_near_sqrt(8), p9 = approx_factors_near_sqrt(9),
+            p10 = approx_factors_near_sqrt(10), p17 = approx_factors_near_sqrt(17),
+            p24 = approx_factors_near_sqrt(24), p85 = approx_factors_near_sqrt(85),
+            p99 = approx_factors_near_sqrt(99);
+
+        assert(p0 == std::make_pair(0, 0));
+        assert(p1 == std::make_pair(1, 1));
+        assert(p2 == std::make_pair(1, 2));
+        assert(p4 == std::make_pair(2, 2));
+        assert(p8 == std::make_pair(2, 4));
+        assert(p9 == std::make_pair(3, 3));
+        assert(p10 == std::make_pair(3, 3));
+        assert(p17 == std::make_pair(4, 4));
+        assert(p24 == std::make_pair(4, 6));
+        assert(p85 == std::make_pair(9, 9));
+        assert(p99 == std::make_pair(9, 11));
+    }
+
 //     // XXX: this test is failing
 //     {
 //         DistributedImage<int> in(10);

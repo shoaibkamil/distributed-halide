@@ -4,6 +4,7 @@
 #include "Error.h"
 #include <sstream>
 #include <map>
+#include <cmath>
 
 namespace Halide {
 namespace Internal {
@@ -121,5 +122,30 @@ std::vector<std::string> split_string(const std::string &source, const std::stri
     return elements;
 }
 
+} // Internal
+
+std::pair<int, int> approx_factors_near_sqrt(int n) {
+    internal_assert(n >= 0);
+
+    int p = 0, q = 0;
+    const int sqrtn = (int)floor(sqrt((float)n));
+
+    // Fast path for square numbers.
+    if (sqrtn * sqrtn == n) {
+        return std::make_pair(sqrtn, sqrtn);
+    }
+
+    for (int f = sqrtn; f > 0; f--) {
+        p = n / f;
+        q = n / p;
+        if (p*q <= n) {
+            break;
+        }
+    }
+    internal_assert(p*q <= n);
+
+    if (p > q) std::swap(p, q);
+    return std::make_pair(p, q);
 }
-}
+
+} // Halide
