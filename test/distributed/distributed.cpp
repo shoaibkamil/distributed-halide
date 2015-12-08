@@ -1350,6 +1350,49 @@ int main(int argc, char **argv) {
         assert(p99 == std::make_pair(9, 11));
     }
 
+    {
+        DistributedImage<int> in(100, 100);
+
+        Func clamped;
+        clamped(x, y) = in(clamp(x, 0, in.global_width()-1),
+                           clamp(y, 0, in.global_height()-1));
+        Func f;
+        f(x, y) = clamped(x, y);
+        // Use the helper function to determine the best process grid arrangement.
+        std::pair<int, int> proc_grid = approx_factors_near_sqrt(numprocs);
+        const int p = proc_grid.first, q = proc_grid.second;
+        f.distribute(x, y, p, q);
+
+        mpi_printf("Using process grid %dx%d\n", p, q);
+
+        DistributedImage<int> out(100, 100);
+        out.set_domain(x, y);
+        out.placement().distribute(x, y, p, q);
+        out.allocate();
+        in.set_domain(x, y);
+        in.placement().distribute(x, y, p, q);
+        in.allocate(f, out);
+
+        for (int y = 0; y < in.height(); y++) {
+            for (int x = 0; x < in.width(); x++) {
+                in(x, y) = in.global(0, x) + in.global(1, y);
+            }
+        }
+
+        f.realize(out.get_buffer());
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                const int gx = out.global(0, x), gy = out.global(1, y);
+                const int correct = gx + gy;
+                if (out(x, y) != correct) {
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
+                    MPI_Abort(MPI_COMM_WORLD, -1);
+                    return -1;
+                }
+            }
+        }
+    }
+
 //     // XXX: this test is failing
 //     {
 //         DistributedImage<int> in(10);
