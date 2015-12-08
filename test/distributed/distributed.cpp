@@ -1243,7 +1243,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    {
+    if (numprocs == 4) {
         DistributedImage<int> in(16, 16);
 
         Func clamped;
