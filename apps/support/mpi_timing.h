@@ -32,6 +32,8 @@ public:
 
     MPITiming() {
         //tests();
+        _rank = 0;
+        _numprocs = 1;
         _usempi = false;
         _reduced = -1.0;
         _percentile_lower = -1.0;

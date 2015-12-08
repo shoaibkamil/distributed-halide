@@ -532,7 +532,14 @@ typedef struct buffer_t {
     /** How many bytes does each buffer element take. This may be
     * replaced with a more general type code in the future. */
     int32_t elem_size;
+    
+    /** Distributed values of the above fields. */
+    int32_t d_extent[4];
+    int32_t d_stride[4];
+    int32_t d_min[4];
 
+    HALIDE_ATTRIBUTE_ALIGN(1) bool is_distributed;
+        
     /** This should be true if there is an existing device allocation
     * mirroring this buffer, and the data has been modified on the
     * host side. */

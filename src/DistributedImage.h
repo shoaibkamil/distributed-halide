@@ -191,7 +191,7 @@ public:
         }
 
         Buffer b(type_of<T>(), full_extents, NULL, param.name(), false);
-        b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized,
+        b.set_distributed(global_mins, allocated_extents,
                           local_extents_parameterized, local_mins_parameterized);
         param.set(b);
         image = Image<T>(b);
@@ -246,7 +246,7 @@ public:
         }
 
         Buffer b(type_of<T>(), full_extents, NULL, param.name(), false);
-        b.set_distributed(allocated_extents, allocated_extents_parameterized, allocated_mins_parameterized,
+        b.set_distributed(global_mins, allocated_extents,
                           local_extents_parameterized, local_mins_parameterized);
         param.set(b);
         image = Image<T>(b);

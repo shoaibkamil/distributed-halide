@@ -671,10 +671,18 @@ void CodeGen_LLVM::compile_buffer(const Buffer &buf) {
 
     // Figure out the offset of the last pixel.
     size_t num_elems = 1;
-    for (int d = 0; b.extent[d]; d++) {
-        num_elems += b.stride[d] * (b.extent[d] - 1);
+    vector<char> array;
+    if (b.is_distributed) {
+        for (int d = 0; b.d_extent[d]; d++) {
+            num_elems += b.d_stride[d] * (b.d_extent[d] - 1);
+        }
+        array = vector<char>(b.host, b.host + num_elems * b.elem_size);
+    } else {
+        for (int d = 0; b.extent[d]; d++) {
+            num_elems += b.stride[d] * (b.extent[d] - 1);
+        }
+        array = vector<char>(b.host, b.host + num_elems * b.elem_size);
     }
-    vector<char> array(b.host, b.host + num_elems * b.elem_size);
 
     // Embed the buffer_t and make it point to the data array.
     GlobalVariable *global = new GlobalVariable(*module, buffer_t_type,
@@ -692,6 +700,10 @@ void CodeGen_LLVM::compile_buffer(const Buffer &buf) {
         ConstantArray::get(i32_array, get_constants(i32, b.stride, b.stride + 4)),
         ConstantArray::get(i32_array, get_constants(i32, b.min, b.min + 4)),
         ConstantInt::get(i32, b.elem_size),
+        ConstantArray::get(i32_array, get_constants(i32, b.d_extent, b.d_extent + 4)),
+        ConstantArray::get(i32_array, get_constants(i32, b.d_stride, b.d_stride + 4)),
+        ConstantArray::get(i32_array, get_constants(i32, b.d_min, b.d_min + 4)),
+        ConstantInt::get(i8, b.is_distributed), // is_distributed
         ConstantInt::get(i8, 1), // host_dirty
         ConstantInt::get(i8, 0), // dev_dirty
         Constant::getNullValue(padding_bytes_type)
@@ -957,6 +969,20 @@ void CodeGen_LLVM::push_buffer(const string &name, llvm::Value *buffer) {
     sym_push(name + ".min.2", buffer_min(buffer, 2));
     sym_push(name + ".min.3", buffer_min(buffer, 3));
     sym_push(name + ".elem_size", buffer_elem_size(buffer));
+
+    sym_push(name + ".d_extent.0", buffer_d_extent(buffer, 0));
+    sym_push(name + ".d_extent.1", buffer_d_extent(buffer, 1));
+    sym_push(name + ".d_extent.2", buffer_d_extent(buffer, 2));
+    sym_push(name + ".d_extent.3", buffer_d_extent(buffer, 3));
+    sym_push(name + ".d_stride.0", buffer_d_stride(buffer, 0));
+    sym_push(name + ".d_stride.1", buffer_d_stride(buffer, 1));
+    sym_push(name + ".d_stride.2", buffer_d_stride(buffer, 2));
+    sym_push(name + ".d_stride.3", buffer_d_stride(buffer, 3));
+    sym_push(name + ".d_min.0", buffer_d_min(buffer, 0));
+    sym_push(name + ".d_min.1", buffer_d_min(buffer, 1));
+    sym_push(name + ".d_min.2", buffer_d_min(buffer, 2));
+    sym_push(name + ".d_min.3", buffer_d_min(buffer, 3));
+
 }
 
 void CodeGen_LLVM::pop_buffer(const string &name) {
@@ -979,6 +1005,18 @@ void CodeGen_LLVM::pop_buffer(const string &name) {
     sym_pop(name + ".min.2");
     sym_pop(name + ".min.3");
     sym_pop(name + ".elem_size");
+    sym_pop(name + ".d_extent.0");
+    sym_pop(name + ".d_extent.1");
+    sym_pop(name + ".d_extent.2");
+    sym_pop(name + ".d_extent.3");
+    sym_pop(name + ".d_stride.0");
+    sym_pop(name + ".d_stride.1");
+    sym_pop(name + ".d_stride.2");
+    sym_pop(name + ".d_stride.3");
+    sym_pop(name + ".d_min.0");
+    sym_pop(name + ".d_min.1");
+    sym_pop(name + ".d_min.2");
+    sym_pop(name + ".d_min.3");
 }
 
 // Given an llvm value representing a pointer to a buffer_t, extract various subfields
@@ -1014,6 +1052,18 @@ Value *CodeGen_LLVM::buffer_elem_size(Value *buffer) {
     return builder->CreateLoad(buffer_elem_size_ptr(buffer));
 }
 
+Value *CodeGen_LLVM::buffer_d_extent(Value *buffer, int i) {
+    return builder->CreateLoad(buffer_d_extent_ptr(buffer, i));
+}
+
+Value *CodeGen_LLVM::buffer_d_stride(Value *buffer, int i) {
+    return builder->CreateLoad(buffer_d_stride_ptr(buffer, i));
+}
+
+Value *CodeGen_LLVM::buffer_d_min(Value *buffer, int i) {
+    return builder->CreateLoad(buffer_d_min_ptr(buffer, i));
+}
+
 Value *CodeGen_LLVM::buffer_host_ptr(Value *buffer) {
     return builder->CreateConstInBoundsGEP2_32(
 #if LLVM_VERSION >= 37
@@ -1043,7 +1093,7 @@ Value *CodeGen_LLVM::buffer_host_dirty_ptr(Value *buffer) {
 #endif
         buffer,
         0,
-        6,
+        10,
         "buffer_host_dirty");
 }
 
@@ -1054,7 +1104,7 @@ Value *CodeGen_LLVM::buffer_dev_dirty_ptr(Value *buffer) {
 #endif
         buffer,
         0,
-        7,
+        11,
         "buffer_dev_dirty");
 }
 
@@ -1109,6 +1159,48 @@ Value *CodeGen_LLVM::buffer_elem_size_ptr(Value *buffer) {
         0,
         5,
         "buf_elem_size");
+}
+
+Value *CodeGen_LLVM::buffer_d_extent_ptr(Value *buffer, int i) {
+    llvm::Value *zero = ConstantInt::get(i32, 0);
+    llvm::Value *field = ConstantInt::get(i32, 6);
+    llvm::Value *idx = ConstantInt::get(i32, i);
+    vector<llvm::Value *> args = {zero, field, idx};
+    return builder->CreateInBoundsGEP(
+#if LLVM_VERSION >= 37
+        buffer_t_type,
+#endif
+        buffer,
+        args,
+        "buf_d_extent");
+}
+
+Value *CodeGen_LLVM::buffer_d_stride_ptr(Value *buffer, int i) {
+    llvm::Value *zero = ConstantInt::get(i32, 0);
+    llvm::Value *field = ConstantInt::get(i32, 7);
+    llvm::Value *idx = ConstantInt::get(i32, i);
+    vector<llvm::Value *> args = {zero, field, idx};
+    return builder->CreateInBoundsGEP(
+#if LLVM_VERSION >= 37
+        buffer_t_type,
+#endif
+        buffer,
+        args,
+        "buf_d_stride");
+}
+
+Value *CodeGen_LLVM::buffer_d_min_ptr(Value *buffer, int i) {
+    llvm::Value *zero = ConstantInt::get(i32, 0);
+    llvm::Value *field = ConstantInt::get(i32, 8);
+    llvm::Value *idx = ConstantInt::get(i32, i);
+    vector<llvm::Value *> args = {zero, field, idx};
+    return builder->CreateInBoundsGEP(
+#if LLVM_VERSION >= 37
+        buffer_t_type,
+#endif
+        buffer,
+        args,
+        "buf_d_min");
 }
 
 Value *CodeGen_LLVM::codegen(Expr e) {

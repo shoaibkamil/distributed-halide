@@ -1118,6 +1118,184 @@ int main(int argc, char **argv) {
         }
     }
 
+    {
+        DistributedImage<double> U(10, 10, 10, 5, "U");
+
+        Var cc;
+        U.set_domain(x, y, z, cc);
+        U.placement().distribute(z);
+        U.allocate();
+
+        Func Q("Q");
+        Q(x, y, z, cc) = Expr(1.0) + U(x, y, z, cc);
+        Q.bound(cc, 0, 5).unroll(cc);
+        Q.compute_root().distribute(z).parallel(z);
+
+        RDom r(0, U.global_extent(0), 0, U.global_extent(1), 0, U.global_extent(2));
+
+        Expr c     = sqrt(Expr(3.0)*Q(r.x,r.y,r.z,4)/Q(r.x,r.y,r.z,0));
+        Expr courx = Q(r.x,r.y,r.z,1);
+        Expr coury = Q(r.x,r.y,r.z,2);
+        Expr courz = Q(r.x,r.y,r.z,3);
+
+        Expr huge = 100;
+        Expr courmx = max( Expr(-huge), courx );
+        Expr courmy = max( Expr(-huge), coury );
+        Expr courmz = max( Expr(-huge), courz );
+
+        Expr maxcourpt = max(courmx, max(courmy, courmz));
+
+        Func helper("courno");
+        helper() = maximum(r, maxcourpt);
+
+        double local_result = evaluate<double>(helper);
+        assert(local_result >= 0);
+    }
+
+    {
+        const int w = 10;
+        DistributedImage<int> in(w);
+        Image<int> in_correct(w);
+
+        // Under test
+        Func clamped;
+        clamped(x) = in(clamp(x, 0, in.global_width()-1));
+        Func f, buffer;
+        buffer(x) = clamped(x);
+        buffer.compute_root().distribute(x);
+        f(x) = buffer(x-1) + buffer(x+1);
+        f.distribute(x);
+
+        // Correct
+        Func clamped1;
+        clamped1(x) = in_correct(clamp(x, 0, in_correct.width()-1));
+        Func f1, buffer1;
+        buffer1(x) = clamped1(x);
+        buffer1.compute_root();
+        f1(x) = buffer1(x-1) + buffer1(x+1);
+
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate(f, in);
+
+        for (int x = 0; x < in_correct.width(); x++) {
+            in_correct(x) = x;
+            if (in.mine(x)) {
+                const int lx = in.local(0, x);
+                in(lx) = x;
+            }
+        }
+
+        const int niters = 5;
+        for (int i = 0; i < niters; i++) {
+            f.realize(in);
+            f1.realize(in_correct);
+        }
+
+        for (int x = 0; x < in.width(); x++) {
+            const int gx = in.global(0, x);
+            const int correct = in_correct(gx);
+            if (in(x) != correct) {
+                printf("[rank %d] in(%d) = %d instead of %d\n", rank, x, in(x), correct);
+                MPI_Finalize();
+                return -1;
+            }
+        }
+
+    }
+
+    {
+        const int w = 10;
+        DistributedImage<int> in(w), out(w);
+
+        Func clamped;
+        clamped(x) = in(clamp(x, 0, in.global_width()-1));
+        Func f, g;
+        f(x) = clamped(x);
+        f(x) += 1;
+        g(x) = f(x);
+        f.compute_rank().vectorize(x, 2);
+        f.update().vectorize(x, 2);
+        g.compute_root().distribute(x);
+
+        out.set_domain(x);
+        out.placement().distribute(x);
+        out.allocate();
+
+        in.set_domain(x);
+        in.placement().distribute(x);
+        in.allocate(g, out);
+
+        for (int x = 0; x < in.width(); x++) {
+            in(x) = in.global(0, x);
+        }
+
+        g.realize(out);
+
+        for (int x = 0; x < out.width(); x++) {
+            const int gx = out.global(0, x);
+            const int correct = gx + 1;
+            if (out(x) != correct) {
+                printf("[rank %d] out(%d) = %d instead of %d\n", rank, x, out(x), correct);
+                MPI_Finalize();
+                return -1;
+            }
+        }
+    }
+
+//     // XXX: this test is failing
+//     {
+//         DistributedImage<int> in(10);
+
+//         Func clamped;
+//         clamped(x) = in(clamp(x, 0, in.global_width()-1));
+//         Func f;
+//         f(x) = clamped(x-1);
+//         f.distribute(x);
+//         Func init;
+//         init(x) = x;
+//         init.distribute(x);
+
+//         DistributedImage<int> out(10);
+//         out.set_domain(x);
+//         out.placement().distribute(x);
+//         out.allocate();
+//         in.set_domain(x);
+//         in.placement().distribute(x);
+//         in.allocate(f, out);
+
+//         init.realize(in);
+
+//         for (int r = 0; r < numprocs; r++) {
+//             if (rank == r) {
+//                 std::cout << "rank " << r << "\n";
+//                 print_img1d(in);
+//                 std::cout << "\n";
+//             }
+//             MPI_Barrier(MPI_COMM_WORLD);
+//         }
+
+//         for (int x = 0; x < in.width(); x++) {
+//             const int correct = in.global(0, x);
+//             if (in(x) != correct) {
+//                 printf("[rank %d] in(%d) = %d instead of %d\n", rank, x, in(x), correct);
+//                 MPI_Abort(MPI_COMM_WORLD, -1);
+//                 return -1;
+//             }
+//         }
+
+//         f.realize(out);
+//         for (int x = 0; x < out.width(); x++) {
+//             const int gxm1 = out.global(0, x) == 0 ? 0 : out.global(0, x-1);
+//             const int correct = gxm1;
+//             if (out(x) != correct) {
+//                 printf("[rank %d] out(%d) = %d instead of %d\n", rank, x, out(x), correct);
+//                 MPI_Finalize();
+//                 return -1;
+//             }
+//         }
+//     }
+
     printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();

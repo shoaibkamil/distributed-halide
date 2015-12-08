@@ -19,11 +19,15 @@ int main(int argc, char **argv) {
     CHECK(stride, 28, 32);
     CHECK(min, 44, 48);
     CHECK(elem_size, 60, 64);
-    CHECK(host_dirty, 64, 68);
-    CHECK(dev_dirty, 65, 69);
-    CHECK(_padding, 66, 70);
+    CHECK(d_extent, 64, 68);
+    CHECK(d_stride, 80, 84);
+    CHECK(d_min, 96, 100);
+    CHECK(is_distributed, 112, 116);
+    CHECK(host_dirty, 113, 117);
+    CHECK(dev_dirty, 114, 118);
+    CHECK(_padding, 115, 119);
 
-    static_assert(sizeof(buffer_t) == 72, "size is wrong");
+    static_assert(sizeof(buffer_t) == 128, "size is wrong");
 
     // Ensure alignment is at least that of a pointer.
     static_assert(ALIGN_OF(buffer_t) >= ALIGN_OF(uint8_t*), "align is wrong");
