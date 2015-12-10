@@ -1267,21 +1267,26 @@ public:
                 oldextent = distributed_bounds.at(loop_var + ".loop_extent");
 
             const NestedDistribution &nested = schedule.nested_distribution();
-            bool is_nested = !nested.dims.empty();
-            int nested_size = -1, nested_index = -1, inner_nested_size = -1;
+            const bool is_nested = !nested.dims.empty();
+            const int num_nested_dims = nested.dims.size();
+            int nested_index = -1;
+            int p = 0, q = 0, r = 0;
+            // nested_size is p, q or r.
             if (is_nested) {
-                inner_nested_size = nested.dims[0].second;
+                p = nested.dims[0].second;
+                if (nested.dims.size() > 1) q = nested.dims[1].second;
+                if (nested.dims.size() > 2) r = nested.dims[2].second;
+                // Find which dimension this is (corresponding to p, q or r)
                 for (unsigned i = 0; i < nested.dims.size(); i++) {
                     const auto &nd = nested.dims[i];
                     const Dim &d = nd.first;
                     if (ends_with(loop_var, d.var)) {
                         internal_assert(nested_index == -1);
-                        nested_size = nd.second;
                         nested_index = i;
                     }
                 }
             }
-
+            const int nested_size = nested_index == 0 ? p : (nested_index == 1 ? q : r);
             Expr n = is_nested ? Expr(nested_size) : Var("NumProcessors");
             Expr slice_size = cast(Int(32), ceil(cast(Float(32), oldextent) / n));
 
@@ -1312,11 +1317,26 @@ public:
 
             Expr newmin, newmax;
             if (is_nested) {
-                internal_assert(nested_index >= 0 && nested_index < 2) << "3D unimplemented\n";
-                if (nested_index == 0) {
-                    newmin = oldmin + (Var("Rank") % inner_nested_size) * Var(loop_var + ".SliceSize");
-                } else if (nested_index == 1) {
-                    newmin = oldmin + (Var("Rank") / inner_nested_size) * Var(loop_var + ".SliceSize");
+                if (num_nested_dims == 2) {
+                    if (nested_index == 0) {
+                        // Innermost
+                        newmin = oldmin + (Var("Rank") % p) * Var(loop_var + ".SliceSize");
+                    } else {
+                        // Outermost
+                        newmin = oldmin + (Var("Rank") / p) * Var(loop_var + ".SliceSize");
+                    }
+                } else if (num_nested_dims == 3) {
+                    if (nested_index == 0) {
+                        // Innermost
+                        newmin = oldmin + ((Var("Rank") % (p*q)) % p) * Var(loop_var + ".SliceSize");
+                    } else if (nested_index == 1) {
+                        newmin = oldmin + ((Var("Rank") % (p*q)) / p) * Var(loop_var + ".SliceSize");
+                    } else {
+                        // Outermost
+                        newmin = oldmin + (Var("Rank") / (p*q)) * Var(loop_var + ".SliceSize");
+                    }
+                } else {
+                    internal_error << "Unimplemented nested " << num_nested_dims << "D distribution\n";
                 }
             } else {
                 newmin = oldmin + Var(loop_var + ".SliceSize") * Var("Rank");

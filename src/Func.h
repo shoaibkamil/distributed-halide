@@ -44,7 +44,7 @@ class Stage {
     Internal::Schedule schedule;
     void set_dim_type(VarOrRVar var, Internal::ForType t);
     Internal::ForType get_dim_type(VarOrRVar var);
-    void set_nested_distribution(VarOrRVar inner, VarOrRVar outer, int p, int q);
+    void set_nested_distribution(const std::vector<VarOrRVar> &vars, const std::vector<int> &num_ranks);
     void set_dim_device_api(VarOrRVar var, DeviceAPI device_api);
     void split(const std::string &old, const std::string &outer, const std::string &inner, Expr factor, bool exact);
     std::string stage_name;
@@ -68,6 +68,7 @@ public:
     EXPORT Stage &serial(VarOrRVar var);
     EXPORT Stage &distribute(VarOrRVar var);
     EXPORT Stage &distribute(VarOrRVar inner, VarOrRVar outer, int p, int q);
+    EXPORT Stage &distribute(VarOrRVar x, VarOrRVar y, VarOrRVar z, int p, int q, int r);
     EXPORT Stage &parallel(VarOrRVar var);
     EXPORT Stage &vectorize(VarOrRVar var);
     EXPORT Stage &unroll(VarOrRVar var);
@@ -835,9 +836,13 @@ public:
     /** Mark a dimension or dimensions to be traversed in a
      * distributed fashion. */
     EXPORT Func &distribute(VarOrRVar var);
-    /** Mark two dimensions for nested distribution. The domain of the
-     * two variables is distributed onto a pxq grid of processors. */
+    /** Mark two (or three) dimensions for nested distribution. The
+     * domain of the variables is distributed onto a pxq(xr) grid of
+     * processors. */
+    // @{
     EXPORT Func &distribute(VarOrRVar inner, VarOrRVar outer, int p, int q);
+    EXPORT Func &distribute(VarOrRVar x, VarOrRVar y, VarOrRVar z, int p, int q, int r);
+    // @}
 
     /** Mark a dimension to be traversed in parallel */
     EXPORT Func &parallel(VarOrRVar var);

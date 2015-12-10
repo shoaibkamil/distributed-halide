@@ -38,6 +38,11 @@ void print_img2d(DistributedImage<T> &img) {
     }
 }
 
+template <class T>
+inline bool vec_eq(const std::vector<T> &a, const std::vector<T> &b) {
+    return a == b;
+}
+
 namespace {
 inline int intmin(int a, int b) { return a < b ? a : b; }
 inline int intmax(int a, int b) { return a > b ? a : b; }
@@ -1330,24 +1335,43 @@ int main(int argc, char **argv) {
     }
 
     {
-        const auto p0 = approx_factors_near_sqrt(0), p1 = approx_factors_near_sqrt(1),
-            p2 = approx_factors_near_sqrt(2), p4 = approx_factors_near_sqrt(4),
-            p8 = approx_factors_near_sqrt(8), p9 = approx_factors_near_sqrt(9),
-            p10 = approx_factors_near_sqrt(10), p17 = approx_factors_near_sqrt(17),
-            p24 = approx_factors_near_sqrt(24), p85 = approx_factors_near_sqrt(85),
-            p99 = approx_factors_near_sqrt(99);
+        const auto s0 = approx_factors_near_sqrt(0), s1 = approx_factors_near_sqrt(1),
+            s2 = approx_factors_near_sqrt(2), s4 = approx_factors_near_sqrt(4),
+            s8 = approx_factors_near_sqrt(8), s9 = approx_factors_near_sqrt(9),
+            s10 = approx_factors_near_sqrt(10), s17 = approx_factors_near_sqrt(17),
+            s24 = approx_factors_near_sqrt(24), s85 = approx_factors_near_sqrt(85),
+            s99 = approx_factors_near_sqrt(99);
 
-        assert(p0 == std::make_pair(0, 0));
-        assert(p1 == std::make_pair(1, 1));
-        assert(p2 == std::make_pair(1, 2));
-        assert(p4 == std::make_pair(2, 2));
-        assert(p8 == std::make_pair(2, 4));
-        assert(p9 == std::make_pair(3, 3));
-        assert(p10 == std::make_pair(3, 3));
-        assert(p17 == std::make_pair(4, 4));
-        assert(p24 == std::make_pair(4, 6));
-        assert(p85 == std::make_pair(9, 9));
-        assert(p99 == std::make_pair(9, 11));
+        assert(s0 == std::make_pair(0, 0));
+        assert(s1 == std::make_pair(1, 1));
+        assert(s2 == std::make_pair(1, 2));
+        assert(s4 == std::make_pair(2, 2));
+        assert(s8 == std::make_pair(2, 4));
+        assert(s9 == std::make_pair(3, 3));
+        assert(s10 == std::make_pair(3, 3));
+        assert(s17 == std::make_pair(4, 4));
+        assert(s24 == std::make_pair(4, 6));
+        assert(s85 == std::make_pair(9, 9));
+        assert(s99 == std::make_pair(9, 11));
+
+        const auto c0 = approx_factors_near_cubert(0), c1 = approx_factors_near_cubert(1),
+            c2 = approx_factors_near_cubert(2), c4 = approx_factors_near_cubert(4),
+            c8 = approx_factors_near_cubert(8), c16 = approx_factors_near_cubert(16),
+            c17 = approx_factors_near_cubert(17), c27 = approx_factors_near_cubert(27),
+            c85 = approx_factors_near_cubert(85), c99 = approx_factors_near_cubert(99),
+            c100 = approx_factors_near_cubert(100);
+
+        assert(vec_eq(c0, {0, 0, 0}));
+        assert(vec_eq(c1, {1, 1, 1}));
+        assert(vec_eq(c2, {1, 1, 2}));
+        assert(vec_eq(c4, {1, 2, 2}));
+        assert(vec_eq(c8, {2, 2, 2}));
+        assert(vec_eq(c16, {2, 2, 4}));
+        assert(vec_eq(c17, {2, 2, 4}));
+        assert(vec_eq(c27, {3, 3, 3}));
+        assert(vec_eq(c85, {4, 4, 5}));
+        assert(vec_eq(c99, {4, 4, 6}));
+        assert(vec_eq(c100, {4, 5, 5}));
     }
 
     {
@@ -1477,6 +1501,62 @@ int main(int argc, char **argv) {
                 printf("[rank %d] out(%d) = %d instead of %d\n", rank, x, out(x), correct);
                 MPI_Finalize();
                 return -1;
+            }
+        }
+    }
+
+    {
+        DistributedImage<int> in(100, 100, 100);
+
+        Func clamped;
+        clamped(x, y, z) = in(clamp(x, 0, in.global_width()-1),
+                           clamp(y, 0, in.global_height()-1),
+                           clamp(z, 0, in.global_channels()-1));
+        Func f, g;
+        f(x, y, z) = clamped(x, y, z);
+        g(x, y, z) = f(x, y-1, z) + f(x, y+1, z) + f(x, y, z-1);
+
+        std::vector<int> proc_grid = approx_factors_near_cubert(numprocs);
+        const int p = proc_grid[0], q = proc_grid[1], r = proc_grid[2];
+        mpi_printf("Using process grid %dx%dx%d\n", p, q, r);
+
+        f.compute_root().distribute(x, y, z, p, q, r);
+        g.compute_root().distribute(x, y, z, p, q, r);
+
+        DistributedImage<int> out(100, 100, 100);
+        out.set_domain(x, y, z);
+        out.placement().distribute(x, y, z, p, q, r);
+        out.allocate();
+        in.set_domain(x, y, z);
+        in.placement().distribute(x, y, z, p, q, r);
+        in.allocate(g, out);
+
+        for (int z = 0; z < in.channels(); z++) {
+            for (int y = 0; y < in.height(); y++) {
+                for (int x = 0; x < in.width(); x++) {
+                    in(x, y, z) = in.global(0, x) + in.global(1, y) + in.global(2, z);
+                }
+            }
+        }
+
+        g.realize(out.get_buffer());
+        for (int z = 0; z < out.channels(); z++) {
+            for (int y = 0; y < out.height(); y++) {
+                for (int x = 0; x < out.width(); x++) {
+                    const int ymax = out.global_height() - 1;
+                    const int gy = out.global(1, y),
+                        gyp1 = out.global(1, y+1) >= ymax ? ymax : out.global(1, y+1),
+                        gym1 = out.global(1, y) == 0 ? 0 : out.global(1, y-1);
+                    const int gz = out.global(2, z),
+                        gzm1 = out.global(2, z) == 0 ? 0 : out.global(2, z-1);
+                    const int gx = out.global(0, x);
+                    const int correct = gx + gym1 + gz + gx + gyp1 + gz + gx + gy + gzm1;
+                    if (out(x, y, z) != correct) {
+                        printf("[rank %d] out(%d,%d,%d) = %d instead of %d\n", rank, x, y, z, out(x, y, z), correct);
+                        MPI_Abort(MPI_COMM_WORLD, -1);
+                        return -1;
+                    }
+                }
             }
         }
     }

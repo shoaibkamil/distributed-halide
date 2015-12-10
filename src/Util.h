@@ -125,6 +125,9 @@ struct all_are_convertible : meta_and<std::is_convertible<Args, To>...> {};
 /** Returns two numbers p, q such that p*q <= n and |p-sqrt(n)|,
  * |q-sqrt(n)| are minimized. */
 EXPORT std::pair<int, int> approx_factors_near_sqrt(int val);
+/** Returns three numbers p, q, r such that p*q*r <= n and |p-cubert(n)|,
+ * |q-cubert(n)|, |r-cubert(n)| are minimized. */
+EXPORT std::vector<int> approx_factors_near_cubert(int val);
 
 } // Halide
 

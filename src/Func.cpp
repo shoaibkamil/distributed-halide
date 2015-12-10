@@ -305,24 +305,24 @@ Internal::ForType Stage::get_dim_type(VarOrRVar var) {
     return ForType::Serial;
 }
 
-void Stage::set_nested_distribution(VarOrRVar inner, VarOrRVar outer, int p, int q) {
-    bool found_inner = false, found_outer = false;
-    Dim dinner, douter;
-    for (const Dim &d : schedule.dims()) {
-        if (var_name_match(d.var, inner.name())) {
-            found_inner = true;
-            dinner = d;
-        } else if (var_name_match(d.var, outer.name())) {
-            found_outer = true;
-            douter = d;
+void Stage::set_nested_distribution(const std::vector<VarOrRVar> &vars, const std::vector<int> &num_ranks) {
+    std::vector<Dim> dims;
+    for (unsigned i = 0; i < vars.size(); i++) {
+        const VarOrRVar &v = vars[i];
+        bool found = false;
+        for (const Dim &d : schedule.dims()) {
+            if (var_name_match(d.var, v.name())) {
+                dims.push_back(d);
+                found = true;
+            }
         }
+        if (!found) {
+            user_error << "In schedule for " << stage_name
+                       << ", could not find dimension " << v.name() << "\n";
+        }
+
     }
-    if (!found_inner || !found_outer) {
-        user_error << "In schedule for " << stage_name
-                   << ", could not find dimension " << inner.name()
-                   << " or " << outer.name() << "\n";
-    }
-    schedule.nested_distribution() = NestedDistribution({dinner, douter, p, q});
+    schedule.nested_distribution() = NestedDistribution(dims, num_ranks);
 }
 
 void Stage::set_dim_device_api(VarOrRVar var, DeviceAPI device_api) {
@@ -594,9 +594,18 @@ Stage &Stage::distribute(VarOrRVar var) {
 Stage &Stage::distribute(VarOrRVar inner, VarOrRVar outer, int p, int q) {
     distribute(inner);
     distribute(outer);
-    set_nested_distribution(inner, outer, p, q);
+    set_nested_distribution({inner, outer}, {p, q});
     return *this;
 }
+
+Stage &Stage::distribute(VarOrRVar x, VarOrRVar y, VarOrRVar z, int p, int q, int r) {
+    distribute(x);
+    distribute(y);
+    distribute(z);
+    set_nested_distribution({x, y, z}, {p, q, r});
+    return *this;
+}
+
 
 Stage &Stage::parallel(VarOrRVar var) {
     ForType type = get_dim_type(var) == ForType::Distributed ?
@@ -932,6 +941,12 @@ Func &Func::distribute(VarOrRVar var) {
 Func &Func::distribute(VarOrRVar inner, VarOrRVar outer, int p, int q) {
     invalidate_cache();
     Stage(func.schedule(), name()).distribute(inner, outer, p, q);
+    return *this;
+}
+
+Func &Func::distribute(VarOrRVar x, VarOrRVar y, VarOrRVar z, int p, int q, int r) {
+    invalidate_cache();
+    Stage(func.schedule(), name()).distribute(x, y, z, p, q, r);
     return *this;
 }
 

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <map>
 #include <cmath>
+#include <limits>
 
 namespace Halide {
 namespace Internal {
@@ -147,5 +148,38 @@ std::pair<int, int> approx_factors_near_sqrt(int n) {
     if (p > q) std::swap(p, q);
     return std::make_pair(p, q);
 }
+
+std::vector<int> approx_factors_near_cubert(int n) {
+    internal_assert(n >= 0);
+
+    int p = 0, q = 0, r = 0;
+    const int cubertn = (int)floor(pow((float)n, 1.0f/3.0f));
+
+    // Fast path for cube numbers.
+    if (cubertn * cubertn * cubertn == n) {
+        return {cubertn, cubertn, cubertn};
+    }
+
+    for (int f = cubertn; f > 0; f--) {
+        const auto qr = approx_factors_near_sqrt(n/f);
+        const int qq = qr.first;
+        const int rr = qr.second;
+        const int pp = n / (qq*rr);
+        if (pp > 0 && qq > 0 && rr > 0 && pp*qq*rr <= n) {
+            p = pp;
+            q = qq;
+            r = rr;
+            break;
+        }
+    }
+    internal_assert(p*q*r <= n);
+
+    // Sort ascending.
+    if (p > r) std::swap(p, r);
+    if (q > r) std::swap(q, r);
+    if (p > q) std::swap(p, q);
+    return {p, q, r};
+}
+
 
 } // Halide

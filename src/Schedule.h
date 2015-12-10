@@ -108,9 +108,11 @@ struct Bound {
 struct NestedDistribution {
     std::vector<std::pair<Dim, int>> dims;
     NestedDistribution() {}
-    NestedDistribution(Dim inner, Dim outer, int p, int q) {
-        dims.push_back(std::make_pair(inner, p));
-        dims.push_back(std::make_pair(outer, q));
+    NestedDistribution(const std::vector<Dim> &ds, const std::vector<int> &num_ranks) {
+        internal_assert(ds.size() == num_ranks.size());
+        for (unsigned i = 0; i < ds.size(); i++) {
+            dims.push_back(std::make_pair(ds[i], num_ranks[i]));
+        }
     }
 };
 
