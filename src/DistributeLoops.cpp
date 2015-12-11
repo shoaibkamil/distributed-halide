@@ -521,9 +521,9 @@ public:
     // of this buffer.
     Expr size_of(const Box &b) const {
         internal_assert(b.size() > 0);
-        Expr num_elems = 1;
+        Expr num_elems = make_one(Int(64));
         for (unsigned i = 0; i < b.size(); i++) {
-            num_elems *= simplify(b[i].max - b[i].min) + 1;
+            num_elems *= cast(Int(64), simplify(b[i].max - b[i].min) + 1);
         }
         return num_elems * elem_size();
     }
@@ -987,8 +987,8 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
     //ghost_zone_empty = const_false();
 
     Expr addr;
-    Expr numbytes = Var("msgsize");
-    Expr cond = And::make(NE::make(Var("Rank"), Var("r")), And::make(GT::make(numbytes, 0), Not::make(ghost_zone_empty)));
+    Expr numbytes = Variable::make(Int(64), "msgsize");
+    Expr cond = And::make(NE::make(Var("Rank"), Var("r")), And::make(numbytes > 0, Not::make(ghost_zone_empty)));
     Stmt commstmt;
 
     // Convert the intersection box to "local" coordinates (the
