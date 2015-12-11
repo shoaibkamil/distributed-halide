@@ -742,7 +742,7 @@ Stmt communicate_subarray(CommunicateCmd cmd, const string &name,
     Expr sizes = address_of(size_buf, 0),
         subsizes = address_of(subsize_buf, 0),
         starts = address_of(starts_buf, 0);
-    args = {address, t.code, t.bits, ndims, sizes, subsizes, starts, rank};
+    args = {address, t.code(), t.bits(), ndims, sizes, subsizes, starts, rank};
     Expr call;
     switch (cmd) {
     case Send:
@@ -764,12 +764,12 @@ Stmt communicate_subarray(CommunicateCmd cmd, const string &name,
 
 // Insert call to send 'count' bytes starting at 'address' to 'rank'.
 Expr send(Expr address, Type t, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_send", {address, t.code, t.bits, count, rank}, Call::Extern);
+    return Call::make(Int(32), "halide_do_distr_send", {address, t.code(), t.bits(), count, rank}, Call::Extern);
 }
 
 // Insert call to isend 'count' bytes starting at 'address' to 'rank'.
 Expr isend(Expr address, Type t, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_isend", {address, t.code, t.bits, count, rank}, Call::Extern);
+    return Call::make(Int(32), "halide_do_distr_isend", {address, t.code(), t.bits(), count, rank}, Call::Extern);
 }
 
 Stmt isend_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
@@ -778,12 +778,12 @@ Stmt isend_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, E
 
 // Insert call to receive 'count' bytes from 'rank' to buffer starting at 'address'.
 Expr recv(Expr address, Type t, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_recv", {address, t.code, t.bits, count, rank}, Call::Extern);
+    return Call::make(Int(32), "halide_do_distr_recv", {address, t.code(), t.bits(), count, rank}, Call::Extern);
 }
 
 // Insert call to irecv 'count' bytes from 'rank' to buffer starting at 'address'.
 Expr irecv(Expr address, Type t, Expr count, Expr rank) {
-    return Call::make(Int(32), "halide_do_distr_irecv", {address, t.code, t.bits, count, rank}, Call::Extern);
+    return Call::make(Int(32), "halide_do_distr_irecv", {address, t.code(), t.bits(), count, rank}, Call::Extern);
 }
 
 Stmt irecv_subarray(const AbstractBuffer &buf, const Box &shape, const Box &b, Expr rank) {
