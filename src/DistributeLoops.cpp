@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <memory>
 #include <set>
 #include <sstream>
 
@@ -180,10 +181,10 @@ class CaptureScope : public IRVisitor {
             for (const Variable *vv : vars.vars) {
                 capture(vv);
             }
-            if (scope.contains(v->name)) {
-                internal_assert(val.same_as(scope.ref(v->name)));
+            if (scope->contains(v->name)) {
+                internal_assert(val.same_as(scope->ref(v->name)));
             } else {
-                scope.push(v->name, val);
+                scope->push(v->name, val);
             }
         } else if (_for_env.contains(v->name)) {
             GetVariablesInExpr vars;
@@ -196,8 +197,8 @@ class CaptureScope : public IRVisitor {
         }
     }
 public:
-    Scope<Expr> scope;
-    CaptureScope(const Scope<Interval> &for_env, const Scope<Expr> &env) : _for_env(for_env), _env(env) {}
+    std::shared_ptr<Scope<Expr>> scope;
+    CaptureScope(const Scope<Interval> &for_env, const Scope<Expr> &env) : _for_env(for_env), _env(env), scope(std::make_shared<Scope<Expr>>()) {}
 
     using IRVisitor::visit;
 
@@ -212,7 +213,10 @@ public:
 // outside of that stage.
 class ClosedScopeBox {
     vector<string> _topological_scope;
-    Scope<Expr> _scope;
+    // Use a pointer for the scope to avoid headaches when copying
+    // ClosedScopeBoxes (the copy constructor and assignment operator
+    // of Scope are private).
+    std::shared_ptr<Scope<Expr>> _scope;
     Box _box;
 
     void topo_visit(const string &name, vector<string> &result,
@@ -221,9 +225,9 @@ class ClosedScopeBox {
         if (!unvisited.count(name)) return;
         temp.insert(name);
         Expr val;
-        if (_scope.contains(name)) {
+        if (_scope->contains(name)) {
             GetVariablesInExpr vars;
-            val = _scope.get(name);
+            val = _scope->get(name);
             val.accept(&vars);
             for (const Variable *v : vars.vars) {
                 topo_visit(v->name, result, unvisited, temp);
@@ -245,7 +249,7 @@ class ClosedScopeBox {
     vector<string> topo_sort() const {
         vector<string> result;
         set<string> unvisited, temp;
-        for (auto it = _scope.cbegin(), ite = _scope.cend(); it != ite; ++it) {
+        for (auto it = _scope->cbegin(), ite = _scope->cend(); it != ite; ++it) {
             unvisited.insert(it.name());
         }
 
@@ -257,41 +261,34 @@ class ClosedScopeBox {
     }
 
 public:
-    ClosedScopeBox() {}
+    ClosedScopeBox() : _scope(std::make_shared<Scope<Expr>>()) {}
 
-    ClosedScopeBox(const Box &b, const Scope<Interval> &for_env, const Scope<Expr> &env) : _box(b) {
+    ClosedScopeBox(const Box &b, const Scope<Interval> &for_env, const Scope<Expr> &env) : _scope(std::make_shared<Scope<Expr>>()), _box(b) {
         CaptureScope capture(for_env, env);
         for (unsigned i = 0; i < b.size(); i++) {
             b[i].min.accept(&capture);
             b[i].max.accept(&capture);
         }
-        _scope.swap(capture.scope);
+        _scope = capture.scope;
         _topological_scope = topo_sort();
-    }
-
-    // Use this instead of copy constructor or assignment operator.
-    void swap(ClosedScopeBox &other) {
-        std::swap(_box, other._box);
-        _scope.swap(other._scope);
-        _topological_scope.swap(other._topological_scope);
     }
 
     Stmt inject_scope(Stmt body) const {
         Stmt stmt = body;
         for (const string &var : _topological_scope) {
-            stmt = LetStmt::make(var, _scope.get(var), stmt);
+            stmt = LetStmt::make(var, _scope->get(var), stmt);
         }
         return stmt;
     }
 
     void merge(const ClosedScopeBox &other) {
         merge_boxes(_box, other._box);
-        for (auto it = other._scope.cbegin(), ite = other._scope.cend(); it != ite; ++it) {
-            if (_scope.contains(it.name())) {
-                internal_assert(it.value().same_as(_scope.ref(it.name())) ||
-                                equal(it.value(), _scope.ref(it.name())));
+        for (auto it = other._scope->cbegin(), ite = other._scope->cend(); it != ite; ++it) {
+            if (_scope->contains(it.name())) {
+                internal_assert(it.value().same_as(_scope->ref(it.name())) ||
+                                equal(it.value(), _scope->ref(it.name())));
             } else {
-                _scope.push(it.name(), it.value());
+                _scope->push(it.name(), it.value());
             }
         }
         // We don't have to resort because this is just a partial ordering.
@@ -358,7 +355,7 @@ public:
             if (regions.find(name) != regions.end()) {
                 regions[name].merge(b);
             } else {
-                regions[name].swap(b);
+                regions[name] = b;
             }
         }
         IRGraphVisitor::visit(op);
