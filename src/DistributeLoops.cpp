@@ -233,7 +233,8 @@ class ClosedScopeBox {
         temp.erase(name);
         if (val.defined()) {
             // TODO: this may be inefficient.
-            result.insert(result.begin(), name);
+            string copy(name);
+            result.insert(result.begin(), copy);
         }
     }
 
@@ -287,7 +288,8 @@ public:
         merge_boxes(_box, other._box);
         for (auto it = other._scope.cbegin(), ite = other._scope.cend(); it != ite; ++it) {
             if (_scope.contains(it.name())) {
-                internal_assert(it.value().same_as(_scope.ref(it.name())));
+                internal_assert(it.value().same_as(_scope.ref(it.name())) ||
+                                equal(it.value(), _scope.ref(it.name())));
             } else {
                 _scope.push(it.name(), it.value());
             }
