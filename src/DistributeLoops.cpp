@@ -233,7 +233,8 @@ class ClosedScopeBox {
         temp.erase(name);
         if (val.defined()) {
             // TODO: this may be inefficient.
-            result.insert(result.begin(), name);
+            string copy(name);
+            result.insert(result.begin(), copy);
         }
     }
 
