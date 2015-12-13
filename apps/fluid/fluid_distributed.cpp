@@ -11,11 +11,12 @@ using namespace Halide;
 
 namespace {
 int rank = 0, numprocs = 0;
+int p = 0, q = 0, r = 0;
 
 // Input parameters
 const int DM = 3;
 // const int nsteps = 5;
-const int nsteps = 2;
+const int nsteps = 5;
 const int plot_int = 5;
 int n_cell = 0;
 const int max_grid_size = 64;
@@ -150,7 +151,7 @@ static Func build_init_data() {
                            c == imz, rholoc*wvel,
                            rholoc*(eloc + (pow(uvel, 2)+pow(vvel,2)+pow(wvel,2))/2));
     init.bound(c, 0, 5).unroll(c);
-    init.compute_root().distribute(z).parallel(z);
+    init.compute_root().distribute(x, y, z, p, q, r).parallel(z);
     return init;
 }
 
@@ -180,7 +181,7 @@ static Func build_ctoprim(Func U) {
                         temperature);
     // Eliminate some performance loss of the select by bounding and unrolling 'c':
     Q.bound(c, 0, 6).unroll(c);
-    Q.compute_root().distribute(z).parallel(z);
+    Q.compute_root().distribute(x, y, z, p, q, r).parallel(z);
     return Q;
 }
 
@@ -239,7 +240,7 @@ static Func build_diffterm(Func Q) {
     difflux(x,y,z,c) = Expr(0.0);
     difflux.bound(c, 0, 5);
     //difflux.compute_root().parallel(z).vectorize(x, 4);
-    difflux.compute_root().distribute(z).parallel(z).vectorize(x, 4);
+    difflux.compute_root().distribute(x, y, z, p, q, r).parallel(z).vectorize(x, 4);
 
     Expr ux_calc =
         (ALP*(Q(x+1,y,z,qu)-Q(x-1,y,z,qu))
@@ -372,7 +373,7 @@ static Func build_diffterm(Func Q) {
     // Update 0: imx
     difflux(x,y,z,imx) = Expr(eta)*(FourThirds*uxx + uyy + uzz + OneThird*(vyx+wzx));
     //difflux.update(0).parallel(z).vectorize(x, 4);
-    difflux.update(0).parallel(z).distribute(z).vectorize(x, 4);
+    difflux.update(0).parallel(z).distribute(x, y, z, p, q, r).vectorize(x, 4);
 
     Expr vxx = (CENTER*Q(x,y,z,qv)
                 + OFF1*(Q(x+1,y,z,qv)+Q(x-1,y,z,qv))
@@ -405,7 +406,7 @@ static Func build_diffterm(Func Q) {
     // Update 1: imy
     difflux(x,y,z,imy) = Expr(eta)*(vxx + FourThirds*vyy + vzz + OneThird*(uxy+wzy));
     //difflux.update(1).parallel(z).vectorize(x, 4);
-    difflux.update(1).parallel(z).distribute(z).vectorize(x, 4);
+    difflux.update(1).parallel(z).distribute(x, y, z, p, q, r).vectorize(x, 4);
 
     Expr wxx = (CENTER*Q(x,y,z,qw)
                 + OFF1*(Q(x+1,y,z,qw)+Q(x-1,y,z,qw))
@@ -438,7 +439,7 @@ static Func build_diffterm(Func Q) {
     // Update 2: imz
     difflux(x,y,z,imz) = Expr(eta)*(wxx + wyy + FourThirds*wzz + OneThird*(uxz+vyz));
     //difflux.update(2).parallel(z).vectorize(x, 4);
-    difflux.update(2).parallel(z).distribute(z).vectorize(x, 4);
+    difflux.update(2).parallel(z).distribute(x, y, z, p, q, r).vectorize(x, 4);
 
     Expr txx = (CENTER*Q(x,y,z,5)
                 + OFF1*(Q(x+1,y,z,5)+Q(x-1,y,z,5))
@@ -478,7 +479,7 @@ static Func build_diffterm(Func Q) {
     // Update 3: iene
     difflux(x,y,z,iene) = Expr(alam)*(txx+tyy+tzz) + mechwork;
     //difflux.update(3).parallel(z).vectorize(x, 4);
-    difflux.update(3).parallel(z).distribute(z).vectorize(x, 4);
+    difflux.update(3).parallel(z).distribute(x, y, z, p, q, r).vectorize(x, 4);
 
     return difflux;
 }
@@ -681,7 +682,7 @@ static Func build_hypterm(Func U, Func Q) {
                               c == 2, flux_imy_calc,
                               c == 3, flux_imz_calc,
                               flux_iene_calc);
-    flux.bound(c, 0, 5).unroll(c).compute_root().distribute(z);
+    flux.bound(c, 0, 5).unroll(c).compute_root().distribute(x, y, z, p, q, r);
     flux.parallel(z).vectorize(x, 4);
     //flux.tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
 
@@ -691,7 +692,7 @@ static Func build_hypterm(Func U, Func Q) {
 static Func build_Uonethird(Func U, Func D, Func F) {
     Func Uonethird("Uonethird");
     Uonethird(x, y, z, c) = U(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c));
-    Uonethird.compute_root().distribute(z).bound(c, 0, nc);
+    Uonethird.compute_root().distribute(x, y, z, p, q, r).bound(c, 0, nc);
     Uonethird.parallel(z);
     return Uonethird;
 }
@@ -703,7 +704,7 @@ static Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
     Func Utwothirds("Utwothirds");
     Utwothirds(x, y, z, c) = ThreeQuarters * U(x,y,z,c) +
         OneQuarter * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
-    Utwothirds.compute_root().distribute(z).bound(c, 0, nc);
+    Utwothirds.compute_root().distribute(x, y, z, p, q, r).bound(c, 0, nc);
     Utwothirds.parallel(z);
     return Utwothirds;
 }
@@ -715,7 +716,7 @@ static Func build_Uone(Func U, Func Unew, Func D, Func F) {
     Func Uone("Uone");
     Uone(x,y,z,c) = OneThird * U(x,y,z,c) +
         TwoThirds * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
-    Uone.compute_root().distribute(z).bound(c, 0, nc);
+    Uone.compute_root().distribute(x, y, z, p, q, r).bound(c, 0, nc);
     Uone.parallel(z).vectorize(x, 4);
     return Uone;
 }
@@ -795,6 +796,10 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 
+    auto proc_grid = approx_factors_near_cubert(numprocs);
+    p = proc_grid[0]; q = proc_grid[1]; r = proc_grid[2];
+    if (rank == 0) printf("Using process grid %dx%dx%d\n", p, q, r);
+
     global_w = std::stoi(argv[1]);
     global_h = std::stoi(argv[2]);
     global_d = std::stoi(argv[3]);
@@ -833,18 +838,18 @@ int main(int argc, char **argv) {
     // QAccessor = BoundaryConditions::repeat_image(Qt, global_bounds_Q);
     build_pipeline(UAccessor, QAccessor);
 
-    full_pipeline.distribute(z);
+    full_pipeline.distribute(x, y, z, p, q, r);
 
     Uout.set_domain(x, y, z, c);
-    Uout.placement().distribute(z);
+    Uout.placement().distribute(x, y, z, p, q, r);
     Uout.allocate();
 
     Q.set_domain(x, y, z, c);
-    Q.placement().distribute(z);
+    Q.placement().distribute(x, y, z, p, q, r);
     Q.allocate(full_pipeline, Q);
 
     U.set_domain(x, y, z, c);
-    U.placement().distribute(z);
+    U.placement().distribute(x, y, z, p, q, r);
     U.allocate(full_pipeline, Uout);
 
     // Now that we've distributed input, we can build local reduction domains.
@@ -857,7 +862,7 @@ int main(int argc, char **argv) {
     full_pipeline.compile_jit(t);
 
     MPITiming timing(MPI_COMM_WORLD);
-    const int niters = 1;
+    const int niters = 50;
     for (int i = 0; i < niters; i++) {
         //init_data.realize(U);
         init_data_C();
