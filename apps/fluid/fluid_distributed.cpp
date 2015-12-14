@@ -1,6 +1,8 @@
 #include "Halide.h"
 #include "mpi_timing.h"
 #include "omp.h"
+#include <sys/types.h>
+#include <unistd.h>
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -179,9 +181,10 @@ static Func build_ctoprim(Func U) {
                         c == 3, zvel,
                         c == 4, pressure,
                         temperature);
-    // Eliminate some performance loss of the select by bounding and unrolling 'c':
+    // Eliminate some performance loss of the select by bounding and unrolling 'c'.
+    // TODO: test without this.
     Q.bound(c, 0, 6).unroll(c);
-    Q.compute_root().distribute(x, y, z, p, q, r).parallel(z);
+    Q.compute_root().distribute(x, y, z, p, q, r).parallel(z).vectorize(x, 4);
     return Q;
 }
 
@@ -338,7 +341,7 @@ static Func build_diffterm(Func Q) {
 
     uz.compute_at(difflux, z).vectorize(x, 4);
     vz.compute_at(difflux, z).vectorize(x, 4);
-    wz.compute_at(difflux, z);
+    wz.compute_at(difflux, z).vectorize(x, 4);
 
     //loop3.tile(y, z, yi, zi, 4, 4).reorder(zi, x, yi, y, z).parallel(z);
 
@@ -693,7 +696,7 @@ static Func build_Uonethird(Func U, Func D, Func F) {
     Func Uonethird("Uonethird");
     Uonethird(x, y, z, c) = U(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c));
     Uonethird.compute_root().distribute(x, y, z, p, q, r).bound(c, 0, nc);
-    Uonethird.parallel(z);
+    Uonethird.parallel(z).vectorize(x, 4);
     return Uonethird;
 }
 
@@ -705,7 +708,7 @@ static Func build_Utwothirds(Func U, Func Unew, Func D, Func F) {
     Utwothirds(x, y, z, c) = ThreeQuarters * U(x,y,z,c) +
         OneQuarter * (Unew(x,y,z,c) + timestep * (D(x,y,z,c) + F(x,y,z,c)));
     Utwothirds.compute_root().distribute(x, y, z, p, q, r).bound(c, 0, nc);
-    Utwothirds.parallel(z);
+    Utwothirds.parallel(z).vectorize(x, 4);
     return Utwothirds;
 }
 
@@ -741,10 +744,7 @@ static void build_pipeline(Func UAccessor, Func QAccessor) {
     ctoprim3 = build_ctoprim(Utwothirds); // U'' -> Q''
     diffterm3 = build_diffterm(ctoprim3); // Q'' -> D''
     hypterm3 = build_hypterm(Utwothirds, ctoprim3); // U'', Q'' -> F''
-    Uone = build_Uone(UAccessor, Utwothirds, diffterm3, hypterm3); // U, U'', D'', F'' -> U'''
-
-    full_pipeline(x, y, z, c) = Uone(x, y, z, c);
-    full_pipeline.bound(c, 0, nc);
+    full_pipeline = build_Uone(UAccessor, Utwothirds, diffterm3, hypterm3); // U, U'', D'', F'' -> U'''
 }
 
 static double courno_C(DistributedImage<double> &Q) {
@@ -812,7 +812,6 @@ int main(int argc, char **argv) {
     // XXX: should probably make the component the innermost
     // dimension, then w,h,d.
     U = DistributedImage<double>(global_w, global_h, global_d, nc, "U");
-    DistributedImage<double> Uout(global_w, global_h, global_d, nc);
     DistributedImage<double> Q(global_w, global_h, global_d, 6);
 
     // Impose periodic boundary conditions on U and Q
@@ -838,19 +837,13 @@ int main(int argc, char **argv) {
     // QAccessor = BoundaryConditions::repeat_image(Qt, global_bounds_Q);
     build_pipeline(UAccessor, QAccessor);
 
-    full_pipeline.distribute(x, y, z, p, q, r);
-
-    Uout.set_domain(x, y, z, c);
-    Uout.placement().distribute(x, y, z, p, q, r);
-    Uout.allocate();
-
     Q.set_domain(x, y, z, c);
     Q.placement().distribute(x, y, z, p, q, r);
     Q.allocate(full_pipeline, Q);
 
     U.set_domain(x, y, z, c);
     U.placement().distribute(x, y, z, p, q, r);
-    U.allocate(full_pipeline, Uout);
+    U.allocate(full_pipeline, U);
 
     // Now that we've distributed input, we can build local reduction domains.
     //courno_func = build_courno(ctoprim); // Q -> scalar
@@ -859,6 +852,7 @@ int main(int argc, char **argv) {
     //t.set_feature(Target::Profile);
     // init_data.compile_jit(t);
     //courno_func.compile_jit(t);
+    ctoprim.compile_jit();
     full_pipeline.compile_jit(t);
 
     MPITiming timing(MPI_COMM_WORLD);
