@@ -18,7 +18,7 @@ int p = 0, q = 0, r = 0;
 // Input parameters
 const int DM = 3;
 // const int nsteps = 5;
-const int nsteps = 5;
+const int nsteps = 1;
 const int plot_int = 5;
 int n_cell = 0;
 const int max_grid_size = 64;
@@ -856,26 +856,33 @@ int main(int argc, char **argv) {
     full_pipeline.compile_jit(t);
 
     MPITiming timing(MPI_COMM_WORLD);
-    const int niters = 50;
+    const int niters = 1;
+    double sec = 0;
     for (int i = 0; i < niters; i++) {
         //init_data.realize(U);
         init_data_C();
         double time = 0, dt = 0;
         timestep.set(dt);
+        timing.start();
         for (int istep = 0; istep < nsteps; istep++) {
             if (parallel_IOProcessor()) {
                 std::cout << "Advancing time step " << istep << ", time = " << time << "\n";
             }
-            timing.start();
             advance(U, Q, dt);
-            timing.record(timing.stop());
             time = time + dt;
         }
+        sec = timing.stop();
     }
+    double reduced_sec = 0;
+    MPI_Reduce(&sec, &reduced_sec, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     // timing.reduce(MPITiming::Median);
-    timing.reduce(MPITiming::Mean);
-    timing.gather(MPITiming::Max);
-    timing.report();
+    // timing.reduce(MPITiming::Mean);
+    // timing.gather(MPITiming::Max);
+    // timing.report();
+
+    if (rank == 0) {
+        std::cout << "Run time (s) = " << std::setprecision(std::numeric_limits<double>::digits10) << (reduced_sec/nsteps) << "\n";
+    }
 
     // std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
     // of << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
