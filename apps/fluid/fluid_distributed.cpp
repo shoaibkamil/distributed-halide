@@ -18,7 +18,7 @@ int p = 0, q = 0, r = 0;
 // Input parameters
 const int DM = 3;
 // const int nsteps = 5;
-const int nsteps = 1;
+const int nsteps = 10;
 const int plot_int = 5;
 int n_cell = 0;
 const int max_grid_size = 64;
@@ -341,7 +341,7 @@ static Func build_diffterm(Func Q) {
 
     uz.compute_at(difflux, z).vectorize(x, 4);
     vz.compute_at(difflux, z).vectorize(x, 4);
-    wz.compute_at(difflux, z).vectorize(x, 4);
+    wz.compute_at(difflux, z);
 
     //loop3.tile(y, z, yi, zi, 4, 4).reorder(zi, x, yi, y, z).parallel(z);
 
@@ -838,11 +838,11 @@ int main(int argc, char **argv) {
     build_pipeline(UAccessor, QAccessor);
 
     Q.set_domain(x, y, z, c);
-    Q.placement().distribute(x, y, z, p, q, r);
+    Q.placement().distribute(x, y, z, p, q, r).vectorize(x, 4);
     Q.allocate(full_pipeline, Q);
 
     U.set_domain(x, y, z, c);
-    U.placement().distribute(x, y, z, p, q, r);
+    U.placement().distribute(x, y, z, p, q, r).vectorize(x, 4);
     U.allocate(full_pipeline, U);
 
     // Now that we've distributed input, we can build local reduction domains.
