@@ -392,17 +392,11 @@ public:
     // empty or not.
     Expr empty() const {
         internal_assert(_box.size() > 0);
-        if (known_empty) {
-            return const_true();
-        } else {
-            // If any dimension's min is greater than its max, the
-            // intersection is empty.
-            Expr e = GT::make(_box[0].min, _box[0].max);
-            for (unsigned i = 1; i < _box.size(); i++) {
-                e = Or::make(e, GT::make(_box[i].min, _box[i].max));
-            }
-            return e;
+        Expr e = _box[0].min > _box[0].max;
+        for (unsigned i = 1; i < _box.size(); i++) {
+            e = e || (_box[i].min > _box[i].max);
         }
+        return e;
     }
 
     const Box &box() const { return _box; }
@@ -987,7 +981,7 @@ Stmt communicate_intersection(CommunicateCmd cmd, const AbstractBuffer &buf, con
 
     Expr addr;
     Expr numbytes = Variable::make(Int(64), "msgsize");
-    Expr cond = And::make(NE::make(Var("Rank"), Var("r")), And::make(numbytes > 0, Not::make(ghost_zone_empty)));
+    Expr cond = And::make(NE::make(Var("Rank"), Var("r")), And::make(Not::make(I.empty()), Not::make(ghost_zone_empty)));
     Stmt commstmt;
 
     // Convert the intersection box to "local" coordinates (the

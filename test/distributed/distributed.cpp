@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     //     delete[] dest;
     // }
 
-    Var x, y, z;
+    Var x, y, z, c;
 
     {
         DistributedImage<int> in(20);
