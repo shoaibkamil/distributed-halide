@@ -1560,7 +1560,69 @@ int main(int argc, char **argv) {
             }
         }
     }
+#if 0
+    {
+        DistributedImage<int> in(512, 512, 512, 5);
 
+        Func clamped;
+        clamped(x, y, z, c) = in(clamp(x, 0, in.global_width()-1),
+                                 clamp(y, 0, in.global_height()-1),
+                                 clamp(z, 0, in.global_channels()-1),
+                                 clamp(c, 0, in.global_extent(3)-1));
+        Func f, g;
+        f(x, y, z, c) = clamped(x, y, z, c);
+        g(x, y, z, c) = f(x, y-1, z, c) + f(x, y+1, z, c) + f(x, y, z-1, c);
+
+        std::vector<int> proc_grid = approx_factors_near_cubert(numprocs);
+        const int p = proc_grid[0], q = proc_grid[1], r = proc_grid[2];
+        mpi_printf("Using process grid %dx%dx%d\n", p, q, r);
+
+        f.compute_root().distribute(x, y, z, p, q, r).parallel(z).vectorize(x, 4);
+        g.compute_root().distribute(x, y, z, p, q, r).parallel(z).vectorize(x, 4);
+
+        DistributedImage<int> out(512, 512, 512, 5);
+        out.set_domain(x, y, z, c);
+        out.placement().distribute(x, y, z, p, q, r).vectorize(x, 4);
+        out.allocate();
+        in.set_domain(x, y, z, c);
+        in.placement().distribute(x, y, z, p, q, r).vectorize(x, 4);
+        in.allocate(g, out);
+
+        for (int c = 0; c < in.extent(3); c++) {
+            for (int z = 0; z < in.channels(); z++) {
+                for (int y = 0; y < in.height(); y++) {
+                    for (int x = 0; x < in.width(); x++) {
+                        in(x, y, z, c) = in.global(0, x) + in.global(1, y) + in.global(2, z) + in.global(3, c);
+                    }
+                }
+            }
+        }
+
+        g.realize(out.get_buffer());
+        for (int c = 0; c < out.extent(3); c++) {
+            for (int z = 0; z < out.channels(); z++) {
+                for (int y = 0; y < out.height(); y++) {
+                    for (int x = 0; x < out.width(); x++) {
+                        const int ymax = out.global_height() - 1;
+                        const int gy = out.global(1, y),
+                            gyp1 = out.global(1, y+1) >= ymax ? ymax : out.global(1, y+1),
+                            gym1 = out.global(1, y) == 0 ? 0 : out.global(1, y-1);
+                        const int gz = out.global(2, z),
+                            gzm1 = out.global(2, z) == 0 ? 0 : out.global(2, z-1);
+                        const int gx = out.global(0, x);
+                        const int gc = out.global(3, c);
+                        const int correct = gx + gym1 + gz + gc + gx + gyp1 + gz + gc + gx + gy + gzm1 + gc;
+                        if (out(x, y, z, c) != correct) {
+                            printf("[rank %d] out(%d,%d,%d,%d) = %d instead of %d\n", rank, x, y, z, c, out(x, y, z, c), correct);
+                            MPI_Abort(MPI_COMM_WORLD, -1);
+                            return -1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+#endif
     printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();
