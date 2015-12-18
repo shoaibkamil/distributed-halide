@@ -1,6 +1,7 @@
 #ifndef HALIDE_DISTRIBUTED_IMAGE_H
 #define HALIDE_DISTRIBUTED_IMAGE_H
 
+#define MPICH_SKIP_MPICXX
 #include <mpi.h>
 
 #include "ScheduleFunctions.h"
