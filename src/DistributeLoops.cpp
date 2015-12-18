@@ -221,23 +221,26 @@ class ClosedScopeBox {
 
     void topo_visit(const string &name, vector<string> &result,
                     set<string> &unvisited, set<string> &temp) const {
-        internal_assert(!temp.count(name)) << "DAG has a cycle.\n";
-        if (!unvisited.count(name)) return;
-        temp.insert(name);
+	string copy(name);
+	if (temp.count(copy)) {
+		internal_error << "DAG has a cycle with " << copy << "\n";
+		internal_assert(!temp.count(copy)) << "DAG has a cycle.\n";
+	}
+        if (!unvisited.count(copy)) return;
+        temp.insert(copy);
         Expr val;
-        if (_scope->contains(name)) {
+        if (_scope->contains(copy)) {
             GetVariablesInExpr vars;
-            val = _scope->get(name);
+            val = _scope->get(copy);
             val.accept(&vars);
             for (const Variable *v : vars.vars) {
                 topo_visit(v->name, result, unvisited, temp);
             }
         }
-        unvisited.erase(name);
-        temp.erase(name);
+        unvisited.erase(copy);
+        temp.erase(copy);
         if (val.defined()) {
             // TODO: this may be inefficient.
-            string copy(name);
             result.insert(result.begin(), copy);
         }
     }
