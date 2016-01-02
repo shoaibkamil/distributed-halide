@@ -857,6 +857,9 @@ int main(int argc, char **argv) {
     ctoprim.compile_jit();
     full_pipeline.compile_jit(t);
 
+    // Enable mpiP profiling now. (set MPIP env var to "-o" for this to work)
+    // MPI_Pcontrol(1);
+
     MPITiming timing(MPI_COMM_WORLD);
     const int niters = 1;
     double sec = 0;
