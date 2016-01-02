@@ -76,22 +76,23 @@ public:
     }
 
     // Reduce all recorded values by the given statistic.
-    void reduce(Stat stat) {
+    timing_t reduce(Stat stat) {
         _percentile_lower = compute_percentile(_timings, 20);
         _percentile_upper = compute_percentile(_timings, 80);
         _reduced = compute_stat(_timings, stat);
-        _timings.clear();
+        //_timings.clear();
+        return _reduced;
     }
 
     // Gather reduced values from all ranks to rank 0, and reduce the
     // gathered values by the given statistic.
-    void gather(Stat stat) {
+    timing_t gather(timing_t value, Stat stat) {
         assert(_usempi);
         const int tag = 0;
         if (_rank == 0) {
             vector<timing_t> results;
             vector<timing_t> percentilelower, percentileupper;
-            results.push_back(_reduced);
+            results.push_back(value);
             percentilelower.push_back(_percentile_lower);
             percentileupper.push_back(_percentile_upper);
             for (int i = 1; i < _numprocs; i++) {
@@ -107,16 +108,21 @@ public:
             _gathered_percentile_lower = compute_stat(percentilelower, Min);
             _gathered_percentile_upper = compute_stat(percentileupper, Max);
         } else {
-            MPI_Send(&_reduced, 1, MPI_TIMING_T, 0, tag, _comm);
+            MPI_Send(&value, 1, MPI_TIMING_T, 0, tag, _comm);
             MPI_Send(&_percentile_lower, 1, MPI_TIMING_T, 0, tag, _comm);
             MPI_Send(&_percentile_upper, 1, MPI_TIMING_T, 0, tag, _comm);
         }
+        return _gathered;
     }
 
     // Return the gathered result.
     timing_t gathered() const {
         assert(_usempi);
         return _gathered;
+    }
+
+    timing_t compute_percentile(int percentile) const {
+        return compute_percentile(_timings, percentile);
     }
 private:
     bool _usempi;
