@@ -239,7 +239,8 @@ WEAK MPI_Datatype halide_to_mpi_type(halide_type_code_t type_code, int bits) {
 }
 
 WEAK void halide_initialize_mpi() {
-    MPI_Comm_dup(MPI_COMM_WORLD, &HALIDE_MPI_COMM);
+    //MPI_Comm_dup(MPI_COMM_WORLD, &HALIDE_MPI_COMM);
+    HALIDE_MPI_COMM = MPI_COMM_WORLD;
     MPI_Comm_size(HALIDE_MPI_COMM, &halide_num_processes);
     outstanding_receives.reserve(16);
     outstanding_sends.reserve(16);
