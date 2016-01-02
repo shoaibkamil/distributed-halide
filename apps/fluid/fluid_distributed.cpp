@@ -244,6 +244,7 @@ static Func build_diffterm(Func Q) {
     difflux.bound(c, 0, 5);
     //difflux.compute_root().parallel(z).vectorize(x, 4);
     difflux.compute_root().distribute(x, y, z, p, q, r).parallel(z).vectorize(x, 4);
+    // difflux.compute_rank().parallel(z).vectorize(x, 4);
 
     Expr ux_calc =
         (ALP*(Q(x+1,y,z,qu)-Q(x-1,y,z,qu))
@@ -686,6 +687,7 @@ static Func build_hypterm(Func U, Func Q) {
                               c == 3, flux_imz_calc,
                               flux_iene_calc);
     flux.bound(c, 0, 5).unroll(c).compute_root().distribute(x, y, z, p, q, r);
+    // flux.bound(c, 0, 5).unroll(c).compute_rank();
     flux.parallel(z).vectorize(x, 4);
     //flux.tile(y, z, yi, zi, tysize, tzsize).parallel(z).vectorize(x, 4);
 
@@ -863,25 +865,35 @@ int main(int argc, char **argv) {
         init_data_C();
         double time = 0, dt = 0;
         timestep.set(dt);
-        timing.start();
         for (int istep = 0; istep < nsteps; istep++) {
             if (parallel_IOProcessor()) {
                 std::cout << "Advancing time step " << istep << ", time = " << time << "\n";
             }
+
+            timing.start();
             advance(U, Q, dt);
+            sec = timing.stop();
+            timing.record(sec);
+
             time = time + dt;
         }
-        sec = timing.stop();
     }
-    double reduced_sec = 0;
-    MPI_Reduce(&sec, &reduced_sec, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-    // timing.reduce(MPITiming::Median);
-    // timing.reduce(MPITiming::Mean);
-    // timing.gather(MPITiming::Max);
-    // timing.report();
-
+    // double reduced_sec = 0;
+    // MPI_Reduce(&sec, &reduced_sec, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    double local_med = timing.reduce(MPITiming::Median);
+    double local_min = timing.reduce(MPITiming::Min),
+        local_max = timing.reduce(MPITiming::Max);
+    double local_20 = timing.compute_percentile(20);
+    double local_80 = timing.compute_percentile(80);
+    double med = timing.gather(local_med, MPITiming::Max);
+    double min = timing.gather(local_min, MPITiming::Min),
+        max = timing.gather(local_max, MPITiming::Max);
+    double min20 = timing.gather(local_20, MPITiming::Min);
+    double max80 = timing.gather(local_80, MPITiming::Max);
+    //timing.report();
     if (rank == 0) {
-        std::cout << "Run time (s) = " << std::setprecision(std::numeric_limits<double>::digits10) << (reduced_sec/nsteps) << "\n";
+        std::cout << "Num ranks = " << numprocs << "\n";
+        std::cout << "Median run time (s) = " << std::setprecision(std::numeric_limits<double>::digits10) << (med) << ", min = " << min << ", max = " << max << ", min 20th pctile = " << (min20) << ", max 80th pctile = " << (max80) << "\n";
     }
 
     // std::ofstream of("U.distributed.rank" + std::to_string(rank) + ".dat");
