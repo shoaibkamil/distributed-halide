@@ -2,6 +2,8 @@
 #include <set>
 #include <sstream>
 
+#include "HalideNfmConverter.h"
+#include "NfmToHalide.h"
 #include "Bounds.h"
 #include "Parameter.h"
 #include "DistributeLoops.h"
@@ -98,16 +100,6 @@ vector<Expr> dims_to_print(const Box &b, const string &name) {
         result.push_back(b[i].max);
     }
     return result;
-}
-
-// Return expr evaluating whether box a encloses box b.
-Expr box_encloses(const Box &a, const Box &b) {
-    internal_assert(a.size() == b.size());
-    Expr e = simplify(a[0].min <= b[0].min && a[0].max >= b[0].max);
-    for (unsigned i = 1; i < a.size(); i++) {
-        e = e && simplify(a[i].min <= b[i].min && a[i].max >= b[i].max);
-    }
-    return simplify(e);
 }
 
 class ReplaceVariables : public IRMutator {
@@ -373,37 +365,17 @@ public:
 class BoxIntersection {
 private:
     Box _box;
-    bool known_empty;
 public:
-    BoxIntersection() : known_empty(false) {}
+    BoxIntersection() {}
 
     BoxIntersection(const Box &a, const Box &b) {
-        internal_assert(a.size() == b.size());
-        unsigned size = a.size();
-        _box = Box(size);
-        for (unsigned i = 0; i < size; i++) {
-            if (is_positive_const(b[i].min - a[i].max)) known_empty = true;
-            Expr dim_min = simplify(max(a[i].min, b[i].min));
-            Expr dim_max = simplify(min(a[i].max, b[i].max));
-            _box[i] = Interval(dim_min, dim_max);
-        }
+        _box = boxes_intersection(a, b);
     }
 
     // Return an expression determining whether the intersection is
     // empty or not.
     Expr empty() const {
-        internal_assert(_box.size() > 0);
-        if (known_empty) {
-            return const_true();
-        } else {
-            // If any dimension's min is greater than its max, the
-            // intersection is empty.
-            Expr e = GT::make(_box[0].min, _box[0].max);
-            for (unsigned i = 1; i < _box.size(); i++) {
-                e = Or::make(e, GT::make(_box[i].min, _box[i].max));
-            }
-            return e;
-        }
+        return is_box_empty(_box);
     }
 
     const Box &box() const { return _box; }

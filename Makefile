@@ -9,6 +9,7 @@
 #     For correctness and performance tests this include halide build time and run time. For
 #     the tests in test/generator/ this times only the halide build time.
 
+WITH_MPI=1
 SHELL = bash
 CXX ?= g++
 PREFIX ?= /usr/local
@@ -224,6 +225,11 @@ BUILD_DIR   = $(BIN_DIR)/build
 FILTERS_DIR = $(BUILD_DIR)/filters
 TMP_DIR     = $(BUILD_DIR)/tmp
 
+NFM_HEADER := $(ROOT_DIR)/non-linear-FM/src/
+NFM_LIB := $(ROOT_DIR)/non-linear-FM/bin/
+ISL_HEADER := $(ROOT_DIR)/non-linear-FM/isl-0.15/release/include
+ISL_LIB := $(ROOT_DIR)/non-linear-FM/isl-0.15/release/lib
+
 SOURCE_FILES = \
   AddImageChecks.cpp \
   AddParameterChecks.cpp \
@@ -266,6 +272,7 @@ SOURCE_FILES = \
   Function.cpp \
   FuseGPUThreadLoops.cpp \
   Generator.cpp \
+  HalideNfmConverter.cpp \
   Image.cpp \
   InjectHostDevBufferCopies.cpp \
   InjectImageIntrinsics.cpp \
@@ -290,6 +297,7 @@ SOURCE_FILES = \
   Memoization.cpp \
   Module.cpp \
   ModulusRemainder.cpp \
+  NfmToHalide.cpp \
   ObjectInstanceRegistry.cpp \
   OneToOne.cpp \
   Output.cpp \
@@ -389,6 +397,7 @@ HEADER_FILES = \
   FuseGPUThreadLoops.h \
   Generator.h \
   runtime/HalideRuntime.h \
+  HalideNfmConverter.h \
   Image.h \
   InjectHostDevBufferCopies.h \
   InjectImageIntrinsics.h \
@@ -416,6 +425,7 @@ HEADER_FILES = \
   Memoization.h \
   Module.h \
   ModulusRemainder.h \
+  NfmToHalide.h \
   ObjectInstanceRegistry.h \
   OneToOne.h \
   Output.h \
@@ -571,7 +581,7 @@ $(BIN_DIR)/libHalide.a: $(OBJECTS) $(INITIAL_MODULES)
 endif
 
 $(BIN_DIR)/libHalide.so: $(BIN_DIR)/libHalide.a
-	$(CXX) $(BUILD_BIT_SIZE) -shared $(OBJECTS) $(INITIAL_MODULES) $(LLVM_STATIC_LIBS) $(LLVM_LDFLAGS) $(LLVM_SHARED_LIBS) -ldl -lz -lpthread -o $(BIN_DIR)/libHalide.so
+	$(CXX) $(BUILD_BIT_SIZE) -shared $(OBJECTS) $(INITIAL_MODULES) $(LLVM_STATIC_LIBS) $(LLVM_LDFLAGS) $(LLVM_SHARED_LIBS) -ldl -lz -lpthread -o $(BIN_DIR)/libHalide.so -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(INCLUDE_DIR)/Halide.h: $(HEADERS) $(SRC_DIR)/HalideFooter.h $(BIN_DIR)/build_halide_h
 	mkdir -p $(INCLUDE_DIR)
@@ -654,7 +664,7 @@ $(BUILD_DIR)/BitWriter_3_2$(BITWRITER_VERSION)/%.o: $(SRC_DIR)/BitWriter_3_2$(BI
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/%.h $(BUILD_DIR)/llvm_ok
 	@-mkdir -p $(BUILD_DIR)
-	$(CXX) $(CXX_FLAGS) -c $< -o $@ -MMD -MP -MF $(BUILD_DIR)/$*.d -MT $(BUILD_DIR)/$*.o
+	$(CXX) $(CXX_FLAGS) -I$(NFM_HEADER) -c $< -o $@ -MMD -MP -MF $(BUILD_DIR)/$*.d -MT $(BUILD_DIR)/$*.o -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 .PHONY: clean
 clean:
@@ -678,9 +688,9 @@ GENERATOR_EXTERNAL_TESTS := $(shell ls $(ROOT_DIR)/test/generator/*test.cpp)
 TUTORIALS = $(filter-out %_generate.cpp, $(shell ls $(ROOT_DIR)/tutorial/*.cpp))
 
 ifeq ($(UNAME), Darwin)
-LD_PATH_SETUP = DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:$(CURDIR)/$(BIN_DIR)
+LD_PATH_SETUP = DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:$(CURDIR)/$(BIN_DIR):$(NFM_LIB):$(ISL_LIB)
 else
-LD_PATH_SETUP = LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(CURDIR)/$(BIN_DIR)
+LD_PATH_SETUP = LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(CURDIR)/$(BIN_DIR):$(NFM_LIB):$(ISL_LIB)
 endif
 
 test_correctness: $(CORRECTNESS_TESTS:$(ROOT_DIR)/test/correctness/%.cpp=correctness_%)
@@ -700,7 +710,7 @@ test_generators:  \
   $(GENERATOR_EXTERNAL_TESTS:$(ROOT_DIR)/test/generator/%_aottest.cpp=generator_aot_%)  \
   $(GENERATOR_EXTERNAL_TESTS:$(ROOT_DIR)/test/generator/%_jittest.cpp=generator_jit_%)
 
-ALL_TESTS = test_internal test_correctness test_errors test_tutorials test_warnings test_generators test_renderscript
+ALL_TESTS = test_test test_nfm test_internal test_correctness test_errors test_tutorials test_warnings test_generators test_renderscript
 
 # These targets perform timings of each test. For most tests this includes Halide JIT compile times, and run times.
 # For static and generator tests they time the compile time only. The times are recorded in CSV files.
@@ -734,6 +744,12 @@ HALIDE_DEBUG_RUNTIME := $(FILTERS_DIR)/halide_runtime.debug.o
 $(HALIDE_DEBUG_RUNTIME): $(BIN_DIR)/runtime.generator
 	@mkdir -p $(FILTERS_DIR)
 	$(LD_PATH_SETUP) $(BIN_DIR)/runtime.generator -r $(notdir $@) -o $(dir $@) target=host-debug
+
+$(BIN_DIR)/test_test: $(ROOT_DIR)/test/test.cpp $(BIN_DIR)/libHalide.so
+	$(CXX) $(CXX_FLAGS)  $< -I$(SRC_DIR) -I$(NFM_HEADER) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
+
+$(BIN_DIR)/test_nfm: $(ROOT_DIR)/test/nfm.cpp $(BIN_DIR)/libHalide.so
+	$(CXX) $(CXX_FLAGS)  $< -I$(SRC_DIR) -I$(NFM_HEADER) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(BIN_DIR)/test_internal: $(ROOT_DIR)/test/internal.cpp $(BIN_DIR)/libHalide.so
 	$(CXX) $(CXX_FLAGS)  $< -I$(SRC_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@
@@ -886,10 +902,10 @@ $(BIN_DIR)/tutorial_%: $(ROOT_DIR)/tutorial/%.cpp $(BIN_DIR)/libHalide.so $(INCL
 		export LESSON=`echo $${TUTORIAL} | cut -b1-9`; \
 		make -f $(THIS_MAKEFILE) tutorial_$${TUTORIAL/run/generate}; \
 		$(CXX) $(TUTORIAL_CXX_FLAGS) $(LIBPNG_CXX_FLAGS) $(OPTIMIZE) $< \
-		-I$(TMP_DIR) $(TMP_DIR)/$${LESSON}_*.o -lpthread -ldl -lz $(LIBPNG_LIBS) -o $@; \
+		-I$(TMP_DIR) -I$(NFM_HEADER) $(TMP_DIR)/$${LESSON}_*.o -lpthread -ldl -lz $(LIBPNG_LIBS) -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp -o $@; \
 	else \
 		$(CXX) $(TUTORIAL_CXX_FLAGS) $(LIBPNG_CXX_FLAGS) $(OPTIMIZE) $< \
-		-I$(INCLUDE_DIR) -I$(ROOT_DIR)/tools -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz $(LIBPNG_LIBS) -o $@;\
+		-I$(INCLUDE_DIR) -I$(NFM_HEADER) -I$(ROOT_DIR)/tools -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz $(LIBPNG_LIBS) -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp -o $@;\
 	fi
 
 $(BIN_DIR)/tutorial_lesson_15_generators: $(ROOT_DIR)/tutorial/lesson_15_generators.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h
@@ -918,6 +934,16 @@ $(BIN_DIR)/tutorial_lesson_16_rgb_run: $(ROOT_DIR)/tutorial/lesson_16_rgb_run.cp
 	$(CXX) $(TUTORIAL_CXX_FLAGS) $(LIBPNG_CXX_FLAGS) $(OPTIMIZE) $< \
 	-I$(INCLUDE_DIR) -L$(BIN_DIR) -I $(TMP_DIR) $(TMP_DIR)/brighten_*.o \
         -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz $(LIBPNG_LIBS) -o $@
+	@-echo
+
+test_test: $(BIN_DIR)/test_test
+	@-mkdir -p $(TMP_DIR)
+	cd $(TMP_DIR) ; $(LD_PATH_SETUP) $(CURDIR)/$<
+	@-echo
+
+test_nfm: $(BIN_DIR)/test_nfm
+	@-mkdir -p $(TMP_DIR)
+	cd $(TMP_DIR) ; $(LD_PATH_SETUP) $(CURDIR)/$<
 	@-echo
 
 test_internal: $(BIN_DIR)/test_internal

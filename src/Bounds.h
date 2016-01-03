@@ -8,14 +8,19 @@
 
 #include "IROperator.h"
 #include "Scope.h"
+#include "Util.h"
 
 namespace Halide {
 namespace Internal {
 
 struct Interval {
+    std::string var;
     Expr min, max;
-    Interval() {}
-    Interval(Expr min, Expr max) : min(min), max(max) {}
+    Interval(std::string var_name, Expr min, Expr max)
+        : var(var_name), min(min), max(max) {}
+    Interval(std::string var_name) : var(var_name) {}
+    Interval() : Interval(unique_name("_interval")) {}
+    Interval(Expr min, Expr max) : Interval(unique_name("_interval"), min, max) {}
 };
 
 typedef std::map<std::pair<std::string, int>, Interval> FuncValueBounds;
@@ -25,9 +30,7 @@ typedef std::map<std::pair<std::string, int>, Interval> FuncValueBounds;
  * maximum possible value)), compute two expressions that give the
  * minimum possible value and the maximum possible value of this
  * expression. Max or min may be undefined expressions if the value is
- * not bounded above or below. If the expression is a vector, also
- * takes the bounds across the vector lanes and returns a scalar
- * result.
+ * not bounded above or below.
  *
  * This is for tasks such as deducing the region of a buffer
  * loaded by a chunk of code.
@@ -58,12 +61,44 @@ struct Box {
 
     /** Check if the used condition is defined and not trivially true. */
     bool maybe_unused() const {return used.defined() && !is_one(used);}
+    /** Check if the used condition is defined and always false. */
+    bool always_unused() const {return used.defined() && is_zero(used);}
 };
 
 // Expand box a to encompass box b
 void merge_boxes(Box &a, const Box &b);
+// Expand box a to encompass box b using halide
+void merge_boxes_halide(Box &a, const Box &b);
+// Expand box a to encompass box b using nfm
+void merge_boxes_nfm(Box &a, const Box &b);
+
 // Test if box a could possibly overlap box b.
 bool boxes_overlap(const Box &a, const Box &b);
+// Test if box a could possibly overlap box b using halide.
+bool boxes_overlap_halide(const Box &a, const Box &b);
+// Test if box a could possibly overlap box b using nfm.
+bool boxes_overlap_nfm(const Box &a, const Box &b);
+
+// Return expr evaluating whether box a encloses box b.
+Expr box_encloses(const Box &a, const Box &b);
+// Return expr evaluating whether box a encloses box b using halide.
+Expr box_encloses_halide(const Box &a, const Box &b);
+// Return expr evaluating whether box a encloses box b using nfm.
+Expr box_encloses_nfm(const Box &a, const Box &b);
+
+// Return a Box representing intersection of Box A and Box B
+Box boxes_intersection(const Box &a, const Box &b);
+// Return a Box representing intersection of Box A and Box B using halide
+Box boxes_intersection_halide(const Box &a, const Box &b);
+// Return a Box representing intersection of Box A and Box B using nfm
+Box boxes_intersection_nfm(const Box &a, const Box &b);
+
+// Return expr evaluating whether box is empty
+Expr is_box_empty(const Box &box);
+// Return expr evaluating whether box is empty using halide
+Expr is_box_empty_halide(const Box &box);
+// Return expr evaluating whether box is empty using nfm
+Expr is_box_empty_nfm(const Box &box);
 
 /** Compute rectangular domains large enough to cover all the 'Call's
  * to each function that occurs within a given statement or

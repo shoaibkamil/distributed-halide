@@ -1,5 +1,8 @@
+#include <algorithm>
 #include <iostream>
 
+#include "HalideNfmConverter.h"
+#include "NfmToHalide.h"
 #include "Bounds.h"
 #include "IRVisitor.h"
 #include "IR.h"
@@ -15,11 +18,15 @@
 namespace Halide {
 namespace Internal {
 
+using namespace Nfm;
+using namespace Nfm::Internal;
+
 using std::make_pair;
 using std::map;
-using std::vector;
-using std::string;
+using std::ostringstream;
 using std::pair;
+using std::string;
+using std::vector;
 
 namespace {
 int static_sign(Expr x) {
@@ -79,6 +86,48 @@ Expr find_constant_bound(Expr e, Direction d) {
     return Expr();
 }
 
+Expr convert_box_interval_to_expr(const string& name, const Interval& interval, Type *type) {
+    Expr expr;
+    if (interval.min.defined() && interval.max.defined()) {
+        if (type != NULL) {
+            *type = interval.min.type();
+        }
+        Expr var = Variable::make(interval.min.type(), name);
+        expr = And::make(LE::make(interval.min, var), LE::make(var, interval.max));
+    } else if (interval.min.defined()) {
+        if (type != NULL) {
+            *type = interval.min.type();
+        }
+        Expr var = Variable::make(interval.min.type(), name);
+        expr = LE::make(interval.min, var);
+    } else if (interval.max.defined()) {
+        if (type != NULL) {
+            *type = interval.max.type();
+        }
+        Expr var = Variable::make(interval.max.type(), name);
+        expr = LE::make(var, interval.max);
+    }
+    expr = simplify(expr);
+    return expr;
+}
+
+Expr convert_box_to_expr(const vector<string>& dim_names, const Box& box, Type *type=NULL) {
+    assert(dim_names.size() == box.size());
+    Expr expr;
+    for (size_t i = 0; i < box.size(); i++) {
+        Expr temp = convert_box_interval_to_expr(dim_names[i], box[i], type);
+        if (temp.defined()) {
+            if (expr.defined()) {
+                expr = And::make(expr, temp);
+            } else {
+                expr = temp;
+            }
+        }
+    }
+    expr = simplify(expr);
+    return expr;
+}
+
 }
 
 class Bounds : public IRVisitor {
@@ -113,7 +162,6 @@ private:
     }
 
     void bounds_of_type(Type t) {
-        t = t.element_of();
         if (t.is_uint() && t.bits() <= 16) {
             max = cast(t, (1 << t.bits()) - 1);
             min = cast(t, 0);
@@ -133,11 +181,6 @@ private:
         max = op;
     }
 
-    void visit(const UIntImm *op) {
-        min = op;
-        max = op;
-    }
-
     void visit(const FloatImm *op) {
         min = op;
         max = op;
@@ -153,8 +196,8 @@ private:
             return;
         }
 
-        Type to = op->type.element_of();
-        Type from = op->value.type().element_of();
+        Type to = op->type;
+        Type from = op->value.type();
 
         if (min_a.defined() && min_a.same_as(max_a)) {
             min = max = Cast::make(to, min_a);
@@ -217,10 +260,8 @@ private:
             Interval bounds = scope.get(op->name);
             min = bounds.min;
             max = bounds.max;
-        } else if (op->type.is_vector()) {
-            // Uh oh, we need to take the min/max lane of some unknown vector. Treat as unbounded.
-            min = max = Expr();
         } else {
+            debug(3) << op->name << " not in scope, so leaving it as-is\n";
             min = op;
             max = op;
         }
@@ -355,7 +396,7 @@ private:
                 // Sign of a is unknown
                 Expr a = min_a * min_b;
                 Expr b = min_a * max_b;
-                Expr cmp = min_a >= make_zero(min_a.type().element_of());
+                Expr cmp = min_a >= make_zero(min_a.type());
                 min = select(cmp, a, b);
                 max = select(cmp, b, a);
             }
@@ -373,7 +414,7 @@ private:
                 // Sign of b is unknown
                 Expr a = min_b * min_a;
                 Expr b = min_b * max_a;
-                Expr cmp = min_b >= make_zero(min_b.type().element_of());
+                Expr cmp = min_b >= make_zero(min_b.type());
                 min = select(cmp, a, b);
                 max = select(cmp, b, a);
             }
@@ -440,7 +481,7 @@ private:
                 // Sign of b is unknown
                 Expr a = min_a / min_b;
                 Expr b = max_a / max_b;
-                Expr cmp = min_b > make_zero(min_b.type().element_of());
+                Expr cmp = min_b > make_zero(min_b.type());
                 min = select(cmp, a, b);
                 max = select(cmp, b, a);
             }
@@ -486,29 +527,27 @@ private:
             return;
         }
 
-        Type t = op->type.element_of();
-
         if (min_a.defined() && min_a.same_as(max_a) && min_b.same_as(max_b)) {
             min = max = Mod::make(min_a, min_b);
         } else {
             // Only consider B (so A can be undefined)
             if (max_b.type().is_uint() || (max_b.type().is_int() && is_positive_const(min_b))) {
                 // If the RHS is a positive integer, the result is in [0, max_b-1]
-                min = make_zero(t);
-                max = max_b - make_one(t);
+                min = make_zero(op->type);
+                max = max_b - make_one(op->type);
             } else if (max_b.type().is_int()) {
                 // mod takes the sign of the second arg
                 // x % [4,10] -> [0,9]
                 // x % [-8,-3] -> [-7,0]
                 // x % [-8, 10] -> [-7,9]
-                min = Min::make(min_b + make_one(t), make_zero(t));
-                max = Max::make(max_b - make_one(t), make_zero(t));
+                min = Min::make(min_b + make_one(op->type), make_zero(op->type));
+                max = Max::make(max_b - make_one(op->type), make_zero(op->type));
             } else {
                 // The floating point version has the same sign rules,
                 // but can reach all the way up to the original value,
                 // so there's no -1.
-                min = Min::make(min_b, make_zero(t));
-                max = Max::make(max_b, make_zero(t));
+                min = Min::make(min_b, make_zero(op->type));
+                max = Max::make(max_b, make_zero(op->type));
             }
         }
     }
@@ -661,7 +700,7 @@ private:
         op->index.accept(this);
         if (min.defined() && min.same_as(max)) {
             // If the index is const we can return the load of that index
-            min = max = Load::make(op->type.element_of(), op->name, min, op->image, op->param);
+            min = max = Load::make(op->type, op->name, min, op->image, op->param);
         } else {
             // Otherwise use the bounds of the type
             bounds_of_type(op->type);
@@ -669,18 +708,11 @@ private:
     }
 
     void visit(const Ramp *op) {
-        // Treat the ramp lane as a free variable
-        string var_name = unique_name('t');
-        Expr var = Variable::make(op->base.type(), var_name);
-        Expr lane = op->base + var * op->stride;
-        scope.push(var_name, Interval(make_const(var.type(), 0),
-                                      make_const(var.type(), op->lanes-1)));
-        lane.accept(this);
-        scope.pop(var_name);
+        internal_error << "Bounds of vector";
     }
 
-    void visit(const Broadcast *op) {
-        op->value.accept(this);
+    void visit(const Broadcast *) {
+        internal_error << "Bounds of vector";
     }
 
     void visit(const Call *op) {
@@ -700,29 +732,27 @@ private:
             }
         }
 
-        Type t = op->type.element_of();
-
-        if (t == Handle()) {
+        if (op->type == Handle()) {
             min = max = Expr();
             return;
         }
 
         if (const_args && (op->call_type == Call::Image || op->call_type == Call::Extern)) {
-            min = max = Call::make(t, op->name, new_args, op->call_type,
+            min = max = Call::make(op->type, op->name, new_args, op->call_type,
                                    op->func, op->value_index, op->image, op->param);
         } else if (op->call_type == Call::Intrinsic && op->name == Call::abs) {
             Expr min_a = min, max_a = max;
-            min = make_zero(t);
+            min = make_zero(op->type);
             if (min_a.defined() && max_a.defined()) {
                 if (equal(min_a, max_a)) {
-                    min = max = Call::make(t, Call::abs, {max_a}, Call::Intrinsic);
+                    min = max = Call::make(op->type, Call::abs, {max_a}, Call::Intrinsic);
                 } else {
-                    min = make_zero(t);
+                    min = make_zero(op->type);
                     if (op->args[0].type().is_int() && op->args[0].type().bits() == 32) {
-                        max = Max::make(Cast::make(t, -min_a), Cast::make(t, max_a));
+                        max = Max::make(Cast::make(op->type, -min_a), Cast::make(op->type, max_a));
                     } else {
-                        min_a = Call::make(t, Call::abs, {min_a}, Call::Intrinsic);
-                        max_a = Call::make(t, Call::abs, {max_a}, Call::Intrinsic);
+                        min_a = Call::make(op->type, Call::abs, {min_a}, Call::Intrinsic);
+                        max_a = Call::make(op->type, Call::abs, {max_a}, Call::Intrinsic);
                         max = Max::make(min_a, max_a);
                     }
                 }
@@ -748,7 +778,7 @@ private:
                 simplified.accept(this);
             } else {
                 // Just use the bounds of the type
-                bounds_of_type(t);
+                bounds_of_type(op->type);
             }
         } else if (op->args.size() == 1 && min.defined() && max.defined() &&
                    (op->name == "ceil_f32" || op->name == "ceil_f64" ||
@@ -759,9 +789,9 @@ private:
             // For monotonic, pure, single-argument functions, we can
             // make two calls for the min and the max.
             Expr min_a = min, max_a = max;
-            min = Call::make(t, op->name, {min_a}, op->call_type,
+            min = Call::make(op->type, op->name, {min_a}, op->call_type,
                              op->func, op->value_index, op->image, op->param);
-            max = Call::make(t, op->name, {max_a}, op->call_type,
+            max = Call::make(op->type, op->name, {max_a}, op->call_type,
                              op->func, op->value_index, op->image, op->param);
 
         } else if (op->call_type == Call::Intrinsic &&
@@ -790,7 +820,7 @@ private:
             bounds_of_func(op->func, op->value_index);
         } else {
             // Just use the bounds of the type
-            bounds_of_type(t);
+            bounds_of_type(op->type);
         }
     }
 
@@ -810,7 +840,7 @@ private:
                 min_var = min_val;
                 min_val = Expr();
             } else {
-                min_var = Variable::make(op->value.type().element_of(), min_name);
+                min_var = Variable::make(op->value.type(), min_name);
             }
         }
 
@@ -819,7 +849,7 @@ private:
                 max_var = max_val;
                 max_val = Expr();
             } else {
-                max_var = Variable::make(op->value.type().element_of(), max_name);
+                max_var = Variable::make(op->value.type(), max_name);
             }
         }
 
@@ -888,16 +918,6 @@ Interval bounds_of_expr_in_scope(Expr expr, const Scope<Interval> &scope, const 
     Bounds b(&scope, fb);
     expr.accept(&b);
     //debug(3) << "bounds_of_expr_in_scope " << expr << " = " << simplify(b.min) << ", " << simplify(b.max) << "\n";
-    if (b.min.defined()) {
-        internal_assert(b.min.type().is_scalar())
-            << "Min of " << expr
-            << " should have been a scalar: " << b.min << "\n";
-    }
-    if (b.max.defined()) {
-        internal_assert(b.max.type().is_scalar())
-            << "Max of " << expr
-            << " should have been a scalar: " << b.max << "\n";
-    }
     return Interval(b.min, b.max);
 }
 
@@ -993,6 +1013,50 @@ Expr simple_max(Expr a, Expr b) {
 }
 
 void merge_boxes(Box &a, const Box &b) {
+    Box a_copy(a);
+    Box b_copy(b);
+
+    /*std::cout << "\nMERGE BOXES\n";
+    std::cout << "  Box A:\n";
+    std::cout << "Used: " << a.used << "\n";
+    for (size_t i = 0; i < a.size(); ++i) {
+        std::cout << "Dim (" << a[i].var << ") min: " << a[i].min << "; max: " << a[i].max << "\n";
+    }
+    std::cout << "  Box B:\n";
+    std::cout << "Used: " << a.used << "\n";
+    for (size_t i = 0; i < b.size(); ++i) {
+        std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
+    }*/
+
+    merge_boxes_nfm(a, b);
+    //merge_boxes_halide(a_copy, b_copy);
+
+    /*merge_boxes_nfm(a_copy, b_copy);
+    merge_boxes_halide(a, b);*/
+
+    /*std::cout << "MERGE RESULT USING NFM\n";
+    for (size_t i = 0; i < a.size(); ++i) {
+        std::cout << "Dim: " << a[i].var << "\n  min: " << a[i].min << "\n  max: " << a[i].max << "\n";
+    }
+    std::cout << "\n";
+
+    std::cout << "MERGE RESULT USING HALIDE\n";
+    for (size_t i = 0; i < a_copy.size(); ++i) {
+        std::cout << "Dim: " << a_copy[i].var << "\n  min: " << a_copy[i].min << "\n  max: " << a_copy[i].max << "\n";
+    }
+    std::cout << "\n";*/
+
+    /*for (size_t i = 0; i < a_copy.size(); ++i) {
+        if (!equal(a_copy[i].min, a[i].min)) {
+            std::cout << "\n  a_copy[i].min: " << a_copy[i].min << "\n  a[i].min: " << a[i].min << "\n";
+        }
+        if (!equal(a_copy[i].max, a[i].max)) {
+            std::cout << "\n  a_copy[i].max: " << a_copy[i].max << "\n  a[i].max: " << a[i].max << "\n";
+        }
+    }*/
+}
+
+void merge_boxes_halide(Box &a, const Box &b) {
     if (b.empty()) {
         return;
     }
@@ -1067,7 +1131,175 @@ void merge_boxes(Box &a, const Box &b) {
     }
 }
 
+void merge_boxes_nfm(Box &a, const Box &b) {
+    if (b.empty()) {
+        return;
+    }
+
+    if (a.empty()) {
+        a = b;
+        return;
+    }
+
+    internal_assert(a.size() == b.size());
+
+    bool a_maybe_unused = a.maybe_unused();
+    bool b_maybe_unused = b.maybe_unused();
+
+    bool complementary = a_maybe_unused && b_maybe_unused &&
+        (equal(a.used, !b.used) || equal(!a.used, b.used));
+
+    for (size_t i = 0; i < a.size(); i++) {
+        if (!a[i].min.same_as(b[i].min)) {
+            if (a[i].min.defined() && b[i].min.defined()) {
+                if (a_maybe_unused && b_maybe_unused) {
+                    if (complementary) {
+                        a[i].min = select(a.used, a[i].min, b[i].min);
+                    } else {
+                        a[i].min = select(a.used && b.used, simple_min(a[i].min, b[i].min),
+                                          a.used, a[i].min,
+                                          b[i].min);
+                    }
+                } else if (a_maybe_unused) {
+                    a[i].min = select(a.used, simple_min(a[i].min, b[i].min), b[i].min);
+                } else if (b_maybe_unused) {
+                    a[i].min = select(b.used, simple_min(a[i].min, b[i].min), a[i].min);
+                } else {
+                    a[i].min = simple_min(a[i].min, b[i].min);
+                }
+            } else {
+                a[i].min = Expr();
+            }
+        }
+        if (!a[i].max.same_as(b[i].max)) {
+            if (a[i].max.defined() && b[i].max.defined()) {
+                if (a_maybe_unused && b_maybe_unused) {
+                    if (complementary) {
+                        a[i].max = select(a.used, a[i].max, b[i].max);
+                    } else {
+                        a[i].max = select(a.used && b.used, simple_max(a[i].max, b[i].max),
+                                          a.used, a[i].max,
+                                          b[i].max);
+                    }
+                } else if (a_maybe_unused) {
+                    a[i].max = select(a.used, simple_max(a[i].max, b[i].max), b[i].max);
+                } else if (b_maybe_unused) {
+                    a[i].max = select(b.used, simple_max(a[i].max, b[i].max), a[i].max);
+                } else {
+                    a[i].max = simple_max(a[i].max, b[i].max);
+                }
+            } else {
+                a[i].max = Expr();
+            }
+        }
+    }
+
+    if (a_maybe_unused && b_maybe_unused) {
+        if (!equal(a.used, b.used)) {
+            a.used = simplify(a.used || b.used);
+            if (is_one(a.used)) {
+                a.used = Expr();
+            }
+        }
+    } else {
+        a.used = Expr();
+    }
+
+    for (size_t i = 0; i < a.size(); ++i) {
+        a[i] = nfm_simplify_interval(a[i]);
+    }
+}
+
+/*void merge_boxes_nfm(Box &a, const Box &b) {
+    if (b.empty()) {
+        return;
+    }
+
+    if (a.empty()) {
+        a = b;
+        return;
+    }
+
+    internal_assert(a.size() == b.size());
+
+    vector<string> dim_names;
+    for (size_t i = 0; i < a.size(); i++) {
+        ostringstream stream;
+        stream << "dim_" << i;
+        dim_names.push_back(stream.str());
+    }
+
+    Type type;
+
+    Expr box_a;
+    if (!a.always_unused()) { // If condition is false, skip
+        box_a = convert_box_to_expr(dim_names, a, &type);
+        if (a.maybe_unused()) { // Might be true/false
+            box_a = And::make(a.used, box_a);
+        }
+    }
+    Expr box_b;
+    if (!b.always_unused()) { // If condition is false, skip
+        box_b = convert_box_to_expr(dim_names, b, &type);
+        if (a.maybe_unused()) { // Might be true/false
+            box_b = And::make(b.used, box_b);
+        }
+    }
+    if (!box_b.defined()) {
+        return;
+    }
+
+    Expr expr;
+    if (box_a.defined() && box_b.defined()) {
+        // A or B = A and (~A and B)
+        Expr neg_box_a = Not::make(box_a);
+        expr = Or::make(box_a, And::make(neg_box_a, box_b));
+        // A or B = A_only + B_only + A_and_B
+        //Expr and_a_b = And::make(box_a, box_b);
+        //Expr a_only = And::make(box_a, Not::make(and_a_b));
+        //Expr b_only = And::make(box_b, Not::make(and_a_b));
+        //expr = a_only || b_only || and_a_b;
+    } else if (box_b.defined()) {
+        expr = box_b;
+    }
+    assert(expr.defined());
+
+    CollectVars collect(dim_names);
+    collect.mutate(expr);
+    const auto& let_assignments = collect.get_let_assignments();
+
+    NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
+        expr, collect.get_sym_consts(), collect.get_dims());
+    Box result = convert_nfm_union_domain_to_halide_box(
+        type, union_dom, dim_names, &let_assignments);
+    a = result;
+}*/
+
 bool boxes_overlap(const Box &a, const Box &b) {
+    std::cout << "\nOVERLAP BOXES\n";
+    std::cout << "  Box A:\n";
+    std::cout << "Used: " << a.used << "\n";
+    for (size_t i = 0; i < a.size(); ++i) {
+        std::cout << "Dim (" << a[i].var << ") min: " << a[i].min << "; max: " << a[i].max << "\n";
+    }
+    std::cout << "  Box B:\n";
+    std::cout << "Used: " << a.used << "\n";
+    for (size_t i = 0; i < b.size(); ++i) {
+        std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
+    }
+
+    Box a_copy(a);
+    Box b_copy(b);
+    bool halide_overlap = boxes_overlap_halide(a_copy, b_copy);
+    std::cout << "boxes_overlap_halide? " << halide_overlap << "\n";
+
+    bool nfm_overlap = boxes_overlap_nfm(a, b);
+    std::cout << "boxes_overlap_nfm? " << nfm_overlap << "\n";
+    assert(halide_overlap == nfm_overlap);
+    return nfm_overlap;
+}
+
+bool boxes_overlap_halide(const Box &a, const Box &b) {
     // If one box is scalar and the other is not, the boxes cannot
     // overlap.
     if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
@@ -1093,6 +1325,308 @@ bool boxes_overlap(const Box &a, const Box &b) {
     }
 
     return !is_zero(simplify(overlap));
+}
+
+bool boxes_overlap_nfm(const Box &a, const Box &b) {
+    // If one box is scalar and the other is not, the boxes cannot
+    // overlap.
+    if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
+        return false;
+    }
+    // If one box is never used, they can't overlap
+    if (a.always_unused() || b.always_unused()) {
+        return false;
+    }
+
+    internal_assert(a.size() == b.size());
+
+    bool a_maybe_unused = a.maybe_unused();
+    bool b_maybe_unused = b.maybe_unused();
+
+    Expr expr;
+    if (a_maybe_unused) { // If the box may be unused, we need to add it to the constraint
+        expr = a.used;
+    }
+    if (b_maybe_unused) {
+        if (expr.defined()) {
+            expr = And::make(expr, b.used);
+        } else {
+            expr = b.used;
+        }
+    }
+
+    vector<string> dim_names;
+    for (size_t i = 0; i < a.size(); i++) {
+        ostringstream stream;
+        stream << "dim_" << i;
+        dim_names.push_back(stream.str());
+    }
+
+    Expr box_a = convert_box_to_expr(dim_names, a);
+    if (box_a.defined()) {
+        if (expr.defined()) {
+            expr = And::make(expr, box_a);
+        } else {
+            expr = box_a;
+        }
+    } else {
+        // Box A is a universe; A and B intersects
+        return true;
+    }
+    Expr box_b = convert_box_to_expr(dim_names, b);
+    if (box_b.defined()) {
+        if (expr.defined()) {
+            expr = And::make(expr, box_b);
+        } else {
+            expr = box_b;
+        }
+    } else {
+        // Box B is a universe; A and B intersects
+        return true;
+    }
+
+    assert(expr.defined());
+    CollectVars collect(dim_names);
+    collect.mutate(expr);
+    NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
+        expr, collect.get_sym_consts(), collect.get_dims());
+    return !union_dom.is_empty();
+}
+
+Box boxes_intersection(const Box &a, const Box &b) {
+    std::cout << "\nINTERSECT BOXES\n";
+    std::cout << "  Box A:\n";
+    for (size_t i = 0; i < a.size(); ++i) {
+        std::cout << "Dim (" << a[i].var << ") min: " << a[i].min << "; max: " << a[i].max << "\n";
+    }
+    std::cout << "  Box B:\n";
+    for (size_t i = 0; i < b.size(); ++i) {
+        std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
+    }
+
+    Box halide_intersect = boxes_intersection_halide(a, b);
+
+    Box nfm_intersect = boxes_intersection_nfm(a, b);
+
+    std::cout << "INTERSECT RESULT USING HALIDE\n";
+    for (size_t i = 0; i < halide_intersect.size(); ++i) {
+        std::cout << "Dim: " << halide_intersect[i].var << "\n  min: "
+                  << halide_intersect[i].min << "\n  max: " << halide_intersect[i].max << "\n";
+    }
+    std::cout << "\nINTERSECT RESULT USING NFM\n";
+    for (size_t i = 0; i < nfm_intersect.size(); ++i) {
+        std::cout << "Dim: " << nfm_intersect[i].var << "\n  min: "
+                  << nfm_intersect[i].min << "\n  max: " << nfm_intersect[i].max << "\n";
+    }
+
+    for (size_t i = 0; i < halide_intersect.size(); ++i) {
+        if (!equal(halide_intersect[i].min, nfm_intersect[i].min)) {
+            std::cout << "\n  halide_intersect[i].min: " << halide_intersect[i].min
+                      << "\n  nfm_intersect[i].min: " << nfm_intersect[i].min << "\n";
+        }
+        if (!equal(halide_intersect[i].max, nfm_intersect[i].max)) {
+            std::cout << "\n  halide_intersect[i].max: " << halide_intersect[i].max
+                      << "\n  nfm_intersect[i].max: " << nfm_intersect[i].max << "\n";
+        }
+    }
+
+    return nfm_intersect;
+}
+
+Box boxes_intersection_halide(const Box &a, const Box &b) {
+    // If one box is scalar and the other is not, the boxes cannot
+    // intersect.
+    if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
+        return Box(); // empty
+    }
+    internal_assert(a.size() == b.size());
+
+    Box result;
+    for (size_t i = 0; i < a.size(); ++i) {
+        if (is_positive_const(b[i].min - a[i].max)) {
+            return Box(); // Empty intersection
+        }
+        Expr dim_min = simplify(max(a[i].min, b[i].min));
+        Expr dim_max = simplify(min(a[i].max, b[i].max));
+        result.push_back(Interval(dim_min, dim_max));
+    }
+    return result;
+}
+
+// Return a Box representing intersection of Box A and Box B.
+// Ignore the "used" condition
+Box boxes_intersection_nfm(const Box &a, const Box &b) {
+    // If one box is scalar and the other is not, the boxes cannot
+    // intersect.
+    if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
+        return Box(); // Empty intersection
+    }
+
+    internal_assert(a.size() == b.size());
+
+    vector<string> dim_names;
+    for (size_t i = 0; i < a.size(); i++) {
+        ostringstream stream;
+        stream << "dim_" << i;
+        dim_names.push_back(stream.str());
+    }
+
+    Type type;
+    Expr expr;
+
+    Expr box_a = convert_box_to_expr(dim_names, a, &type);
+    if (box_a.defined()) {
+        expr = box_a;
+    } else {
+        // Box A is a universe; A and B intersects and the intersection is B
+        return b;
+    }
+    Expr box_b = convert_box_to_expr(dim_names, b, &type);
+    if (box_b.defined()) {
+        if (expr.defined()) {
+            expr = And::make(expr, box_b);
+        } else {
+            expr = box_b;
+        }
+    } else {
+        // Box B is a universe; A and B intersects and the intersection is A
+        return a;
+    }
+
+    assert(expr.defined());
+    CollectVars collect(dim_names);
+    collect.mutate(expr);
+    const auto& let_assignments = collect.get_let_assignments();
+
+    NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
+        expr, collect.get_sym_consts(), collect.get_dims());
+    Box result = convert_nfm_union_domain_to_halide_box(
+        type, union_dom, dim_names, &let_assignments);
+    return result;
+}
+
+Expr box_encloses(const Box &a, const Box &b) {
+    std::cout << "\nBOX ENCLOSE\n";
+    std::cout << "  Box A:\n";
+    for (size_t i = 0; i < a.size(); ++i) {
+        std::cout << "Dim (" << a[i].var << ") min: " << a[i].min << "; max: " << a[i].max << "\n";
+    }
+    std::cout << "  Box B:\n";
+    for (size_t i = 0; i < b.size(); ++i) {
+        std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
+    }
+
+    Expr halide_encloses = box_encloses_halide(a, b);
+
+    Expr nfm_encloses = box_encloses_nfm(a, b);
+
+    std::cout << "INTERSECT RESULT USING HALIDE: " << halide_encloses << "\n";
+    std::cout << "INTERSECT RESULT USING NFM: " << nfm_encloses << "\n";
+
+    if (!equal(halide_encloses, nfm_encloses)) {
+        std::cout << "\n  halide_encloses: " << halide_encloses
+                  << "\n  nfm_encloses: " << nfm_encloses << "\n";
+    }
+
+    return nfm_encloses;
+}
+
+Expr box_encloses_halide(const Box &a, const Box &b) {
+    // If one box is scalar and the other is not, the boxes cannot
+    // intersect.
+    if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
+        return Expr(); // Empty intersection
+    }
+    internal_assert(a.size() == b.size());
+
+    // TODO: This doesn't handle the following case: 1 <= a_y <= N and N <= b_y <= 3.
+    // The condition for A encloses B is ((1 <= N) && (N >= 3)) which can be simplified
+    // into (N >= 3). However if (N > 3) then b_y is empty.
+    // NOTE: Tyler's doesn't seem to check this condition so for now, we'll ignore it
+    Expr expr = (a[0].min <= b[0].min && a[0].max >= b[0].max);
+    for (size_t i = 1; i < a.size(); i++) {
+        expr = expr && (a[i].min <= b[i].min && a[i].max >= b[i].max);
+    }
+    expr = simplify(expr);
+    return expr;
+}
+
+// Return expr evaluating whether box a encloses box b. Ignore the "used" condition
+// TODO: Might want to implement a more general case: B is in A (A encloses B) is
+// true if (B - A) is empty. (B - A) is empty if (B and Not(A)) is empty. However,
+// this will require modification on the NFM lib to ensure all domain within a
+// union domain are disjoint to get a correct result
+Expr box_encloses_nfm(const Box &a, const Box &b) {
+    // If one box is scalar and the other is not, the boxes cannot
+    // intersect.
+    if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
+        return Expr(); // Empty intersection
+    }
+    internal_assert(a.size() == b.size());
+
+    // TODO: This doesn't handle the following case: 1 <= a_y <= N and N <= b_y <= 3.
+    // The condition for A encloses B is ((1 <= N) && (N >= 3)) which can be simplified
+    // into (N >= 3). However if (N > 3) then b_y is empty.
+    // NOTE: Tyler's doesn't seem to check this condition so for now, we'll ignore it
+    Expr expr = (a[0].min <= b[0].min && a[0].max >= b[0].max);
+    for (size_t i = 1; i < a.size(); i++) {
+        expr = expr && (a[i].min <= b[i].min && a[i].max >= b[i].max);
+    }
+    expr = nfm_simplify_expr(expr);
+    return expr;
+}
+
+Expr is_box_empty(const Box &box) {
+    std::cout << "\nIS BOX EMPTY?\n";
+    std::cout << "  Box:\n";
+    for (size_t i = 0; i < box.size(); ++i) {
+        std::cout << "Dim (" << box[i].var << ") min: " << box[i].min << "; max: " << box[i].max << "\n";
+    }
+
+    Expr halide_empty = is_box_empty_halide(box);
+
+    Expr nfm_empty = is_box_empty_halide(box);
+
+    std::cout << "IS BOX EMPTY RESULT USING HALIDE: " << halide_empty << "\n";
+    std::cout << "IS BOX EMPTY RESULT USING NFM: " << nfm_empty << "\n";
+
+    if (!equal(halide_empty, nfm_empty)) {
+        std::cout << "\n  halide_empty: " << halide_empty
+                  << "\n  nfm_empty: " << nfm_empty << "\n";
+    }
+
+    return nfm_empty;
+}
+
+Expr is_box_empty_halide(const Box &box) {
+    if (box.empty()) {
+        return const_true();
+    }
+
+    internal_assert(box.size() > 0);
+
+    // If any dimension's min is greater than its max, the box is empty.
+    Expr expr = box[0].min > box[0].max;
+    for (size_t i = 1; i < box.size(); i++) {
+        expr = expr || (box[i].min > box[i].max);
+    }
+    return simplify(expr);
+}
+
+Expr is_box_empty_nfm(const Box &box) {
+    if (box.empty()) {
+        return const_true();
+    }
+
+    internal_assert(box.size() > 0);
+
+    // If any dimension's min is greater than its max, the box is empty.
+    Expr expr = box[0].min > box[0].max;
+    for (size_t i = 1; i < box.size(); i++) {
+        expr = expr || (box[i].min > box[i].max);
+    }
+    //std::cout << "is empty condition: " << simplify(expr) << "\n";
+    return nfm_simplify_expr(expr);
 }
 
 // Compute the box produced by a statement
@@ -1459,7 +1993,7 @@ FuncValueBounds compute_function_value_bounds(const vector<string> &order,
 
             }
 
-            debug(2) << "Bounds on value " << j
+            debug(2) << "Bounds on value " << j << " (" << f.values()[j] << ")"
                      << " for func " << order[i]
                      << " are: " << result.min << ", " << result.max << "\n";
         }
@@ -1501,7 +2035,7 @@ void bounds_test() {
     check(scope, x*y, select(y < 0, y*10, 0), select(y < 0, 0, y*10));
     check(scope, x/(x+y), Expr(), Expr());
     check(scope, 11/(x+1), 1, 11);
-    check(scope, Load::make(Int(8), "buf", x, Buffer(), Parameter()), make_const(Int(8), -128), make_const(Int(8), 127));
+    check(scope, Load::make(Int(8), "buf", x, Buffer(), Parameter()), cast(Int(8), -128), cast(Int(8), 127));
     check(scope, y + (Let::make("y", x+3, y - x + 10)), y + 3, y + 23); // Once again, we don't know that y is correlated with x
     check(scope, clamp(1/(x-2), x-10, x+10), -10, 20);
 
@@ -1513,35 +2047,30 @@ void bounds_test() {
 
     check(scope, cast<int32_t>(abs(cast<float>(x))), 0, 10);
 
-    // Check some vectors
-    check(scope, Ramp::make(x*2, 5, 5), 0, 40);
-    check(scope, Broadcast::make(x*2, 5), 0, 20);
-    check(scope, Broadcast::make(3, 4), 3, 3);
-
     // Check some operations that may overflow
-    check(scope, (cast<uint8_t>(x)+250), make_const(UInt(8), 0), make_const(UInt(8), 255));
-    check(scope, (cast<uint8_t>(x)+10)*20, make_const(UInt(8), 0), make_const(UInt(8), 255));
-    check(scope, (cast<uint8_t>(x)+10)*(cast<uint8_t>(x)+5), make_const(UInt(8), 0), make_const(UInt(8), 255));
-    check(scope, (cast<uint8_t>(x)+10)-(cast<uint8_t>(x)+5), make_const(UInt(8), 0), make_const(UInt(8), 255));
+    check(scope, (cast<uint8_t>(x)+250), cast<uint8_t>(0), cast<uint8_t>(255));
+    check(scope, (cast<uint8_t>(x)+10)*20, cast<uint8_t>(0), cast<uint8_t>(255));
+    check(scope, (cast<uint8_t>(x)+10)*(cast<uint8_t>(x)+5), cast<uint8_t>(0), cast<uint8_t>(255));
+    check(scope, (cast<uint8_t>(x)+10)-(cast<uint8_t>(x)+5), cast<uint8_t>(0), cast<uint8_t>(255));
 
     // Check some operations that we should be able to prove do not overflow
-    check(scope, (cast<uint8_t>(x)+240), make_const(UInt(8), 240), make_const(UInt(8), 250));
-    check(scope, (cast<uint8_t>(x)+10)*10, make_const(UInt(8), 100), make_const(UInt(8), 200));
-    check(scope, (cast<uint8_t>(x)+10)*(cast<uint8_t>(x)), make_const(UInt(8), 0), make_const(UInt(8), 200));
-    check(scope, (cast<uint8_t>(x)+20)-(cast<uint8_t>(x)+5), make_const(UInt(8), 5), make_const(UInt(8), 25));
+    check(scope, (cast<uint8_t>(x)+240), cast<uint8_t>(240), cast<uint8_t>(250));
+    check(scope, (cast<uint8_t>(x)+10)*10, cast<uint8_t>(100), cast<uint8_t>(200));
+    check(scope, (cast<uint8_t>(x)+10)*(cast<uint8_t>(x)), cast<uint8_t>(0), cast<uint8_t>(200));
+    check(scope, (cast<uint8_t>(x)+20)-(cast<uint8_t>(x)+5), cast<uint8_t>(5), cast<uint8_t>(25));
 
     check(scope,
           cast<uint16_t>(clamp(cast<float>(x/y), 0.0f, 4095.0f)),
-          make_const(UInt(16), 0), make_const(UInt(16), 4095));
+          cast<uint16_t>(0), cast<uint16_t>(4095));
 
     check(scope,
           cast<uint8_t>(clamp(cast<uint16_t>(x/y), cast<uint16_t>(0), cast<uint16_t>(128))),
-          make_const(UInt(8), 0), make_const(UInt(8), 128));
+          cast<uint8_t>(0), cast<uint8_t>(128));
 
     Expr u8_1 = cast<uint8_t>(Load::make(Int(8), "buf", x, Buffer(), Parameter()));
     Expr u8_2 = cast<uint8_t>(Load::make(Int(8), "buf", x + 17, Buffer(), Parameter()));
     check(scope, cast<uint16_t>(u8_1) + cast<uint16_t>(u8_2),
-          make_const(UInt(16), 0), make_const(UInt(16), 255*2));
+          cast<uint16_t>(0), cast<uint16_t>(255*2));
 
     vector<Expr> input_site_1 = {2*x};
     vector<Expr> input_site_2 = {2*x+1};
