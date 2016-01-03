@@ -1,0 +1,673 @@
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/halide/bin:/home/psuriana/halide/non-linear-FM/bin/:/home/psuriana/halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/halide/bin/tutorial_lesson_12_using_the_gpu
+Testing performance on CPU:
+
+  a_copy[i].min: min(min(p1:sharpen.s0.v0.min, (p1:sharpen.s0.v0.max + -7)), (min(p1:sharpen.s0.v0.min, (p1:sharpen.s0.v0.max + -7)) - 1))
+  a[i].min: min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.max + -8))
+
+  a_copy[i].max: max(min((((((p1:sharpen.s0.v0.max - p1:sharpen.s0.v0.min)/8)*8) + p1:sharpen.s0.v0.min) + 7), p1:sharpen.s0.v0.max), (min((((((p1:sharpen.s0.v0.max - p1:sharpen.s0.v0.min)/8)*8) + p1:sharpen.s0.v0.min) + 7), p1:sharpen.s0.v0.max) - 1))
+  a[i].max: p1:sharpen.s0.v0.max
+
+  a_copy[i].min: min(min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.max + -8)), min(p1:sharpen.s0.v0.min, (p1:sharpen.s0.v0.max + -7)))
+  a[i].min: min(p1:sharpen.s0.v0.min, min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.max + -8)))
+
+  a_copy[i].max: max(p1:sharpen.s0.v0.max, min((((((p1:sharpen.s0.v0.max - p1:sharpen.s0.v0.min)/8)*8) + p1:sharpen.s0.v0.min) + 7), p1:sharpen.s0.v0.max))
+  a[i].max: p1:sharpen.s0.v0.max
+
+  a_copy[i].min: min(p1:sharpen.s0.v1.min, (p1:sharpen.s0.v1.min - 1))
+  a[i].min: (p1:sharpen.s0.v1.min + -1)
+
+  a_copy[i].max: max(p1:sharpen.s0.v1.max, (p1:sharpen.s0.v1.max - 1))
+  a[i].max: p1:sharpen.s0.v1.max
+
+  a_copy[i].min: min(min(p1:sharpen.s0.v0.min, min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.max + -8))), (min(p1:sharpen.s0.v0.min, (p1:sharpen.s0.v0.max + -7)) + 1))
+  a[i].min: min(p1:sharpen.s0.v0.min, min((p1:sharpen.s0.v0.min + 1), min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.max + -8))))
+
+  a_copy[i].max: max(p1:sharpen.s0.v0.max, (min((((((p1:sharpen.s0.v0.max - p1:sharpen.s0.v0.min)/8)*8) + p1:sharpen.s0.v0.min) + 7), p1:sharpen.s0.v0.max) + 1))
+  a[i].max: (p1:sharpen.s0.v0.max + 1)
+
+  a_copy[i].min: min((p1:sharpen.s0.v1.min + -1), p1:sharpen.s0.v1.min)
+  a[i].min: (p1:sharpen.s0.v1.min + -1)
+
+  a_copy[i].min: min(min(p1:sharpen.s0.v0.min, min((p1:sharpen.s0.v0.min + 1), min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.max + -8)))), min(p1:sharpen.s0.v0.min, (p1:sharpen.s0.v0.max + -7)))
+  a[i].min: min(p1:sharpen.s0.v0.min, min((p1:sharpen.s0.v0.min + 1), min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.max + -8))))
+
+  a_copy[i].max: max((p1:sharpen.s0.v0.max + 1), min((((((p1:sharpen.s0.v0.max - p1:sharpen.s0.v0.min)/8)*8) + p1:sharpen.s0.v0.min) + 7), p1:sharpen.s0.v0.max))
+  a[i].max: (p1:sharpen.s0.v0.max + 1)
+
+  a_copy[i].min: min((p1:sharpen.s0.v1.min + -1), (p1:sharpen.s0.v1.min + 1))
+  a[i].min: (p1:sharpen.s0.v1.min + -1)
+
+  a_copy[i].max: max(p1:sharpen.s0.v1.max, (p1:sharpen.s0.v1.max + 1))
+  a[i].max: (p1:sharpen.s0.v1.max + 1)
+
+  a_copy[i].min: min(int32(uint16(0)), p1:lut.s0.v3.min)
+  a[i].min: min(p1:lut.s0.v3.min, 0)
+
+  a_copy[i].max: max(int32(uint16(65535)), p1:lut.s0.v3.max)
+  a[i].max: max(p1:lut.s0.v3.max, 65535)
+
+  a_copy[i].min: min(min(p1:sharpen.s0.v0.min, min((p1:sharpen.s0.v0.min + 1), min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.max + -8)))), (min(p1:padded.s0.v0.min, (p1:padded.s0.v0.max + -15)) + 0))
+  a[i].min: min(p1:sharpen.s0.v0.min, min(p1:padded.s0.v0.min, min((p1:sharpen.s0.v0.min + 1), min((p1:sharpen.s0.v0.min + -1), min((p1:sharpen.s0.v0.max + -8), (p1:padded.s0.v0.max + -15))))))
+
+  a_copy[i].max: max((p1:sharpen.s0.v0.max + 1), (min(((((p1:padded.s0.v0.max - p1:padded.s0.v0.min)/16)*16) + p1:padded.s0.v0.min), (p1:padded.s0.v0.max + -15)) + 15))
+  a[i].max: max(p1:padded.s0.v0.max, (p1:sharpen.s0.v0.max + 1))
+
+  a_copy[i].min: min((p1:sharpen.s0.v1.min + -1), p1:padded.s0.v1.min)
+  a[i].min: min(p1:padded.s0.v1.min, (p1:sharpen.s0.v1.min + -1))
+
+  a_copy[i].max: max((p1:sharpen.s0.v1.max + 1), p1:padded.s0.v1.max)
+  a[i].max: max(p1:padded.s0.v1.max, (p1:sharpen.s0.v1.max + 1))
+
+  a_copy[i].min: min(p1:curved.s0.v0.min, (min(p1:sharpen.s0.v0.min, (p1:sharpen.s0.v0.max + -7)) + 0))
+  a[i].min: min(p1:sharpen.s0.v0.min, min(p1:curved.s0.v0.min, (p1:sharpen.s0.v0.max + -7)))
+
+  a_copy[i].max: max(p1:curved.s0.v0.max, (min(((((p1:sharpen.s0.v0.max - p1:sharpen.s0.v0.min)/8)*8) + p1:sharpen.s0.v0.min), (p1:sharpen.s0.v0.max + -7)) + 7))
+  a[i].max: max(p1:sharpen.s0.v0.max, p1:curved.s0.v0.max)
+
+  a_copy[i].min: min((min(p1:curved.s0.v1.min, (p1:curved.s0.v1.max + -15)) + 0), p1:sharpen.s0.v1.min)
+  a[i].min: min(p1:sharpen.s0.v1.min, min(p1:curved.s0.v1.min, (p1:curved.s0.v1.max + -15)))
+
+  a_copy[i].max: max((min(((((p1:curved.s0.v1.max - p1:curved.s0.v1.min)/16)*16) + p1:curved.s0.v1.min), (p1:curved.s0.v1.max + -15)) + 15), p1:sharpen.s0.v1.max)
+  a[i].max: max(p1:sharpen.s0.v1.max, p1:curved.s0.v1.max)
+
+  a_copy[i].min: min(p1:curved.s0.v2.min, p1:sharpen.s0.v2.min)
+  a[i].min: min(p1:sharpen.s0.v2.min, p1:curved.s0.v2.min)
+
+  a_copy[i].max: max(p1:curved.s0.v2.max, p1:sharpen.s0.v2.max)
+  a[i].max: max(p1:sharpen.s0.v2.max, p1:curved.s0.v2.max)
+
+  a_copy[i].min: min(p1:sharpen.s0.v0.min, (p1:sharpen.s0.v0.min - 1))
+  a[i].min: (p1:sharpen.s0.v0.min + -1)
+
+  a_copy[i].max: max(p1:sharpen.s0.v0.max, (p1:sharpen.s0.v0.max - 1))
+  a[i].max: p1:sharpen.s0.v0.max
+
+  a_copy[i].min: min((p1:sharpen.s0.v0.min + -1), p1:sharpen.s0.v0.min)
+  a[i].min: (p1:sharpen.s0.v0.min + -1)
+
+  a_copy[i].min: min(p1:sharpen.s0.v1.min, (p1:sharpen.s0.v1.min - 1))
+  a[i].min: (p1:sharpen.s0.v1.min + -1)
+
+  a_copy[i].max: max(p1:sharpen.s0.v1.max, (p1:sharpen.s0.v1.max - 1))
+  a[i].max: p1:sharpen.s0.v1.max
+
+  a_copy[i].min: min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.min + 1))
+  a[i].min: (p1:sharpen.s0.v0.min + -1)
+
+  a_copy[i].max: max(p1:sharpen.s0.v0.max, (p1:sharpen.s0.v0.max + 1))
+  a[i].max: (p1:sharpen.s0.v0.max + 1)
+
+  a_copy[i].min: min((p1:sharpen.s0.v1.min + -1), p1:sharpen.s0.v1.min)
+  a[i].min: (p1:sharpen.s0.v1.min + -1)
+
+  a_copy[i].min: min((p1:sharpen.s0.v0.min + -1), p1:sharpen.s0.v0.min)
+  a[i].min: (p1:sharpen.s0.v0.min + -1)
+
+  a_copy[i].max: max((p1:sharpen.s0.v0.max + 1), p1:sharpen.s0.v0.max)
+  a[i].max: (p1:sharpen.s0.v0.max + 1)
+
+  a_copy[i].min: min((p1:sharpen.s0.v1.min + -1), (p1:sharpen.s0.v1.min + 1))
+  a[i].min: (p1:sharpen.s0.v1.min + -1)
+
+  a_copy[i].max: max(p1:sharpen.s0.v1.max, (p1:sharpen.s0.v1.max + 1))
+  a[i].max: (p1:sharpen.s0.v1.max + 1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.min, (p1:curved.s0.v0.max + -7)), (min(p1:curved.s0.v0.min, (p1:curved.s0.v0.max + -7)) - 1))
+  a[i].min: min((p1:curved.s0.v0.min + -1), (p1:curved.s0.v0.max + -8))
+
+  a_copy[i].max: max(min((((((p1:curved.s0.v0.max - p1:curved.s0.v0.min)/8)*8) + p1:curved.s0.v0.min) + 7), p1:curved.s0.v0.max), (min((((((p1:curved.s0.v0.max - p1:curved.s0.v0.min)/8)*8) + p1:curved.s0.v0.min) + 7), p1:curved.s0.v0.max) - 1))
+  a[i].max: p1:curved.s0.v0.max
+
+  a_copy[i].max: min((((((p1:curved.s0.v1.max - p1:curved.s0.v1.min)/16)*16) + p1:curved.s0.v1.min) + 15), p1:curved.s0.v1.max)
+  a[i].max: p1:curved.s0.v1.max
+
+  a_copy[i].min: min(min((p1:curved.s0.v0.min + -1), (p1:curved.s0.v0.max + -8)), min(p1:curved.s0.v0.min, (p1:curved.s0.v0.max + -7)))
+  a[i].min: min(p1:curved.s0.v0.min, min((p1:curved.s0.v0.min + -1), (p1:curved.s0.v0.max + -8)))
+
+  a_copy[i].max: max(p1:curved.s0.v0.max, min((((((p1:curved.s0.v0.max - p1:curved.s0.v0.min)/8)*8) + p1:curved.s0.v0.min) + 7), p1:curved.s0.v0.max))
+  a[i].max: p1:curved.s0.v0.max
+
+  a_copy[i].min: min(min(p1:curved.s0.v1.min, (p1:curved.s0.v1.max + -15)), (min(p1:curved.s0.v1.min, (p1:curved.s0.v1.max + -15)) - 1))
+  a[i].min: min((p1:curved.s0.v1.min + -1), (p1:curved.s0.v1.max + -16))
+
+  a_copy[i].max: max(p1:curved.s0.v1.max, (min((((((p1:curved.s0.v1.max - p1:curved.s0.v1.min)/16)*16) + p1:curved.s0.v1.min) + 15), p1:curved.s0.v1.max) - 1))
+  a[i].max: p1:curved.s0.v1.max
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.min, min((p1:curved.s0.v0.min + -1), (p1:curved.s0.v0.max + -8))), (min(p1:curved.s0.v0.min, (p1:curved.s0.v0.max + -7)) + 1))
+  a[i].min: min(p1:curved.s0.v0.min, min((p1:curved.s0.v0.min + 1), min((p1:curved.s0.v0.min + -1), (p1:curved.s0.v0.max + -8))))
+
+  a_copy[i].max: max(p1:curved.s0.v0.max, (min((((((p1:curved.s0.v0.max - p1:curved.s0.v0.min)/8)*8) + p1:curved.s0.v0.min) + 7), p1:curved.s0.v0.max) + 1))
+  a[i].max: (p1:curved.s0.v0.max + 1)
+
+  a_copy[i].min: min(min((p1:curved.s0.v1.min + -1), (p1:curved.s0.v1.max + -16)), min(p1:curved.s0.v1.min, (p1:curved.s0.v1.max + -15)))
+  a[i].min: min(p1:curved.s0.v1.min, min((p1:curved.s0.v1.min + -1), (p1:curved.s0.v1.max + -16)))
+
+  a_copy[i].max: max(p1:curved.s0.v1.max, min((((((p1:curved.s0.v1.max - p1:curved.s0.v1.min)/16)*16) + p1:curved.s0.v1.min) + 15), p1:curved.s0.v1.max))
+  a[i].max: p1:curved.s0.v1.max
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.min, min((p1:curved.s0.v0.min + 1), min((p1:curved.s0.v0.min + -1), (p1:curved.s0.v0.max + -8)))), min(p1:curved.s0.v0.min, (p1:curved.s0.v0.max + -7)))
+  a[i].min: min(p1:curved.s0.v0.min, min((p1:curved.s0.v0.min + 1), min((p1:curved.s0.v0.min + -1), (p1:curved.s0.v0.max + -8))))
+
+  a_copy[i].max: max((p1:curved.s0.v0.max + 1), min((((((p1:curved.s0.v0.max - p1:curved.s0.v0.min)/8)*8) + p1:curved.s0.v0.min) + 7), p1:curved.s0.v0.max))
+  a[i].max: (p1:curved.s0.v0.max + 1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v1.min, min((p1:curved.s0.v1.min + -1), (p1:curved.s0.v1.max + -16))), (min(p1:curved.s0.v1.min, (p1:curved.s0.v1.max + -15)) + 1))
+  a[i].min: min(p1:curved.s0.v1.min, min((p1:curved.s0.v1.min + 1), min((p1:curved.s0.v1.min + -1), (p1:curved.s0.v1.max + -16))))
+
+  a_copy[i].max: max(p1:curved.s0.v1.max, (min((((((p1:curved.s0.v1.max - p1:curved.s0.v1.min)/16)*16) + p1:curved.s0.v1.min) + 15), p1:curved.s0.v1.max) + 1))
+  a[i].max: (p1:curved.s0.v1.max + 1)
+
+  a_copy[i].min: min(int32(uint16(0)), p1:lut.s0.v3.min)
+  a[i].min: min(p1:lut.s0.v3.min, 0)
+
+  a_copy[i].max: max(int32(uint16(65535)), p1:lut.s0.v3.max)
+  a[i].max: max(p1:lut.s0.v3.max, 65535)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)), (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) - 1))
+  a[i].min: min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))
+
+  a_copy[i].max: max((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7), ((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7) - 1))
+  a[i].max: ((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1)
+
+  a_copy[i].min: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min)
+  a[i].min: (p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].max: ((p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)) + -1)
+  a[i].max: (((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1)
+  a[i].max: ((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1)
+
+  a_copy[i].min: min(min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)), min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -1)
+
+  a_copy[i].min: min((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) - 1))
+  a[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) + -1)
+
+  a_copy[i].max: max((((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base) + -1), (((p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)) + -1) - 1))
+  a[i].max: (((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.loop_min) + -1)
+
+  a_copy[i].max: max(((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1), ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1))
+  a[i].max: ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))), (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 1))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -1), ((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7) + 1))
+  a[i].max: (p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent)
+
+  a_copy[i].min: min(((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) + -1), (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min))
+  a[i].min: ((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: max((((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.loop_min) + -1), ((p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)) + -1))
+  a[i].max: (((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1)
+  a[i].max: ((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))), min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))))
+
+  a_copy[i].max: max((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: (p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min)
+
+  a_copy[i].min: min(((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base) + -1), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) + 1))
+  a[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) + -1)
+
+  a_copy[i].max: max((((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base) + -1), (((p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)) + -1) + 1))
+  a[i].max: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.loop_min)
+
+  a_copy[i].max: max(((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1), ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1))
+  a[i].max: ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))), (min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -15)) + 0))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -15))))
+
+  a_copy[i].max: max((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min), (min((((((p1:curved.s0.v0.loop_extent + 1)/16)*16) + p1:curved.s0.v0.loop_min) + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -15)) + 15))
+  a[i].max: (p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent)
+
+  a_copy[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) + -1)
+  a[i].min: ((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: max(((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.loop_min), (p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)))
+  a[i].max: ((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].max: ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1)
+  a[i].max: ((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)), (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) - 1))
+  a[i].min: min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))
+
+  a_copy[i].max: max((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7), ((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7) - 1))
+  a[i].max: ((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1)
+
+  a_copy[i].min: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min)
+  a[i].min: (p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].max: ((p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)) + -1)
+  a[i].max: (((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1)
+  a[i].max: ((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1)
+
+  a_copy[i].min: min(min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)), min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -1)
+
+  a_copy[i].min: min((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) - 1))
+  a[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) + -1)
+
+  a_copy[i].max: max((((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base) + -1), (((p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)) + -1) - 1))
+  a[i].max: (((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.loop_min) + -1)
+
+  a_copy[i].max: max(((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1), ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1))
+  a[i].max: ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))), (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 1))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -1), ((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7) + 1))
+  a[i].max: (p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent)
+
+  a_copy[i].min: min(((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) + -1), (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min))
+  a[i].min: ((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: max((((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.loop_min) + -1), ((p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)) + -1))
+  a[i].max: (((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1)
+  a[i].max: ((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))), min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))))
+
+  a_copy[i].max: max((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: (p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min)
+
+  a_copy[i].min: min(((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base) + -1), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) + 1))
+  a[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min) + -1)
+
+  a_copy[i].max: max((((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base) + -1), (((p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)) + -1) + 1))
+  a[i].max: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.loop_min)
+
+  a_copy[i].max: max(((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1), ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1))
+  a[i].max: ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1)
+
+  a_copy[i].min: min(p1:curved.s0.v0.loop_min, (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 0))
+  a[i].min: min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) - 1), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: ((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1)
+
+  a_copy[i].min: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi.loop_min)
+  a[i].min: (p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].max: max((p1:curved.s0.v1.yi.base + ((p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min) - 1)), ((p1:curved.s0.v1.yi.base + (p1:curved.s0.v1.yi.loop_extent + p1:curved.s0.v1.yi.loop_min)) + -1))
+  a[i].max: (((p1:curved.s0.v1.yi.loop_min + p1:curved.s0.v1.yi.loop_extent) + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: max(((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) - 1), ((p1:curved.s0.v2.loop_extent + p1:curved.s0.v2.loop_min) + -1))
+  a[i].max: ((p1:curved.s0.v2.loop_min + p1:curved.s0.v2.loop_extent) + -1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)), (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) - 1))
+  a[i].min: min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))
+
+  a_copy[i].max: max((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7), ((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7) - 1))
+  a[i].max: ((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1)
+
+  a_copy[i].min: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+  a[i].min: (p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].max: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+  a[i].max: (p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].min: min(min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)), min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -1)
+
+  a_copy[i].min: min((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) - 1))
+  a[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + -1)
+
+  a_copy[i].max: max((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) - 1))
+  a[i].max: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))), (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 1))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -1), ((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7) + 1))
+  a[i].max: (p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent)
+
+  a_copy[i].min: min(((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + -1), (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi))
+  a[i].min: ((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+  a[i].max: (p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))), min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))))
+
+  a_copy[i].max: max((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: (p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min)
+
+  a_copy[i].min: min(((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base) + -1), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + 1))
+  a[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + -1)
+
+  a_copy[i].max: max((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + 1))
+  a[i].max: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + 1)
+
+  a_copy[i].min: min(p1:curved.s0.v0.loop_min, (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 0))
+  a[i].min: min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) - 1), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: ((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1)
+
+  a_copy[i].min: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+  a[i].min: (p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].max: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+  a[i].max: (p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].max: max(((3 + 0) - 1), 2)
+  a[i].max: 2
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)), (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) - 1))
+  a[i].min: min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))
+
+  a_copy[i].max: max((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7), ((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7) - 1))
+  a[i].max: ((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1)
+
+  a_copy[i].min: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+  a[i].min: (p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].max: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+  a[i].max: (p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].min: min(min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)), min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent) + -1), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -1)
+
+  a_copy[i].min: min((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) - 1))
+  a[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + -1)
+
+  a_copy[i].max: max((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) - 1))
+  a[i].max: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))), (min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 1))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))))
+
+  a_copy[i].max: max(((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -1), ((min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7) + 1))
+  a[i].max: (p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent)
+
+  a_copy[i].min: min(((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + -1), (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi))
+  a[i].min: ((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: (p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi)
+  a[i].max: (p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))), min(p1:curved.s0.v0.loop_min, ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9))))
+
+  a_copy[i].max: max((p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent), (min(((((p1:curved.s0.v0.loop_extent + -1)/8)*8) + p1:curved.s0.v0.loop_min), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -8)) + 7))
+  a[i].max: (p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min)
+
+  a_copy[i].min: min(((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base) + -1), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + 1))
+  a[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + -1)
+
+  a_copy[i].max: max((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base), ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + 1))
+  a[i].max: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + 1)
+
+  a_copy[i].min: min(min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -9)))), (min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -15)) + 0))
+  a[i].min: min(p1:curved.s0.v0.loop_min, min((p1:curved.s0.v0.loop_min + 1), min((p1:curved.s0.v0.loop_min + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -15))))
+
+  a_copy[i].max: max((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min), (min((((((p1:curved.s0.v0.loop_extent + 1)/16)*16) + p1:curved.s0.v0.loop_min) + -1), ((p1:curved.s0.v0.loop_extent + p1:curved.s0.v0.loop_min) + -15)) + 15))
+  a[i].max: (p1:curved.s0.v0.loop_min + p1:curved.s0.v0.loop_extent)
+
+  a_copy[i].min: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + -1)
+  a[i].min: ((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base) + -1)
+
+  a_copy[i].max: ((p1:curved.s0.v1.yi.base + p1:curved.s0.v1.yi) + 1)
+  a[i].max: ((p1:curved.s0.v1.yi + p1:curved.s0.v1.yi.base) + 1)
+5.6605 milliseconds
+Testing performance on GPU:
+
+  a_copy[i].min: min(min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)), (min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)) - 1))
+  a[i].min: min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8))
+
+  a_copy[i].max: max(min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max), (min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max) - 1))
+  a[i].max: p2:curved.s0.v0.max
+
+  a_copy[i].max: min((((((p2:curved.s0.v1.max - p2:curved.s0.v1.min)/8)*8) + p2:curved.s0.v1.min) + 7), p2:curved.s0.v1.max)
+  a[i].max: p2:curved.s0.v1.max
+
+  a_copy[i].min: min(min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8)), min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)))
+  a[i].min: min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8)))
+
+  a_copy[i].max: max(p2:curved.s0.v0.max, min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max))
+  a[i].max: p2:curved.s0.v0.max
+
+  a_copy[i].min: min(min(p2:curved.s0.v1.min, (p2:curved.s0.v1.max + -7)), (min(p2:curved.s0.v1.min, (p2:curved.s0.v1.max + -7)) - 1))
+  a[i].min: min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8))
+
+  a_copy[i].max: max(p2:curved.s0.v1.max, (min((((((p2:curved.s0.v1.max - p2:curved.s0.v1.min)/8)*8) + p2:curved.s0.v1.min) + 7), p2:curved.s0.v1.max) - 1))
+  a[i].max: p2:curved.s0.v1.max
+
+  a_copy[i].min: min(min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8))), (min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)) + 1))
+  a[i].min: min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + 1), min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8))))
+
+  a_copy[i].max: max(p2:curved.s0.v0.max, (min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max) + 1))
+  a[i].max: (p2:curved.s0.v0.max + 1)
+
+  a_copy[i].min: min(min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8)), min(p2:curved.s0.v1.min, (p2:curved.s0.v1.max + -7)))
+  a[i].min: min(p2:curved.s0.v1.min, min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8)))
+
+  a_copy[i].max: max(p2:curved.s0.v1.max, min((((((p2:curved.s0.v1.max - p2:curved.s0.v1.min)/8)*8) + p2:curved.s0.v1.min) + 7), p2:curved.s0.v1.max))
+  a[i].max: p2:curved.s0.v1.max
+
+  a_copy[i].min: min(min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + 1), min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8)))), min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)))
+  a[i].min: min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + 1), min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8))))
+
+  a_copy[i].max: max((p2:curved.s0.v0.max + 1), min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max))
+  a[i].max: (p2:curved.s0.v0.max + 1)
+
+  a_copy[i].min: min(min(p2:curved.s0.v1.min, min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8))), (min(p2:curved.s0.v1.min, (p2:curved.s0.v1.max + -7)) + 1))
+  a[i].min: min(p2:curved.s0.v1.min, min((p2:curved.s0.v1.min + 1), min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8))))
+
+  a_copy[i].max: max(p2:curved.s0.v1.max, (min((((((p2:curved.s0.v1.max - p2:curved.s0.v1.min)/8)*8) + p2:curved.s0.v1.min) + 7), p2:curved.s0.v1.max) + 1))
+  a[i].max: (p2:curved.s0.v1.max + 1)
+
+  a_copy[i].min: min(int32(uint16(0)), (min(p2:lut.s0.v3.min, (p2:lut.s0.v3.max + -15)) + 0))
+  a[i].min: min(p2:lut.s0.v3.min, min((p2:lut.s0.v3.max + -15), 0))
+
+  a_copy[i].max: max(int32(uint16(65535)), (min(((((p2:lut.s0.v3.max - p2:lut.s0.v3.min)/16)*16) + p2:lut.s0.v3.min), (p2:lut.s0.v3.max + -15)) + 15))
+  a[i].max: max(p2:lut.s0.v3.max, 65535)
+
+  a_copy[i].min: min(min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + 1), min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8)))), p2:padded.s0.v0.min)
+  a[i].min: min(p2:padded.s0.v0.min, min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + 1), min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8)))))
+
+  a_copy[i].max: max((p2:curved.s0.v0.max + 1), p2:padded.s0.v0.max)
+  a[i].max: max(p2:padded.s0.v0.max, (p2:curved.s0.v0.max + 1))
+
+  a_copy[i].min: min(min(p2:curved.s0.v1.min, min((p2:curved.s0.v1.min + 1), min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8)))), p2:padded.s0.v1.min)
+  a[i].min: min(p2:padded.s0.v1.min, min(p2:curved.s0.v1.min, min((p2:curved.s0.v1.min + 1), min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8)))))
+
+  a_copy[i].max: max((p2:curved.s0.v1.max + 1), p2:padded.s0.v1.max)
+  a[i].max: max(p2:padded.s0.v1.max, (p2:curved.s0.v1.max + 1))
+
+  a_copy[i].min: min(p2:curved.s0.v2.min, p2:padded.s0.v2.min)
+  a[i].min: min(p2:padded.s0.v2.min, p2:curved.s0.v2.min)
+
+  a_copy[i].max: max(p2:curved.s0.v2.max, p2:padded.s0.v2.max)
+  a[i].max: max(p2:padded.s0.v2.max, p2:curved.s0.v2.max)
+
+  a_copy[i].min: min(p2:curved.s0.v0.min, (p2:curved.s0.v0.min - 1))
+  a[i].min: (p2:curved.s0.v0.min + -1)
+
+  a_copy[i].max: max(p2:curved.s0.v0.max, (p2:curved.s0.v0.max - 1))
+  a[i].max: p2:curved.s0.v0.max
+
+  a_copy[i].min: min((p2:curved.s0.v0.min + -1), p2:curved.s0.v0.min)
+  a[i].min: (p2:curved.s0.v0.min + -1)
+
+  a_copy[i].min: min(p2:curved.s0.v1.min, (p2:curved.s0.v1.min - 1))
+  a[i].min: (p2:curved.s0.v1.min + -1)
+
+  a_copy[i].max: max(p2:curved.s0.v1.max, (p2:curved.s0.v1.max - 1))
+  a[i].max: p2:curved.s0.v1.max
+
+  a_copy[i].min: min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.min + 1))
+  a[i].min: (p2:curved.s0.v0.min + -1)
+
+  a_copy[i].max: max(p2:curved.s0.v0.max, (p2:curved.s0.v0.max + 1))
+  a[i].max: (p2:curved.s0.v0.max + 1)
+
+  a_copy[i].min: min((p2:curved.s0.v1.min + -1), p2:curved.s0.v1.min)
+  a[i].min: (p2:curved.s0.v1.min + -1)
+
+  a_copy[i].min: min((p2:curved.s0.v0.min + -1), p2:curved.s0.v0.min)
+  a[i].min: (p2:curved.s0.v0.min + -1)
+
+  a_copy[i].max: max((p2:curved.s0.v0.max + 1), p2:curved.s0.v0.max)
+  a[i].max: (p2:curved.s0.v0.max + 1)
+
+  a_copy[i].min: min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.min + 1))
+  a[i].min: (p2:curved.s0.v1.min + -1)
+
+  a_copy[i].max: max(p2:curved.s0.v1.max, (p2:curved.s0.v1.max + 1))
+  a[i].max: (p2:curved.s0.v1.max + 1)
+
+  a_copy[i].min: min(min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)), (min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)) - 1))
+  a[i].min: min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8))
+
+  a_copy[i].max: max(min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max), (min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max) - 1))
+  a[i].max: p2:curved.s0.v0.max
+
+  a_copy[i].max: min((((((p2:curved.s0.v1.max - p2:curved.s0.v1.min)/8)*8) + p2:curved.s0.v1.min) + 7), p2:curved.s0.v1.max)
+  a[i].max: p2:curved.s0.v1.max
+
+  a_copy[i].min: min(min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8)), min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)))
+  a[i].min: min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8)))
+
+  a_copy[i].max: max(p2:curved.s0.v0.max, min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max))
+  a[i].max: p2:curved.s0.v0.max
+
+  a_copy[i].min: min(min(p2:curved.s0.v1.min, (p2:curved.s0.v1.max + -7)), (min(p2:curved.s0.v1.min, (p2:curved.s0.v1.max + -7)) - 1))
+  a[i].min: min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8))
+
+  a_copy[i].max: max(p2:curved.s0.v1.max, (min((((((p2:curved.s0.v1.max - p2:curved.s0.v1.min)/8)*8) + p2:curved.s0.v1.min) + 7), p2:curved.s0.v1.max) - 1))
+  a[i].max: p2:curved.s0.v1.max
+
+  a_copy[i].min: min(min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8))), (min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)) + 1))
+  a[i].min: min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + 1), min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8))))
+
+  a_copy[i].max: max(p2:curved.s0.v0.max, (min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max) + 1))
+  a[i].max: (p2:curved.s0.v0.max + 1)
+
+  a_copy[i].min: min(min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8)), min(p2:curved.s0.v1.min, (p2:curved.s0.v1.max + -7)))
+  a[i].min: min(p2:curved.s0.v1.min, min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8)))
+
+  a_copy[i].max: max(p2:curved.s0.v1.max, min((((((p2:curved.s0.v1.max - p2:curved.s0.v1.min)/8)*8) + p2:curved.s0.v1.min) + 7), p2:curved.s0.v1.max))
+  a[i].max: p2:curved.s0.v1.max
+
+  a_copy[i].min: min(min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + 1), min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8)))), min(p2:curved.s0.v0.min, (p2:curved.s0.v0.max + -7)))
+  a[i].min: min(p2:curved.s0.v0.min, min((p2:curved.s0.v0.min + 1), min((p2:curved.s0.v0.min + -1), (p2:curved.s0.v0.max + -8))))
+
+  a_copy[i].max: max((p2:curved.s0.v0.max + 1), min((((((p2:curved.s0.v0.max - p2:curved.s0.v0.min)/8)*8) + p2:curved.s0.v0.min) + 7), p2:curved.s0.v0.max))
+  a[i].max: (p2:curved.s0.v0.max + 1)
+
+  a_copy[i].min: min(min(p2:curved.s0.v1.min, min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8))), (min(p2:curved.s0.v1.min, (p2:curved.s0.v1.max + -7)) + 1))
+  a[i].min: min(p2:curved.s0.v1.min, min((p2:curved.s0.v1.min + 1), min((p2:curved.s0.v1.min + -1), (p2:curved.s0.v1.max + -8))))
+
+  a_copy[i].max: max(p2:curved.s0.v1.max, (min((((((p2:curved.s0.v1.max - p2:curved.s0.v1.min)/8)*8) + p2:curved.s0.v1.min) + 7), p2:curved.s0.v1.max) + 1))
+  a[i].max: (p2:curved.s0.v1.max + 1)
+
+  a_copy[i].min: min(int32(uint16(0)), (min(p2:lut.s0.v3.min, (p2:lut.s0.v3.max + -15)) + 0))
+  a[i].min: min(p2:lut.s0.v3.min, min((p2:lut.s0.v3.max + -15), 0))
+
+  a_copy[i].max: max(int32(uint16(65535)), (min(((((p2:lut.s0.v3.max - p2:lut.s0.v3.min)/16)*16) + p2:lut.s0.v3.min), (p2:lut.s0.v3.max + -15)) + 15))
+  a[i].max: max(p2:lut.s0.v3.max, 65535)
+
+  a_copy[i].min: min((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_min), ((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_min) - 1))
+  a[i].min: ((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.base) + -1)
+
+  a_copy[i].max: max(((p2:curved.s0.v0.__thread_id_x.base + (p2:curved.s0.v0.__thread_id_x.loop_extent + p2:curved.s0.v0.__thread_id_x.loop_min)) + -1), (((p2:curved.s0.v0.__thread_id_x.base + (p2:curved.s0.v0.__thread_id_x.loop_extent + p2:curved.s0.v0.__thread_id_x.loop_min)) + -1) - 1))
+  a[i].max: (((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.loop_extent) + p2:curved.s0.v0.__thread_id_x.base) + -1)
+
+  a_copy[i].min: (p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_min)
+  a[i].min: (p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.base)
+
+  a_copy[i].max: ((p2:curved.s0.v1.__thread_id_y.base + (p2:curved.s0.v1.__thread_id_y.loop_extent + p2:curved.s0.v1.__thread_id_y.loop_min)) + -1)
+  a[i].max: (((p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.loop_extent) + p2:curved.s0.v1.__thread_id_y.base) + -1)
+
+  a_copy[i].max: ((p2:curved.s0.v2.loop_extent + p2:curved.s0.v2.loop_min) - 1)
+  a[i].max: ((p2:curved.s0.v2.loop_min + p2:curved.s0.v2.loop_extent) + -1)
+
+  a_copy[i].min: min(((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.base) + -1), (p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_min))
+  a[i].min: ((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_min) + -1)
+
+  a_copy[i].max: max((((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.loop_extent) + p2:curved.s0.v0.__thread_id_x.base) + -1), ((p2:curved.s0.v0.__thread_id_x.base + (p2:curved.s0.v0.__thread_id_x.loop_extent + p2:curved.s0.v0.__thread_id_x.loop_min)) + -1))
+  a[i].max: (((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_extent) + p2:curved.s0.v0.__thread_id_x.loop_min) + -1)
+
+  a_copy[i].min: min((p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.base), ((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_min) - 1))
+  a[i].min: ((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_min) + -1)
+
+  a_copy[i].max: max((((p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.loop_extent) + p2:curved.s0.v1.__thread_id_y.base) + -1), (((p2:curved.s0.v1.__thread_id_y.base + (p2:curved.s0.v1.__thread_id_y.loop_extent + p2:curved.s0.v1.__thread_id_y.loop_min)) + -1) - 1))
+  a[i].max: (((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_extent) + p2:curved.s0.v1.__thread_id_y.loop_min) + -1)
+
+  a_copy[i].max: max(((p2:curved.s0.v2.loop_min + p2:curved.s0.v2.loop_extent) + -1), ((p2:curved.s0.v2.loop_extent + p2:curved.s0.v2.loop_min) - 1))
+  a[i].max: ((p2:curved.s0.v2.loop_extent + p2:curved.s0.v2.loop_min) + -1)
+
+  a_copy[i].min: min(((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_min) + -1), ((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_min) + 1))
+  a[i].min: ((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.base) + -1)
+
+  a_copy[i].max: max((((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_extent) + p2:curved.s0.v0.__thread_id_x.loop_min) + -1), (((p2:curved.s0.v0.__thread_id_x.base + (p2:curved.s0.v0.__thread_id_x.loop_extent + p2:curved.s0.v0.__thread_id_x.loop_min)) + -1) + 1))
+  a[i].max: ((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.loop_extent) + p2:curved.s0.v0.__thread_id_x.base)
+
+  a_copy[i].min: min(((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_min) + -1), (p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_min))
+  a[i].min: ((p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.base) + -1)
+
+  a_copy[i].max: max((((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_extent) + p2:curved.s0.v1.__thread_id_y.loop_min) + -1), ((p2:curved.s0.v1.__thread_id_y.base + (p2:curved.s0.v1.__thread_id_y.loop_extent + p2:curved.s0.v1.__thread_id_y.loop_min)) + -1))
+  a[i].max: (((p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.loop_extent) + p2:curved.s0.v1.__thread_id_y.base) + -1)
+
+  a_copy[i].max: max(((p2:curved.s0.v2.loop_extent + p2:curved.s0.v2.loop_min) + -1), ((p2:curved.s0.v2.loop_extent + p2:curved.s0.v2.loop_min) - 1))
+  a[i].max: ((p2:curved.s0.v2.loop_min + p2:curved.s0.v2.loop_extent) + -1)
+
+  a_copy[i].min: min(((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.base) + -1), (p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_min))
+  a[i].min: ((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_min) + -1)
+
+  a_copy[i].max: max(((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.loop_extent) + p2:curved.s0.v0.__thread_id_x.base), ((p2:curved.s0.v0.__thread_id_x.base + (p2:curved.s0.v0.__thread_id_x.loop_extent + p2:curved.s0.v0.__thread_id_x.loop_min)) + -1))
+  a[i].max: ((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_extent) + p2:curved.s0.v0.__thread_id_x.loop_min)
+
+  a_copy[i].min: min(((p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.base) + -1), ((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_min) + 1))
+  a[i].min: ((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_min) + -1)
+
+  a_copy[i].max: max((((p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.loop_extent) + p2:curved.s0.v1.__thread_id_y.base) + -1), (((p2:curved.s0.v1.__thread_id_y.base + (p2:curved.s0.v1.__thread_id_y.loop_extent + p2:curved.s0.v1.__thread_id_y.loop_min)) + -1) + 1))
+  a[i].max: ((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_extent) + p2:curved.s0.v1.__thread_id_y.loop_min)
+
+  a_copy[i].max: max(((p2:curved.s0.v2.loop_min + p2:curved.s0.v2.loop_extent) + -1), ((p2:curved.s0.v2.loop_extent + p2:curved.s0.v2.loop_min) - 1))
+  a[i].max: ((p2:curved.s0.v2.loop_extent + p2:curved.s0.v2.loop_min) + -1)
+
+  a_copy[i].min: min(((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_min) + -1), p2:padded.s0.v0.min)
+  a[i].min: min(p2:padded.s0.v0.min, ((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.base) + -1))
+
+  a_copy[i].max: max(((p2:curved.s0.v0.__thread_id_x.base + p2:curved.s0.v0.__thread_id_x.loop_extent) + p2:curved.s0.v0.__thread_id_x.loop_min), p2:padded.s0.v0.max)
+  a[i].max: max(p2:padded.s0.v0.max, ((p2:curved.s0.v0.__thread_id_x.loop_min + p2:curved.s0.v0.__thread_id_x.loop_extent) + p2:curved.s0.v0.__thread_id_x.base))
+
+  a_copy[i].min: min(((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_min) + -1), p2:padded.s0.v1.min)
+  a[i].min: min(p2:padded.s0.v1.min, ((p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.base) + -1))
+
+  a_copy[i].max: max(((p2:curved.s0.v1.__thread_id_y.base + p2:curved.s0.v1.__thread_id_y.loop_extent) + p2:curved.s0.v1.__thread_id_y.loop_min), p2:padded.s0.v1.max)
+  a[i].max: max(p2:padded.s0.v1.max, ((p2:curved.s0.v1.__thread_id_y.loop_min + p2:curved.s0.v1.__thread_id_y.loop_extent) + p2:curved.s0.v1.__thread_id_y.base))
+
+  a_copy[i].min: min(p2:curved.s0.v2.loop_min, p2:padded.s0.v2.min)
+  a[i].min: min(p2:padded.s0.v2.min, p2:curved.s0.v2.loop_min)
+
+  a_copy[i].max: max(((p2:curved.s0.v2.loop_extent + p2:curved.s0.v2.loop_min) + -1), p2:padded.s0.v2.max)
+  a[i].max: max(p2:padded.s0.v2.max, ((p2:curved.s0.v2.loop_min + p2:curved.s0.v2.loop_extent) + -1))

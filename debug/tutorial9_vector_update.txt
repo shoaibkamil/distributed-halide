@@ -1,0 +1,57 @@
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/halide/bin:/home/psuriana/halide/non-linear-FM/bin/:/home/psuriana/halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/halide/bin/tutorial_lesson_09_update_definitions
+
+  a_copy[i].min: min(f.s1.x.min, f.s0.x.min)
+  a[i].min: min(f.s0.x.min, (f.s1.x.min + 0))
+
+  a_copy[i].max: max(f.s0.x.max, (f.s1.x.max + 3))
+  a[i].max: max(f.s0.x.max, (((((f.s1.x.max - f.s1.x.min)/4)*4) + f.s1.x.min) + 3))
+
+  a_copy[i].min: min(f.s1.x.min, f.s0.x.min)
+  a[i].min: min((f.s1.x.min + 0), min(f.s0.x.min, (f.s1.x.min + 0)))
+
+  a_copy[i].max: max(f.s0.x.max, (f.s1.x.max + 3))
+  a[i].max: max((((((f.s1.x.max - f.s1.x.min)/4)*4) + f.s1.x.min) + 3), max(f.s0.x.max, (((((f.s1.x.max - f.s1.x.min)/4)*4) + f.s1.x.min) + 3)))
+
+  a_copy[i].min: min(f.s0.y.min, 0)
+  a[i].min: min(min(f.s0.y.min, 0), 8)
+
+  a_copy[i].max: max(f.s0.y.max, 8)
+  a[i].max: max(max(f.s0.y.max, 0), 8)
+
+  a_copy[i].min: min(f.s1.x.min, f.min.0)
+  a[i].min: min(f.min.0, f.s1.x.min)
+
+  a_copy[i].max: max(f.s1.x.max, ((f.extent.0 + f.min.0) + -1))
+  a[i].max: max(((f.min.0 + f.extent.0) - 1), f.s1.x.max)
+
+  a_copy[i].max: max(((f.extent.1 + f.min.1) + -1), 8)
+  a[i].max: max(((f.min.1 + f.extent.1) - 1), 8)
+
+  a_copy[i].min: min(f.s1.x.min, f.s0.x.min)
+  a[i].min: min(f.s0.x.min, (f.s1.x.min + 0))
+
+  a_copy[i].max: max(f.s0.x.max, (f.s1.x.max + 3))
+  a[i].max: max(f.s0.x.max, (((((f.s1.x.max - f.s1.x.min)/4)*4) + f.s1.x.min) + 3))
+
+  a_copy[i].min: min(f.s1.x.min, f.s0.x.min)
+  a[i].min: min((f.s1.x.min + 0), min(f.s0.x.min, (f.s1.x.min + 0)))
+
+  a_copy[i].max: max(f.s0.x.max, (f.s1.x.max + 3))
+  a[i].max: max((((((f.s1.x.max - f.s1.x.min)/4)*4) + f.s1.x.min) + 3), max(f.s0.x.max, (((((f.s1.x.max - f.s1.x.min)/4)*4) + f.s1.x.min) + 3)))
+
+  a_copy[i].min: min(f.s0.y.min, 0)
+  a[i].min: min(min(f.s0.y.min, 0), 8)
+
+  a_copy[i].max: max(f.s0.y.max, 8)
+  a[i].max: max(max(f.s0.y.max, 0), 8)
+
+  a_copy[i].min: min(f.s1.x.min, f.min.0)
+  a[i].min: min(f.min.0, f.s1.x.min)
+
+  a_copy[i].max: max(f.s1.x.max, ((f.extent.0 + f.min.0) + -1))
+  a[i].max: max(((f.min.0 + f.extent.0) - 1), f.s1.x.max)
+
+  a_copy[i].max: max(((f.extent.1 + f.min.1) + -1), 8)
+  a[i].max: max(((f.min.1 + f.extent.1) - 1), 8)
+Success!
+

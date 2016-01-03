@@ -1,0 +1,951 @@
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/halide/bin:/home/psuriana/halide/non-linear-FM/bin/:/home/psuriana/halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/halide/bin/tutorial_lesson_09_update_definitions
+
+  a_copy[i].min: min(min(g.s0.x.min, 2), g.s2.x.min)
+  a[i].min: min(g.s2.x.min, min(g.s0.x.min, 2))
+
+  a_copy[i].max: max(max(g.s0.x.max, 2), g.s2.x.max)
+  a[i].max: max(g.s2.x.max, max(g.s0.x.max, 2))
+
+  a_copy[i].min: min(g.s2.x.min, min(g.s2.x.min, min(g.s0.x.min, 2)))
+  a[i].min: min(g.s2.x.min, min(g.s0.x.min, 2))
+
+  a_copy[i].max: max(g.s2.x.max, max(g.s2.x.max, max(g.s0.x.max, 2)))
+  a[i].max: max(g.s2.x.max, max(g.s0.x.max, 2))
+
+  a_copy[i].min: min(min(g.s0.y.min, 0), 1)
+  a[i].min: min(g.s0.y.min, 0)
+
+  a_copy[i].max: max(max(g.s0.y.max, 1), 1)
+  a[i].max: max(g.s0.y.max, 1)
+
+  a_copy[i].min: min(g.min.0, g.s2.x.min)
+  a[i].min: min(g.s2.x.min, g.min.0)
+
+  a_copy[i].max: max(((g.min.0 + g.extent.0) - 1), g.s2.x.max)
+  a[i].max: max(g.s2.x.max, ((g.extent.0 + g.min.0) + -1))
+
+  a_copy[i].max: max(((g.min.1 + g.extent.1) - 1), 1)
+  a[i].max: max(((g.extent.1 + g.min.1) + -1), 1)
+
+  a_copy[i].min: min(g.min.0, g.s2.x.min)
+  a[i].min: min(g.s2.x.min, g.min.0)
+
+  a_copy[i].max: max(((g.min.0 + g.extent.0) - 1), g.s2.x.max)
+  a[i].max: max(g.s2.x.max, ((g.extent.0 + g.min.0) + -1))
+
+  a_copy[i].max: max(((g.min.1 + g.extent.1) - 1), 1)
+  a[i].max: max(((g.extent.1 + g.min.1) + -1), 1)
+
+  a_copy[i].min: min(f$2.s0.x.min, f$2.s1.x.min)
+  a[i].min: min(f$2.s1.x.min, f$2.s0.x.min)
+
+  a_copy[i].max: max(f$2.s0.x.max, f$2.s1.x.max)
+  a[i].max: max(f$2.s1.x.max, f$2.s0.x.max)
+
+  a_copy[i].min: min(f$2.s0.y.min, f$2.s1.r.x$r.min)
+  a[i].min: min(f$2.s1.r.x$r.min, f$2.s0.y.min)
+
+  a_copy[i].max: max(f$2.s0.y.max, f$2.s1.r.x$r.max)
+  a[i].max: max(f$2.s1.r.x$r.max, f$2.s0.y.max)
+
+  a_copy[i].min: min(f$2.s1.x.min, min(f$2.s1.x.min, f$2.s0.x.min))
+  a[i].min: min(f$2.s1.x.min, f$2.s0.x.min)
+
+  a_copy[i].max: max(f$2.s1.x.max, max(f$2.s1.x.max, f$2.s0.x.max))
+  a[i].max: max(f$2.s1.x.max, f$2.s0.x.max)
+
+  a_copy[i].min: min(f$2.s1.r.x$r.min, min(f$2.s1.r.x$r.min, f$2.s0.y.min))
+  a[i].min: min(f$2.s1.r.x$r.min, f$2.s0.y.min)
+
+  a_copy[i].max: max(f$2.s1.r.x$r.max, max(f$2.s1.r.x$r.max, f$2.s0.y.max))
+  a[i].max: max(f$2.s1.r.x$r.max, f$2.s0.y.max)
+
+  a_copy[i].min: min(f$2.min.0, f$2.s1.x.min)
+  a[i].min: min(f$2.s1.x.min, f$2.min.0)
+
+  a_copy[i].max: max(((f$2.min.0 + f$2.extent.0) - 1), f$2.s1.x.max)
+  a[i].max: max(f$2.s1.x.max, ((f$2.extent.0 + f$2.min.0) + -1))
+
+  a_copy[i].min: min(f$2.min.1, f$2.s1.r.x$r.min)
+  a[i].min: min(f$2.s1.r.x$r.min, f$2.min.1)
+
+  a_copy[i].max: max(((f$2.min.1 + f$2.extent.1) - 1), f$2.s1.r.x$r.max)
+  a[i].max: max(f$2.s1.r.x$r.max, ((f$2.extent.1 + f$2.min.1) + -1))
+
+  a_copy[i].min: min(histogram.s0.x.min, int32(uint8(0)))
+  a[i].min: min(histogram.s0.x.min, 0)
+
+  a_copy[i].max: max(histogram.s0.x.max, int32(uint8(255)))
+  a[i].max: max(histogram.s0.x.max, 255)
+
+  a_copy[i].min: min(int32(uint8(0)), min(histogram.s0.x.min, 0))
+  a[i].min: min(histogram.s0.x.min, 0)
+
+  a_copy[i].max: max(int32(uint8(255)), max(histogram.s0.x.max, 255))
+  a[i].max: max(histogram.s0.x.max, 255)
+
+  a_copy[i].min: min(histogram.min.0, int32(uint8(0)))
+  a[i].min: min(histogram.min.0, 0)
+
+  a_copy[i].max: max(((histogram.min.0 + histogram.extent.0) - 1), int32(uint8(255)))
+  a[i].max: max(((histogram.extent.0 + histogram.min.0) + -1), 255)
+
+  a_copy[i].min: min(producer.s0.x.min, producer.s1.x.min)
+  a[i].min: min(producer.s1.x.min, producer.s0.x.min)
+
+  a_copy[i].max: max(producer.s0.x.max, producer.s1.x.max)
+  a[i].max: max(producer.s1.x.max, producer.s0.x.max)
+
+  a_copy[i].min: min(min(producer.s1.x.min, consumer.s0.x.min), min(producer.s1.x.min, producer.s0.x.min))
+  a[i].min: min(producer.s1.x.min, min(producer.s0.x.min, consumer.s0.x.min))
+
+  a_copy[i].max: max(max(producer.s1.x.max, consumer.s0.x.max), max(producer.s1.x.max, producer.s0.x.max))
+  a[i].max: max(producer.s1.x.max, max(producer.s0.x.max, consumer.s0.x.max))
+
+  a_copy[i].min: min(consumer.s0.x.min, producer.s1.x.min)
+  a[i].min: min(producer.s1.x.min, consumer.s0.x.min)
+
+  a_copy[i].max: max(consumer.s0.x.max, producer.s1.x.max)
+  a[i].max: max(producer.s1.x.max, consumer.s0.x.max)
+
+  a_copy[i].min: min(consumer.s0.x.min, producer.s1.x.min)
+  a[i].min: min(producer.s1.x.min, consumer.s0.x.min)
+
+  a_copy[i].max: max(consumer.s0.x.max, producer.s1.x.max)
+  a[i].max: max(producer.s1.x.max, consumer.s0.x.max)
+
+  a_copy[i].min: min(producer.s0.x.min, producer.s1.x.min)
+  a[i].min: min(producer.s1.x.min, producer.s0.x.min)
+
+  a_copy[i].max: max(producer.s0.x.max, producer.s1.x.max)
+  a[i].max: max(producer.s1.x.max, producer.s0.x.max)
+
+  a_copy[i].min: min(min(producer.s1.x.min, consumer.s0.x), min(producer.s1.x.min, producer.s0.x.min))
+  a[i].min: min(producer.s1.x.min, min(producer.s0.x.min, consumer.s0.x))
+
+  a_copy[i].max: max(max(producer.s1.x.max, consumer.s0.x), max(producer.s1.x.max, producer.s0.x.max))
+  a[i].max: max(producer.s1.x.max, max(producer.s0.x.max, consumer.s0.x))
+
+  a_copy[i].min: min(consumer$2.s0.x.min, consumer$2.s1.x.min)
+  a[i].min: min(consumer$2.s1.x.min, consumer$2.s0.x.min)
+
+  a_copy[i].max: max(consumer$2.s0.x.max, consumer$2.s1.x.max)
+  a[i].max: max(consumer$2.s1.x.max, consumer$2.s0.x.max)
+
+  a_copy[i].min: min(consumer$2.s1.x.min, min(consumer$2.s1.x.min, consumer$2.s0.x.min))
+  a[i].min: min(consumer$2.s1.x.min, consumer$2.s0.x.min)
+
+  a_copy[i].max: max(consumer$2.s1.x.max, max(consumer$2.s1.x.max, consumer$2.s0.x.max))
+  a[i].max: max(consumer$2.s1.x.max, consumer$2.s0.x.max)
+
+  a_copy[i].min: min(consumer$2.s0.x.min, producer$2.s0.x.min)
+  a[i].min: min(producer$2.s0.x.min, consumer$2.s0.x.min)
+
+  a_copy[i].max: max(consumer$2.s0.x.max, producer$2.s0.x.max)
+  a[i].max: max(producer$2.s0.x.max, consumer$2.s0.x.max)
+
+  a_copy[i].min: min(consumer$2.min.0, consumer$2.s1.x.min)
+  a[i].min: min(consumer$2.s1.x.min, consumer$2.min.0)
+
+  a_copy[i].max: max(((consumer$2.min.0 + consumer$2.extent.0) - 1), consumer$2.s1.x.max)
+  a[i].max: max(consumer$2.s1.x.max, ((consumer$2.extent.0 + consumer$2.min.0) + -1))
+
+  a_copy[i].min: min(consumer$2.s0.x, producer$2.s0.x.min)
+  a[i].min: min(producer$2.s0.x.min, consumer$2.s0.x)
+
+  a_copy[i].max: max(consumer$2.s0.x, producer$2.s0.x.max)
+  a[i].max: max(producer$2.s0.x.max, consumer$2.s0.x)
+
+  a_copy[i].min: min(consumer$3.s0.x.min, consumer$3.s1.x.min)
+  a[i].min: min(consumer$3.s1.x.min, consumer$3.s0.x.min)
+
+  a_copy[i].max: max(consumer$3.s0.x.max, consumer$3.s1.x.max)
+  a[i].max: max(consumer$3.s1.x.max, consumer$3.s0.x.max)
+
+  a_copy[i].min: min(consumer$3.s1.x.min, min(consumer$3.s1.x.min, consumer$3.s0.x.min))
+  a[i].min: min(consumer$3.s1.x.min, consumer$3.s0.x.min)
+
+  a_copy[i].max: max(consumer$3.s1.x.max, max(consumer$3.s1.x.max, consumer$3.s0.x.max))
+  a[i].max: max(consumer$3.s1.x.max, consumer$3.s0.x.max)
+
+  a_copy[i].min: min(consumer$3.s1.x.min, producer$3.s0.x.min)
+  a[i].min: min(producer$3.s0.x.min, consumer$3.s1.x.min)
+
+  a_copy[i].max: max(consumer$3.s1.x.max, producer$3.s0.x.max)
+  a[i].max: max(producer$3.s0.x.max, consumer$3.s1.x.max)
+
+  a_copy[i].min: min(consumer$3.min.0, consumer$3.s1.x.min)
+  a[i].min: min(consumer$3.s1.x.min, consumer$3.min.0)
+
+  a_copy[i].max: max(((consumer$3.min.0 + consumer$3.extent.0) - 1), consumer$3.s1.x.max)
+  a[i].max: max(consumer$3.s1.x.max, ((consumer$3.extent.0 + consumer$3.min.0) + -1))
+
+  a_copy[i].min: min(consumer$3.s1.x, producer$3.s0.x.min)
+  a[i].min: min(producer$3.s0.x.min, consumer$3.s1.x)
+
+  a_copy[i].max: max(consumer$3.s1.x, producer$3.s0.x.max)
+  a[i].max: max(producer$3.s0.x.max, consumer$3.s1.x)
+
+  a_copy[i].min: min(consumer$4.s0.x.min, consumer$4.s1.x.min)
+  a[i].min: min(consumer$4.s1.x.min, consumer$4.s0.x.min)
+
+  a_copy[i].max: max(consumer$4.s0.x.max, consumer$4.s1.x.max)
+  a[i].max: max(consumer$4.s1.x.max, consumer$4.s0.x.max)
+
+  a_copy[i].min: min(consumer$4.s0.x.min, consumer$4.s1.x.min)
+  a[i].min: min(consumer$4.s1.x.min, consumer$4.s0.x.min)
+
+  a_copy[i].max: max(consumer$4.s0.x.max, consumer$4.s1.x.max)
+  a[i].max: max(consumer$4.s1.x.max, consumer$4.s0.x.max)
+
+  a_copy[i].min: min(consumer$4.s1.x.min, min(consumer$4.s1.x.min, consumer$4.s0.x.min))
+  a[i].min: min(consumer$4.s1.x.min, consumer$4.s0.x.min)
+
+  a_copy[i].max: max(consumer$4.s1.x.max, max(consumer$4.s1.x.max, consumer$4.s0.x.max))
+  a[i].max: max(consumer$4.s1.x.max, consumer$4.s0.x.max)
+
+  a_copy[i].min: min(min(consumer$4.s1.x.min, consumer$4.s0.x.min), producer$4.s0.x.min)
+  a[i].min: min(producer$4.s0.x.min, min(consumer$4.s1.x.min, consumer$4.s0.x.min))
+
+  a_copy[i].max: max(max(consumer$4.s1.x.max, consumer$4.s0.x.max), producer$4.s0.x.max)
+  a[i].max: max(producer$4.s0.x.max, max(consumer$4.s1.x.max, consumer$4.s0.x.max))
+
+  a_copy[i].min: min(consumer$4.s0.x.min, consumer$4.s1.x.min)
+  a[i].min: min(consumer$4.s1.x.min, consumer$4.s0.x.min)
+
+  a_copy[i].max: max(consumer$4.s0.x.max, consumer$4.s1.x.max)
+  a[i].max: max(consumer$4.s1.x.max, consumer$4.s0.x.max)
+
+  a_copy[i].min: min(consumer$4.min.0, consumer$4.s1.x.min)
+  a[i].min: min(consumer$4.s1.x.min, consumer$4.min.0)
+
+  a_copy[i].max: max(((consumer$4.min.0 + consumer$4.extent.0) - 1), consumer$4.s1.x.max)
+  a[i].max: max(consumer$4.s1.x.max, ((consumer$4.extent.0 + consumer$4.min.0) + -1))
+
+  a_copy[i].min: min(consumer$4.s0.x, producer$4.s0.x.min)
+  a[i].min: min(producer$4.s0.x.min, consumer$4.s0.x)
+
+  a_copy[i].max: max(consumer$4.s0.x, producer$4.s0.x.max)
+  a[i].max: max(producer$4.s0.x.max, consumer$4.s0.x)
+
+  a_copy[i].min: min(consumer$4.s1.x, producer$4.s0.x.min)
+  a[i].min: min(producer$4.s0.x.min, consumer$4.s1.x)
+
+  a_copy[i].max: max(consumer$4.s1.x, producer$4.s0.x.max)
+  a[i].max: max(producer$4.s0.x.max, consumer$4.s1.x)
+
+  a_copy[i].min: min(consumer_2.s0.x.min, consumer_2.s1.x.min)
+  a[i].min: min(consumer_2.s1.x.min, consumer_2.s0.x.min)
+
+  a_copy[i].max: max(consumer_2.s0.x.max, consumer_2.s1.x.max)
+  a[i].max: max(consumer_2.s1.x.max, consumer_2.s0.x.max)
+
+  a_copy[i].min: min(min(consumer_2.s1.x.min, consumer_2.s0.x.min), 0)
+  a[i].min: min(consumer_2.s1.x.min, min(consumer_2.s0.x.min, 0))
+
+  a_copy[i].max: max(max(consumer_2.s1.x.max, consumer_2.s0.x.max), 0)
+  a[i].max: max(consumer_2.s1.x.max, max(consumer_2.s0.x.max, 0))
+
+  a_copy[i].min: min(min(consumer_2.s0.y.min, 0), consumer_2.s2.y.min)
+  a[i].min: min(consumer_2.s2.y.min, min(consumer_2.s0.y.min, 0))
+
+  a_copy[i].max: max(max(consumer_2.s0.y.max, 0), consumer_2.s2.y.max)
+  a[i].max: max(consumer_2.s2.y.max, max(consumer_2.s0.y.max, 0))
+
+  a_copy[i].min: min(min(consumer_2.s1.x.min, 0), min(consumer_2.s1.x.min, min(consumer_2.s0.x.min, 0)))
+  a[i].min: min(consumer_2.s1.x.min, min(consumer_2.s0.x.min, 0))
+
+  a_copy[i].max: max(max(consumer_2.s1.x.max, 0), max(consumer_2.s1.x.max, max(consumer_2.s0.x.max, 0)))
+  a[i].max: max(consumer_2.s1.x.max, max(consumer_2.s0.x.max, 0))
+
+  a_copy[i].min: min(min(consumer_2.s2.y.min, 0), min(consumer_2.s2.y.min, min(consumer_2.s0.y.min, 0)))
+  a[i].min: min(consumer_2.s2.y.min, min(consumer_2.s0.y.min, 0))
+
+  a_copy[i].max: max(max(consumer_2.s2.y.max, 0), max(consumer_2.s2.y.max, max(consumer_2.s0.y.max, 0)))
+  a[i].max: max(consumer_2.s2.y.max, max(consumer_2.s0.y.max, 0))
+
+  a_copy[i].min: min(consumer_2.s1.x.min, producer_1.s0.x.min)
+  a[i].min: min(producer_1.s0.x.min, consumer_2.s1.x.min)
+
+  a_copy[i].max: max(consumer_2.s1.x.max, producer_1.s0.x.max)
+  a[i].max: max(producer_1.s0.x.max, consumer_2.s1.x.max)
+
+  a_copy[i].min: min(consumer_2.s1.x.min, producer_1.s0.y.min)
+  a[i].min: min(producer_1.s0.y.min, consumer_2.s1.x.min)
+
+  a_copy[i].max: max(consumer_2.s1.x.max, producer_1.s0.y.max)
+  a[i].max: max(producer_1.s0.y.max, consumer_2.s1.x.max)
+
+  a_copy[i].min: min(consumer_2.s2.y.min, producer_2.s0.x.min)
+  a[i].min: min(producer_2.s0.x.min, consumer_2.s2.y.min)
+
+  a_copy[i].max: max(consumer_2.s2.y.max, producer_2.s0.x.max)
+  a[i].max: max(producer_2.s0.x.max, consumer_2.s2.y.max)
+
+  a_copy[i].min: min((9 - consumer_2.s2.y.max), producer_2.s0.y.min)
+  a[i].min: min(producer_2.s0.y.min, (9 - consumer_2.s2.y.max))
+
+  a_copy[i].max: max((9 - consumer_2.s2.y.min), producer_2.s0.y.max)
+  a[i].max: max(producer_2.s0.y.max, (9 - consumer_2.s2.y.min))
+
+  a_copy[i].min: min(consumer_2.min.0, consumer_2.s1.x.min)
+  a[i].min: min(consumer_2.s1.x.min, consumer_2.min.0)
+
+  a_copy[i].max: max(((consumer_2.min.0 + consumer_2.extent.0) - 1), consumer_2.s1.x.max)
+  a[i].max: max(consumer_2.s1.x.max, ((consumer_2.extent.0 + consumer_2.min.0) + -1))
+
+  a_copy[i].max: max(((consumer_2.min.1 + consumer_2.extent.1) - 1), 0)
+  a[i].max: max(((consumer_2.extent.1 + consumer_2.min.1) + -1), 0)
+
+  a_copy[i].min: min(min(consumer_2.s1.x.min, consumer_2.min.0), 0)
+  a[i].min: min(consumer_2.s1.x.min, min(consumer_2.min.0, 0))
+
+  a_copy[i].max: max(max(consumer_2.s1.x.max, ((consumer_2.extent.0 + consumer_2.min.0) + -1)), 0)
+  a[i].max: max(consumer_2.s1.x.max, max(((consumer_2.min.0 + consumer_2.extent.0) + -1), 0))
+
+  a_copy[i].min: min(min(consumer_2.min.1, 0), consumer_2.s2.y.min)
+  a[i].min: min(consumer_2.s2.y.min, min(consumer_2.min.1, 0))
+
+  a_copy[i].max: max(max(((consumer_2.extent.1 + consumer_2.min.1) + -1), 0), consumer_2.s2.y.max)
+  a[i].max: max(consumer_2.s2.y.max, max(((consumer_2.min.1 + consumer_2.extent.1) + -1), 0))
+
+  a_copy[i].max: max(((consumer_2.min.0 + consumer_2.extent.0) - 1), 0)
+  a[i].max: max(((consumer_2.extent.0 + consumer_2.min.0) + -1), 0)
+
+  a_copy[i].min: min(consumer_2.min.1, consumer_2.s2.y.min)
+  a[i].min: min(consumer_2.s2.y.min, consumer_2.min.1)
+
+  a_copy[i].max: max(((consumer_2.min.1 + consumer_2.extent.1) - 1), consumer_2.s2.y.max)
+  a[i].max: max(consumer_2.s2.y.max, ((consumer_2.extent.1 + consumer_2.min.1) + -1))
+
+  a_copy[i].min: min(consumer_2.s1.x, producer_1.s0.x.min)
+  a[i].min: min(producer_1.s0.x.min, consumer_2.s1.x)
+
+  a_copy[i].max: max(consumer_2.s1.x, producer_1.s0.x.max)
+  a[i].max: max(producer_1.s0.x.max, consumer_2.s1.x)
+
+  a_copy[i].min: min(consumer_2.s1.x, producer_1.s0.y.min)
+  a[i].min: min(producer_1.s0.y.min, consumer_2.s1.x)
+
+  a_copy[i].max: max(consumer_2.s1.x, producer_1.s0.y.max)
+  a[i].max: max(producer_1.s0.y.max, consumer_2.s1.x)
+
+  a_copy[i].min: min(consumer_2.s2.y, producer_2.s0.x.min)
+  a[i].min: min(producer_2.s0.x.min, consumer_2.s2.y)
+
+  a_copy[i].max: max(consumer_2.s2.y, producer_2.s0.x.max)
+  a[i].max: max(producer_2.s0.x.max, consumer_2.s2.y)
+
+  a_copy[i].min: min((9 - consumer_2.s2.y), producer_2.s0.y.min)
+  a[i].min: min(producer_2.s0.y.min, (9 - consumer_2.s2.y))
+
+  a_copy[i].max: max((9 - consumer_2.s2.y), producer_2.s0.y.max)
+  a[i].max: max(producer_2.s0.y.max, (9 - consumer_2.s2.y))
+
+  a_copy[i].min: min(consumer$6.s0.x.min, consumer$6.s1.x.min)
+  a[i].min: min(consumer$6.s1.x.min, consumer$6.s0.x.min)
+
+  a_copy[i].max: max(consumer$6.s0.x.max, consumer$6.s1.x.max)
+  a[i].max: max(consumer$6.s1.x.max, consumer$6.s0.x.max)
+
+  a_copy[i].min: min(consumer$6.s1.x.min, min(consumer$6.s1.x.min, consumer$6.s0.x.min))
+  a[i].min: min(consumer$6.s1.x.min, consumer$6.s0.x.min)
+
+  a_copy[i].max: max(consumer$6.s1.x.max, max(consumer$6.s1.x.max, consumer$6.s0.x.max))
+  a[i].max: max(consumer$6.s1.x.max, consumer$6.s0.x.max)
+
+  a_copy[i].min: min((consumer$6.s1.x.min + consumer$6.s1.r$3.x$r.min), producer$6.s0.x.min)
+  a[i].min: min(producer$6.s0.x.min, (consumer$6.s1.r$3.x$r.min + consumer$6.s1.x.min))
+
+  a_copy[i].max: max((consumer$6.s1.x.max + consumer$6.s1.r$3.x$r.max), producer$6.s0.x.max)
+  a[i].max: max(producer$6.s0.x.max, (consumer$6.s1.r$3.x$r.max + consumer$6.s1.x.max))
+
+  a_copy[i].min: min(consumer$6.min.0, consumer$6.s1.x.min)
+  a[i].min: min(consumer$6.s1.x.min, consumer$6.min.0)
+
+  a_copy[i].max: max(((consumer$6.min.0 + consumer$6.extent.0) - 1), consumer$6.s1.x.max)
+  a[i].max: max(consumer$6.s1.x.max, ((consumer$6.extent.0 + consumer$6.min.0) + -1))
+
+  a_copy[i].min: min((consumer$6.s1.x + consumer$6.s1.r$3.x$r), producer$6.s0.x.min)
+  a[i].min: min(producer$6.s0.x.min, (consumer$6.s1.r$3.x$r + consumer$6.s1.x))
+
+  a_copy[i].max: max((consumer$6.s1.x + consumer$6.s1.r$3.x$r), producer$6.s0.x.max)
+  a[i].max: max(producer$6.s0.x.max, (consumer$6.s1.r$3.x$r + consumer$6.s1.x))
+
+  a_copy[i].min: min(local_sum.s0.x.min, local_sum.s1.x.min)
+  a[i].min: min(local_sum.s1.x.min, local_sum.s0.x.min)
+
+  a_copy[i].max: max(local_sum.s0.x.max, local_sum.s1.x.max)
+  a[i].max: max(local_sum.s1.x.max, local_sum.s0.x.max)
+
+  a_copy[i].min: min(local_sum.s0.y.min, local_sum.s1.y.min)
+  a[i].min: min(local_sum.s1.y.min, local_sum.s0.y.min)
+
+  a_copy[i].max: max(local_sum.s0.y.max, local_sum.s1.y.max)
+  a[i].max: max(local_sum.s1.y.max, local_sum.s0.y.max)
+
+  a_copy[i].min: min(min(local_sum.s1.x.min, blurry.s0.x.min), min(local_sum.s1.x.min, local_sum.s0.x.min))
+  a[i].min: min(local_sum.s1.x.min, min(local_sum.s0.x.min, blurry.s0.x.min))
+
+  a_copy[i].max: max(max(local_sum.s1.x.max, blurry.s0.x.max), max(local_sum.s1.x.max, local_sum.s0.x.max))
+  a[i].max: max(local_sum.s1.x.max, max(local_sum.s0.x.max, blurry.s0.x.max))
+
+  a_copy[i].min: min(min(local_sum.s1.y.min, blurry.s0.y.min), min(local_sum.s1.y.min, local_sum.s0.y.min))
+  a[i].min: min(local_sum.s1.y.min, min(local_sum.s0.y.min, blurry.s0.y.min))
+
+  a_copy[i].max: max(max(local_sum.s1.y.max, blurry.s0.y.max), max(local_sum.s1.y.max, local_sum.s0.y.max))
+  a[i].max: max(local_sum.s1.y.max, max(local_sum.s0.y.max, blurry.s0.y.max))
+
+  a_copy[i].min: min(blurry.s0.x.min, local_sum.s1.x.min)
+  a[i].min: min(local_sum.s1.x.min, blurry.s0.x.min)
+
+  a_copy[i].max: max(blurry.s0.x.max, local_sum.s1.x.max)
+  a[i].max: max(local_sum.s1.x.max, blurry.s0.x.max)
+
+  a_copy[i].min: min(blurry.s0.y.min, local_sum.s1.y.min)
+  a[i].min: min(local_sum.s1.y.min, blurry.s0.y.min)
+
+  a_copy[i].max: max(blurry.s0.y.max, local_sum.s1.y.max)
+  a[i].max: max(local_sum.s1.y.max, blurry.s0.y.max)
+
+  a_copy[i].min: min(blurry.s0.x.min, local_sum.s1.x.min)
+  a[i].min: min(local_sum.s1.x.min, blurry.s0.x.min)
+
+  a_copy[i].max: max(blurry.s0.x.max, local_sum.s1.x.max)
+  a[i].max: max(local_sum.s1.x.max, blurry.s0.x.max)
+
+  a_copy[i].min: min(blurry.s0.y.min, local_sum.s1.y.min)
+  a[i].min: min(local_sum.s1.y.min, blurry.s0.y.min)
+
+  a_copy[i].max: max(blurry.s0.y.max, local_sum.s1.y.max)
+  a[i].max: max(local_sum.s1.y.max, blurry.s0.y.max)
+
+  a_copy[i].min: min(local_sum.s0.x.min, local_sum.s1.x.min)
+  a[i].min: min(local_sum.s1.x.min, local_sum.s0.x.min)
+
+  a_copy[i].max: max(local_sum.s0.x.max, local_sum.s1.x.max)
+  a[i].max: max(local_sum.s1.x.max, local_sum.s0.x.max)
+
+  a_copy[i].min: min(local_sum.s0.y.min, local_sum.s1.y.min)
+  a[i].min: min(local_sum.s1.y.min, local_sum.s0.y.min)
+
+  a_copy[i].max: max(local_sum.s0.y.max, local_sum.s1.y.max)
+  a[i].max: max(local_sum.s1.y.max, local_sum.s0.y.max)
+
+  a_copy[i].min: min(min(local_sum.s1.x.min, blurry.s0.x), min(local_sum.s1.x.min, local_sum.s0.x.min))
+  a[i].min: min(local_sum.s1.x.min, min(local_sum.s0.x.min, blurry.s0.x))
+
+  a_copy[i].max: max(max(local_sum.s1.x.max, blurry.s0.x), max(local_sum.s1.x.max, local_sum.s0.x.max))
+  a[i].max: max(local_sum.s1.x.max, max(local_sum.s0.x.max, blurry.s0.x))
+
+  a_copy[i].min: min(min(local_sum.s1.y.min, blurry.s0.y), min(local_sum.s1.y.min, local_sum.s0.y.min))
+  a[i].min: min(local_sum.s1.y.min, min(local_sum.s0.y.min, blurry.s0.y))
+
+  a_copy[i].max: max(max(local_sum.s1.y.max, blurry.s0.y), max(local_sum.s1.y.max, local_sum.s0.y.max))
+  a[i].max: max(local_sum.s1.y.max, max(local_sum.s0.y.max, blurry.s0.y))
+
+  a_copy[i].min: min(sum.s0.x.min, sum.s1.x.min)
+  a[i].min: min(sum.s1.x.min, sum.s0.x.min)
+
+  a_copy[i].max: max(sum.s0.x.max, sum.s1.x.max)
+  a[i].max: max(sum.s1.x.max, sum.s0.x.max)
+
+  a_copy[i].min: min(min(sum.s1.x.min, f1.s0.x.min), min(sum.s1.x.min, sum.s0.x.min))
+  a[i].min: min(sum.s1.x.min, min(sum.s0.x.min, f1.s0.x.min))
+
+  a_copy[i].max: max(max(sum.s1.x.max, f1.s0.x.max), max(sum.s1.x.max, sum.s0.x.max))
+  a[i].max: max(sum.s1.x.max, max(sum.s0.x.max, f1.s0.x.max))
+
+  a_copy[i].min: min(f1.s0.x.min, sum.s1.x.min)
+  a[i].min: min(sum.s1.x.min, f1.s0.x.min)
+
+  a_copy[i].max: max(f1.s0.x.max, sum.s1.x.max)
+  a[i].max: max(sum.s1.x.max, f1.s0.x.max)
+
+  a_copy[i].min: min(f1.s0.x.min, sum.s1.x.min)
+  a[i].min: min(sum.s1.x.min, f1.s0.x.min)
+
+  a_copy[i].max: max(f1.s0.x.max, sum.s1.x.max)
+  a[i].max: max(sum.s1.x.max, f1.s0.x.max)
+
+  a_copy[i].min: min(sum.s0.x.min, sum.s1.x.min)
+  a[i].min: min(sum.s1.x.min, sum.s0.x.min)
+
+  a_copy[i].max: max(sum.s0.x.max, sum.s1.x.max)
+  a[i].max: max(sum.s1.x.max, sum.s0.x.max)
+
+  a_copy[i].min: min(min(sum.s1.x.min, f1.s0.x), min(sum.s1.x.min, sum.s0.x.min))
+  a[i].min: min(sum.s1.x.min, min(sum.s0.x.min, f1.s0.x))
+
+  a_copy[i].max: max(max(sum.s1.x.max, f1.s0.x), max(sum.s1.x.max, sum.s0.x.max))
+  a[i].max: max(sum.s1.x.max, max(sum.s0.x.max, f1.s0.x))
+
+  a_copy[i].min: min(anon.s1.x.min, f2.s0.x.min)
+  a[i].min: min(f2.s0.x.min, anon.s1.x.min)
+
+  a_copy[i].max: max(anon.s1.x.max, f2.s0.x.max)
+  a[i].max: max(f2.s0.x.max, anon.s1.x.max)
+
+  a_copy[i].min: min(anon.s0.x.min, anon.s1.x.min)
+  a[i].min: min(anon.s1.x.min, anon.s0.x.min)
+
+  a_copy[i].max: max(anon.s0.x.max, anon.s1.x.max)
+  a[i].max: max(anon.s1.x.max, anon.s0.x.max)
+
+  a_copy[i].min: min(min(f2.s0.x.min, anon.s1.x.min), min(anon.s1.x.min, anon.s0.x.min))
+  a[i].min: min(f2.s0.x.min, min(anon.s1.x.min, anon.s0.x.min))
+
+  a_copy[i].max: max(max(f2.s0.x.max, anon.s1.x.max), max(anon.s1.x.max, anon.s0.x.max))
+  a[i].max: max(f2.s0.x.max, max(anon.s1.x.max, anon.s0.x.max))
+
+  a_copy[i].min: min(anon.s1.x.min, f2.s0.x.min)
+  a[i].min: min(f2.s0.x.min, anon.s1.x.min)
+
+  a_copy[i].max: max(anon.s1.x.max, f2.s0.x.max)
+  a[i].max: max(f2.s0.x.max, anon.s1.x.max)
+
+  a_copy[i].min: min(anon.s1.x.min, f2.s0.x.min)
+  a[i].min: min(f2.s0.x.min, anon.s1.x.min)
+
+  a_copy[i].max: max(anon.s1.x.max, f2.s0.x.max)
+  a[i].max: max(f2.s0.x.max, anon.s1.x.max)
+
+  a_copy[i].min: min(anon.s1.x.min, f2.s0.x)
+  a[i].min: min(f2.s0.x, anon.s1.x.min)
+
+  a_copy[i].max: max(anon.s1.x.max, f2.s0.x)
+  a[i].max: max(f2.s0.x, anon.s1.x.max)
+
+  a_copy[i].min: min(anon.s0.x.min, anon.s1.x.min)
+  a[i].min: min(anon.s1.x.min, anon.s0.x.min)
+
+  a_copy[i].max: max(anon.s0.x.max, anon.s1.x.max)
+  a[i].max: max(anon.s1.x.max, anon.s0.x.max)
+
+  a_copy[i].min: min(min(f2.s0.x, anon.s1.x.min), min(anon.s1.x.min, anon.s0.x.min))
+  a[i].min: min(f2.s0.x, min(anon.s1.x.min, anon.s0.x.min))
+
+  a_copy[i].max: max(max(f2.s0.x, anon.s1.x.max), max(anon.s1.x.max, anon.s0.x.max))
+  a[i].max: max(f2.s0.x, max(anon.s1.x.max, anon.s0.x.max))
+
+  a_copy[i].min: min((minimum.s1.x.min + minimum.s1.box.x$r.min), (maximum.s1.x.min + maximum.s1.box.x$r.min))
+  a[i].min: min((minimum.s1.box.x$r.min + minimum.s1.x.min), (maximum.s1.box.x$r.min + maximum.s1.x.min))
+
+  a_copy[i].max: max((minimum.s1.x.max + minimum.s1.box.x$r.max), (maximum.s1.x.max + maximum.s1.box.x$r.max))
+  a[i].max: max((minimum.s1.box.x$r.max + minimum.s1.x.max), (maximum.s1.box.x$r.max + maximum.s1.x.max))
+
+  a_copy[i].min: min((minimum.s1.y.min + minimum.s1.box.y$r.min), (maximum.s1.y.min + maximum.s1.box.y$r.min))
+  a[i].min: min((minimum.s1.box.y$r.min + minimum.s1.y.min), (maximum.s1.box.y$r.min + maximum.s1.y.min))
+
+  a_copy[i].max: max((minimum.s1.y.max + minimum.s1.box.y$r.max), (maximum.s1.y.max + maximum.s1.box.y$r.max))
+  a[i].max: max((minimum.s1.box.y$r.max + minimum.s1.y.max), (maximum.s1.box.y$r.max + maximum.s1.y.max))
+
+  a_copy[i].min: min(maximum.s1.x.min, (min(spread.s0.x.min, (spread.s0.x.max + -15)) + 0))
+  a[i].min: min(spread.s0.x.min, min(maximum.s1.x.min, (spread.s0.x.max + -15)))
+
+  a_copy[i].max: max(maximum.s1.x.max, (min(((((spread.s0.x.max - spread.s0.x.min)/16)*16) + spread.s0.x.min), (spread.s0.x.max + -15)) + 15))
+  a[i].max: max(spread.s0.x.max, maximum.s1.x.max)
+
+  a_copy[i].min: min(maximum.s1.y.min, (min(spread.s0.y.min, (spread.s0.y.max + -31)) + 0))
+  a[i].min: min(spread.s0.y.min, min(maximum.s1.y.min, (spread.s0.y.max + -31)))
+
+  a_copy[i].max: max(maximum.s1.y.max, (min(((((spread.s0.y.max - spread.s0.y.min)/32)*32) + spread.s0.y.min), (spread.s0.y.max + -31)) + 31))
+  a[i].max: max(spread.s0.y.max, maximum.s1.y.max)
+
+  a_copy[i].min: min(minimum.s1.x.min, (min(spread.s0.x.min, (spread.s0.x.max + -15)) + 0))
+  a[i].min: min(spread.s0.x.min, min(minimum.s1.x.min, (spread.s0.x.max + -15)))
+
+  a_copy[i].max: max(minimum.s1.x.max, (min(((((spread.s0.x.max - spread.s0.x.min)/16)*16) + spread.s0.x.min), (spread.s0.x.max + -15)) + 15))
+  a[i].max: max(spread.s0.x.max, minimum.s1.x.max)
+
+  a_copy[i].min: min(minimum.s1.y.min, (min(spread.s0.y.min, (spread.s0.y.max + -31)) + 0))
+  a[i].min: min(spread.s0.y.min, min(minimum.s1.y.min, (spread.s0.y.max + -31)))
+
+  a_copy[i].max: max(minimum.s1.y.max, (min(((((spread.s0.y.max - spread.s0.y.min)/32)*32) + spread.s0.y.min), (spread.s0.y.max + -31)) + 31))
+  a[i].max: max(spread.s0.y.max, minimum.s1.y.max)
+
+  a_copy[i].min: min(minimum.s0.x.min, minimum.s1.x.min)
+  a[i].min: min(minimum.s1.x.min, minimum.s0.x.min)
+
+  a_copy[i].max: max(minimum.s0.x.max, minimum.s1.x.max)
+  a[i].max: max(minimum.s1.x.max, minimum.s0.x.max)
+
+  a_copy[i].min: min(minimum.s0.y.min, minimum.s1.y.min)
+  a[i].min: min(minimum.s1.y.min, minimum.s0.y.min)
+
+  a_copy[i].max: max(minimum.s0.y.max, minimum.s1.y.max)
+  a[i].max: max(minimum.s1.y.max, minimum.s0.y.max)
+
+  a_copy[i].min: min(maximum.s0.x.min, maximum.s1.x.min)
+  a[i].min: min(maximum.s1.x.min, maximum.s0.x.min)
+
+  a_copy[i].max: max(maximum.s0.x.max, maximum.s1.x.max)
+  a[i].max: max(maximum.s1.x.max, maximum.s0.x.max)
+
+  a_copy[i].min: min(maximum.s0.y.min, maximum.s1.y.min)
+  a[i].min: min(maximum.s1.y.min, maximum.s0.y.min)
+
+  a_copy[i].max: max(maximum.s0.y.max, maximum.s1.y.max)
+  a[i].max: max(maximum.s1.y.max, maximum.s0.y.max)
+
+  a_copy[i].min: min(min((minimum.s1.box.x$r.min + minimum.s1.x.min), (maximum.s1.box.x$r.min + maximum.s1.x.min)), clamped.s0.x.min)
+  a[i].min: min(clamped.s0.x.min, min((minimum.s1.x.min + minimum.s1.box.x$r.min), (maximum.s1.x.min + maximum.s1.box.x$r.min)))
+
+  a_copy[i].max: max(max((minimum.s1.box.x$r.max + minimum.s1.x.max), (maximum.s1.box.x$r.max + maximum.s1.x.max)), clamped.s0.x.max)
+  a[i].max: max(clamped.s0.x.max, max((minimum.s1.x.max + minimum.s1.box.x$r.max), (maximum.s1.x.max + maximum.s1.box.x$r.max)))
+
+  a_copy[i].min: min(min((minimum.s1.box.y$r.min + minimum.s1.y.min), (maximum.s1.box.y$r.min + maximum.s1.y.min)), clamped.s0.y.min)
+  a[i].min: min(clamped.s0.y.min, min((minimum.s1.y.min + minimum.s1.box.y$r.min), (maximum.s1.y.min + maximum.s1.box.y$r.min)))
+
+  a_copy[i].max: max(max((minimum.s1.box.y$r.max + minimum.s1.y.max), (maximum.s1.box.y$r.max + maximum.s1.y.max)), clamped.s0.y.max)
+  a[i].max: max(clamped.s0.y.max, max((minimum.s1.y.max + minimum.s1.box.y$r.max), (maximum.s1.y.max + maximum.s1.box.y$r.max)))
+
+  a_copy[i].min: min(min(spread.s0.x.min, min(maximum.s1.x.min, (spread.s0.x.max + -15))), min(maximum.s1.x.min, maximum.s0.x.min))
+  a[i].min: min(spread.s0.x.min, min(maximum.s1.x.min, min(maximum.s0.x.min, (spread.s0.x.max + -15))))
+
+  a_copy[i].max: max(max(spread.s0.x.max, maximum.s1.x.max), max(maximum.s1.x.max, maximum.s0.x.max))
+  a[i].max: max(spread.s0.x.max, max(maximum.s1.x.max, maximum.s0.x.max))
+
+  a_copy[i].min: min(min(spread.s0.y.min, min(maximum.s1.y.min, (spread.s0.y.max + -31))), min(maximum.s1.y.min, maximum.s0.y.min))
+  a[i].min: min(spread.s0.y.min, min(maximum.s1.y.min, min(maximum.s0.y.min, (spread.s0.y.max + -31))))
+
+  a_copy[i].max: max(max(spread.s0.y.max, maximum.s1.y.max), max(maximum.s1.y.max, maximum.s0.y.max))
+  a[i].max: max(spread.s0.y.max, max(maximum.s1.y.max, maximum.s0.y.max))
+
+  a_copy[i].min: min(min(spread.s0.x.min, min(minimum.s1.x.min, (spread.s0.x.max + -15))), min(minimum.s1.x.min, minimum.s0.x.min))
+  a[i].min: min(spread.s0.x.min, min(minimum.s1.x.min, min(minimum.s0.x.min, (spread.s0.x.max + -15))))
+
+  a_copy[i].max: max(max(spread.s0.x.max, minimum.s1.x.max), max(minimum.s1.x.max, minimum.s0.x.max))
+  a[i].max: max(spread.s0.x.max, max(minimum.s1.x.max, minimum.s0.x.max))
+
+  a_copy[i].min: min(min(spread.s0.y.min, min(minimum.s1.y.min, (spread.s0.y.max + -31))), min(minimum.s1.y.min, minimum.s0.y.min))
+  a[i].min: min(spread.s0.y.min, min(minimum.s1.y.min, min(minimum.s0.y.min, (spread.s0.y.max + -31))))
+
+  a_copy[i].max: max(max(spread.s0.y.max, minimum.s1.y.max), max(minimum.s1.y.max, minimum.s0.y.max))
+  a[i].max: max(spread.s0.y.max, max(minimum.s1.y.max, minimum.s0.y.max))
+
+  a_copy[i].min: min(maximum.s1.x.min, spread.s0.x.min)
+  a[i].min: min(spread.s0.x.min, maximum.s1.x.min)
+
+  a_copy[i].max: max(maximum.s1.x.max, spread.s0.x.max)
+  a[i].max: max(spread.s0.x.max, maximum.s1.x.max)
+
+  a_copy[i].min: min(maximum.s1.y.min, spread.s0.y.min)
+  a[i].min: min(spread.s0.y.min, maximum.s1.y.min)
+
+  a_copy[i].max: max(maximum.s1.y.max, spread.s0.y.max)
+  a[i].max: max(spread.s0.y.max, maximum.s1.y.max)
+
+  a_copy[i].min: min(minimum.s1.x.min, spread.s0.x.min)
+  a[i].min: min(spread.s0.x.min, minimum.s1.x.min)
+
+  a_copy[i].max: max(minimum.s1.x.max, spread.s0.x.max)
+  a[i].max: max(spread.s0.x.max, minimum.s1.x.max)
+
+  a_copy[i].min: min(minimum.s1.y.min, spread.s0.y.min)
+  a[i].min: min(spread.s0.y.min, minimum.s1.y.min)
+
+  a_copy[i].max: max(minimum.s1.y.max, spread.s0.y.max)
+  a[i].max: max(spread.s0.y.max, minimum.s1.y.max)
+
+  a_copy[i].min: min((maximum.s1.x.min + maximum.s1.box.x$r.min), (minimum.s1.x.min + minimum.s1.box.x$r.min))
+  a[i].min: min((minimum.s1.box.x$r.min + minimum.s1.x.min), (maximum.s1.box.x$r.min + maximum.s1.x.min))
+
+  a_copy[i].max: max((maximum.s1.x.max + maximum.s1.box.x$r.max), (minimum.s1.x.max + minimum.s1.box.x$r.max))
+  a[i].max: max((minimum.s1.box.x$r.max + minimum.s1.x.max), (maximum.s1.box.x$r.max + maximum.s1.x.max))
+
+  a_copy[i].min: min((maximum.s1.y.min + maximum.s1.box.y$r.min), (minimum.s1.y.min + minimum.s1.box.y$r.min))
+  a[i].min: min((minimum.s1.box.y$r.min + minimum.s1.y.min), (maximum.s1.box.y$r.min + maximum.s1.y.min))
+
+  a_copy[i].max: max((maximum.s1.y.max + maximum.s1.box.y$r.max), (minimum.s1.y.max + minimum.s1.box.y$r.max))
+  a[i].max: max((minimum.s1.box.y$r.max + minimum.s1.y.max), (maximum.s1.box.y$r.max + maximum.s1.y.max))
+
+  a_copy[i].min: min(maximum.s1.x.min, spread.s0.x.min)
+  a[i].min: min(spread.s0.x.min, maximum.s1.x.min)
+
+  a_copy[i].max: max(maximum.s1.x.max, spread.s0.x.max)
+  a[i].max: max(spread.s0.x.max, maximum.s1.x.max)
+
+  a_copy[i].min: min(maximum.s1.y.min, spread.s0.y.min)
+  a[i].min: min(spread.s0.y.min, maximum.s1.y.min)
+
+  a_copy[i].max: max(maximum.s1.y.max, spread.s0.y.max)
+  a[i].max: max(spread.s0.y.max, maximum.s1.y.max)
+
+  a_copy[i].min: min(minimum.s1.x.min, spread.s0.x.min)
+  a[i].min: min(spread.s0.x.min, minimum.s1.x.min)
+
+  a_copy[i].max: max(minimum.s1.x.max, spread.s0.x.max)
+  a[i].max: max(spread.s0.x.max, minimum.s1.x.max)
+
+  a_copy[i].min: min(minimum.s1.y.min, spread.s0.y.min)
+  a[i].min: min(spread.s0.y.min, minimum.s1.y.min)
+
+  a_copy[i].max: max(minimum.s1.y.max, spread.s0.y.max)
+  a[i].max: max(spread.s0.y.max, minimum.s1.y.max)
+
+  a_copy[i].min: min((maximum.s1.x.min + maximum.s1.box.x$r.min), (minimum.s1.x.min + minimum.s1.box.x$r.min))
+  a[i].min: min((minimum.s1.box.x$r.min + minimum.s1.x.min), (maximum.s1.box.x$r.min + maximum.s1.x.min))
+
+  a_copy[i].max: max((maximum.s1.x.max + maximum.s1.box.x$r.max), (minimum.s1.x.max + minimum.s1.box.x$r.max))
+  a[i].max: max((minimum.s1.box.x$r.max + minimum.s1.x.max), (maximum.s1.box.x$r.max + maximum.s1.x.max))
+
+  a_copy[i].min: min((maximum.s1.y.min + maximum.s1.box.y$r.min), (minimum.s1.y.min + minimum.s1.box.y$r.min))
+  a[i].min: min((minimum.s1.box.y$r.min + minimum.s1.y.min), (maximum.s1.box.y$r.min + maximum.s1.y.min))
+
+  a_copy[i].max: max((maximum.s1.y.max + maximum.s1.box.y$r.max), (minimum.s1.y.max + minimum.s1.box.y$r.max))
+  a[i].max: max((minimum.s1.box.y$r.max + minimum.s1.y.max), (maximum.s1.box.y$r.max + maximum.s1.y.max))
+
+  a_copy[i].min: min(maximum.s1.x.min, spread.s0.x.min)
+  a[i].min: min(spread.s0.x.min, maximum.s1.x.min)
+
+  a_copy[i].max: max(maximum.s1.x.max, spread.s0.x.max)
+  a[i].max: max(spread.s0.x.max, maximum.s1.x.max)
+
+  a_copy[i].min: min(maximum.s1.y.min, spread.s0.y.min)
+  a[i].min: min(spread.s0.y.min, maximum.s1.y.min)
+
+  a_copy[i].max: max(maximum.s1.y.max, spread.s0.y.max)
+  a[i].max: max(spread.s0.y.max, maximum.s1.y.max)
+
+  a_copy[i].min: min(minimum.s1.x.min, spread.s0.x.min)
+  a[i].min: min(spread.s0.x.min, minimum.s1.x.min)
+
+  a_copy[i].max: max(minimum.s1.x.max, spread.s0.x.max)
+  a[i].max: max(spread.s0.x.max, minimum.s1.x.max)
+
+  a_copy[i].min: min(minimum.s1.y.min, spread.s0.y.min)
+  a[i].min: min(spread.s0.y.min, minimum.s1.y.min)
+
+  a_copy[i].max: max(minimum.s1.y.max, spread.s0.y.max)
+  a[i].max: max(spread.s0.y.max, minimum.s1.y.max)
+
+  a_copy[i].min: min((maximum.s1.x.min + maximum.s1.box.x$r.min), (minimum.s1.x.min + minimum.s1.box.x$r.min))
+  a[i].min: min((minimum.s1.box.x$r.min + minimum.s1.x.min), (maximum.s1.box.x$r.min + maximum.s1.x.min))
+
+  a_copy[i].max: max((maximum.s1.x.max + maximum.s1.box.x$r.max), (minimum.s1.x.max + minimum.s1.box.x$r.max))
+  a[i].max: max((minimum.s1.box.x$r.max + minimum.s1.x.max), (maximum.s1.box.x$r.max + maximum.s1.x.max))
+
+  a_copy[i].min: min((maximum.s1.y.min + maximum.s1.box.y$r.min), (minimum.s1.y.min + minimum.s1.box.y$r.min))
+  a[i].min: min((minimum.s1.box.y$r.min + minimum.s1.y.min), (maximum.s1.box.y$r.min + maximum.s1.y.min))
+
+  a_copy[i].max: max((maximum.s1.y.max + maximum.s1.box.y$r.max), (minimum.s1.y.max + minimum.s1.box.y$r.max))
+  a[i].max: max((minimum.s1.box.y$r.max + minimum.s1.y.max), (maximum.s1.box.y$r.max + maximum.s1.y.max))
+
+  a_copy[i].min: min(maximum.s1.x.min, spread.s0.x.min)
+  a[i].min: min(spread.s0.x.min, maximum.s1.x.min)
+
+  a_copy[i].max: max(maximum.s1.x.max, spread.s0.x.max)
+  a[i].max: max(spread.s0.x.max, maximum.s1.x.max)
+
+  a_copy[i].min: min(maximum.s1.y.min, spread.s0.y.min)
+  a[i].min: min(spread.s0.y.min, maximum.s1.y.min)
+
+  a_copy[i].max: max(maximum.s1.y.max, spread.s0.y.max)
+  a[i].max: max(spread.s0.y.max, maximum.s1.y.max)
+
+  a_copy[i].min: min(minimum.s1.x.min, spread.s0.x.min)
+  a[i].min: min(spread.s0.x.min, minimum.s1.x.min)
+
+  a_copy[i].max: max(minimum.s1.x.max, spread.s0.x.max)
+  a[i].max: max(spread.s0.x.max, minimum.s1.x.max)
+
+  a_copy[i].min: min(minimum.s1.y.min, spread.s0.y.min)
+  a[i].min: min(spread.s0.y.min, minimum.s1.y.min)
+
+  a_copy[i].max: max(minimum.s1.y.max, spread.s0.y.max)
+  a[i].max: max(spread.s0.y.max, minimum.s1.y.max)
+
+  a_copy[i].min: min((let t9 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t8 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t7 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t6 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in ((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) + -2))))), ((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) + -2))
+  a[i].min: select((spread.s0.x.loop_max < (((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min) + 15)), ((spread.s0.x.v3.loop_min + spread.s0.x.loop_max) + -17), (((spread.s0.x.v3.loop_min + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -2))
+
+  a_copy[i].max: max((let t9 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t8 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t7 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t6 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) + -1) + 2))))), (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) + -1) + 2))
+  a[i].max: min((((((spread.s0.x.v3.loop_extent + (spread.s0.x.x.loop_extent*16)) + spread.s0.x.v3.loop_min) + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -15), (((spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min) + spread.s0.x.loop_max) + -14))
+
+  a_copy[i].min: min((let t9 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t8 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t7 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t6 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in ((spread.s0.y.yi.base + spread.s0.y.yi.loop_min) + -2))))), ((spread.s0.y.yi.base + spread.s0.y.yi.loop_min) + -2))
+  a[i].min: ((spread.s0.y.yi.loop_min + spread.s0.y.yi.base) + -2)
+
+  a_copy[i].max: max((let t9 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t8 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t7 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t6 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (((spread.s0.y.yi.base + (spread.s0.y.yi.loop_extent + spread.s0.y.yi.loop_min)) + -1) + 2))))), (((spread.s0.y.yi.base + (spread.s0.y.yi.loop_extent + spread.s0.y.yi.loop_min)) + -1) + 2))
+  a[i].max: (((spread.s0.y.yi.loop_min + spread.s0.y.yi.loop_extent) + spread.s0.y.yi.base) + 1)
+
+  a_copy[i].min: min((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min))), (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min))
+  a[i].min: min(((spread.s0.x.v3.loop_min + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)), ((spread.s0.x.v3.loop_min + spread.s0.x.loop_max) + -15))
+
+  a_copy[i].max: max((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) + -1))), (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + ((spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min) - 1)))
+  a[i].max: min((((((spread.s0.x.v3.loop_extent + (spread.s0.x.x.loop_extent*16)) + spread.s0.x.v3.loop_min) + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -17), (((spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min) + spread.s0.x.loop_max) + -16))
+
+  a_copy[i].min: min((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (spread.s0.y.yi.base + spread.s0.y.yi.loop_min))), (spread.s0.y.yi.base + spread.s0.y.yi.loop_min))
+  a[i].min: (spread.s0.y.yi.loop_min + spread.s0.y.yi.base)
+
+  a_copy[i].max: max((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in ((spread.s0.y.yi.base + (spread.s0.y.yi.loop_extent + spread.s0.y.yi.loop_min)) + -1))), (spread.s0.y.yi.base + ((spread.s0.y.yi.loop_extent + spread.s0.y.yi.loop_min) - 1)))
+  a[i].max: (((spread.s0.y.yi.loop_min + spread.s0.y.yi.loop_extent) + spread.s0.y.yi.base) + -1)
+
+  a_copy[i].min: min((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t9 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t8 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t7 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t6 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min))))))), (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min))
+  a[i].min: min(((spread.s0.x.v3.loop_min + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)), ((spread.s0.x.v3.loop_min + spread.s0.x.loop_max) + -15))
+
+  a_copy[i].max: max((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t9 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t8 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t7 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t6 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) + -1))))))), (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + ((spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min) - 1)))
+  a[i].max: min((((((spread.s0.x.v3.loop_extent + (spread.s0.x.x.loop_extent*16)) + spread.s0.x.v3.loop_min) + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -17), (((spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min) + spread.s0.x.loop_max) + -16))
+
+  a_copy[i].min: min((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t9 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t8 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t7 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t6 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (spread.s0.y.yi.base + spread.s0.y.yi.loop_min))))))), (spread.s0.y.yi.base + spread.s0.y.yi.loop_min))
+  a[i].min: (spread.s0.y.yi.loop_min + spread.s0.y.yi.base)
+
+  a_copy[i].max: max((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t9 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t8 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t7 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t6 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in ((spread.s0.y.yi.base + (spread.s0.y.yi.loop_extent + spread.s0.y.yi.loop_min)) + -1))))))), (spread.s0.y.yi.base + ((spread.s0.y.yi.loop_extent + spread.s0.y.yi.loop_min) - 1)))
+  a[i].max: (((spread.s0.y.yi.loop_min + spread.s0.y.yi.loop_extent) + spread.s0.y.yi.base) + -1)
+
+  a_copy[i].min: min((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in select((spread.s0.x.loop_max < (((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min) + 15)), ((spread.s0.x.v3.loop_min + spread.s0.x.loop_max) + -17), (((spread.s0.x.v3.loop_min + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -2)))), (let t21 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t20 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t19 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t18 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t17 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t16 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t15 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t14 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t13 = (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) + 4) in (let t12 = (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) + 4) in ((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) + -2))))))))))))
+  a[i].min: select((spread.s0.x.loop_max < (((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min) + 15)), ((spread.s0.x.v3.loop_min + spread.s0.x.loop_max) + -17), (((spread.s0.x.v3.loop_min + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -2))
+
+  a_copy[i].max: max((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in min((((((spread.s0.x.v3.loop_extent + (spread.s0.x.x.loop_extent*16)) + spread.s0.x.v3.loop_min) + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -15), (((spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min) + spread.s0.x.loop_max) + -14)))), (let t21 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t20 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t19 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t18 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t17 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t16 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t15 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t14 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t13 = (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) + 4) in (let t12 = (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) + 4) in ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) + 1))))))))))))
+  a[i].max: select((spread.s0.x.loop_max < ((((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min) + (spread.s0.x.x.loop_extent*16)) + -1)), (((spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min) + spread.s0.x.loop_max) + -14), (((((spread.s0.x.v3.loop_extent + (spread.s0.x.x.loop_extent*16)) + spread.s0.x.v3.loop_min) + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -15))
+
+  a_copy[i].min: min((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in ((spread.s0.y.yi.loop_min + spread.s0.y.yi.base) + -2))), (let t21 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t20 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t19 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t18 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t17 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t16 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t15 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t14 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t13 = (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) + 4) in (let t12 = (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) + 4) in ((spread.s0.y.yi.base + spread.s0.y.yi.loop_min) + -2))))))))))))
+  a[i].min: ((spread.s0.y.yi.base + spread.s0.y.yi.loop_min) + -2)
+
+  a_copy[i].max: max((let t11 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t10 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (((spread.s0.y.yi.loop_min + spread.s0.y.yi.loop_extent) + spread.s0.y.yi.base) + 1))), (let t21 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t20 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t19 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t18 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t17 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t16 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t15 = (((min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min) - (min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min))) + 2) in (let t14 = ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) in (let t13 = (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) + 4) in (let t12 = (((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v3.loop_extent + spread.s0.x.v3.loop_min)) - (min(((spread.s0.x.x.loop_min*16) + spread.s0.x.loop_min), (spread.s0.x.loop_max + -15)) + spread.s0.x.v3.loop_min)) + 4) in ((spread.s0.y.yi.base + (spread.s0.y.yi.loop_extent + spread.s0.y.yi.loop_min)) + 1))))))))))))
+  a[i].max: (((spread.s0.y.yi.base + spread.s0.y.yi.loop_extent) + spread.s0.y.yi.loop_min) + 1)
+
+  a_copy[i].min: min((minimum.s1.x.min + minimum.s1.box.x$r.min), (maximum.s1.x.min + maximum.s1.box.x$r.min))
+  a[i].min: min((minimum.s1.box.x$r.min + minimum.s1.x.min), (maximum.s1.box.x$r.min + maximum.s1.x.min))
+
+  a_copy[i].max: max((minimum.s1.x.max + minimum.s1.box.x$r.max), (maximum.s1.x.max + maximum.s1.box.x$r.max))
+  a[i].max: max((minimum.s1.box.x$r.max + minimum.s1.x.max), (maximum.s1.box.x$r.max + maximum.s1.x.max))
+
+  a_copy[i].min: min((minimum.s1.y.min + minimum.s1.box.y$r.min), (maximum.s1.y.min + maximum.s1.box.y$r.min))
+  a[i].min: min((minimum.s1.box.y$r.min + minimum.s1.y.min), (maximum.s1.box.y$r.min + maximum.s1.y.min))
+
+  a_copy[i].max: max((minimum.s1.y.max + minimum.s1.box.y$r.max), (maximum.s1.y.max + maximum.s1.box.y$r.max))
+  a[i].max: max((minimum.s1.box.y$r.max + minimum.s1.y.max), (maximum.s1.box.y$r.max + maximum.s1.y.max))
+
+  a_copy[i].min: min(maximum.s1.x.min, (spread.s0.x.v3.base + spread.s0.x.v3))
+  a[i].min: min(maximum.s1.x.min, (spread.s0.x.v3 + spread.s0.x.v3.base))
+
+  a_copy[i].max: max(maximum.s1.x.max, (spread.s0.x.v3.base + spread.s0.x.v3))
+  a[i].max: max(maximum.s1.x.max, (spread.s0.x.v3 + spread.s0.x.v3.base))
+
+  a_copy[i].min: min(maximum.s1.y.min, (spread.s0.y.yi.base + spread.s0.y.yi))
+  a[i].min: min(maximum.s1.y.min, (spread.s0.y.yi + spread.s0.y.yi.base))
+
+  a_copy[i].max: max(maximum.s1.y.max, (spread.s0.y.yi.base + spread.s0.y.yi))
+  a[i].max: max(maximum.s1.y.max, (spread.s0.y.yi + spread.s0.y.yi.base))
+
+  a_copy[i].min: min(minimum.s1.x.min, (spread.s0.x.v3.base + spread.s0.x.v3))
+  a[i].min: min(minimum.s1.x.min, (spread.s0.x.v3 + spread.s0.x.v3.base))
+
+  a_copy[i].max: max(minimum.s1.x.max, (spread.s0.x.v3.base + spread.s0.x.v3))
+  a[i].max: max(minimum.s1.x.max, (spread.s0.x.v3 + spread.s0.x.v3.base))
+
+  a_copy[i].min: min(minimum.s1.y.min, (spread.s0.y.yi.base + spread.s0.y.yi))
+  a[i].min: min(minimum.s1.y.min, (spread.s0.y.yi + spread.s0.y.yi.base))
+
+  a_copy[i].max: max(minimum.s1.y.max, (spread.s0.y.yi.base + spread.s0.y.yi))
+  a[i].max: max(minimum.s1.y.max, (spread.s0.y.yi + spread.s0.y.yi.base))
+
+  a_copy[i].min: min(minimum.s0.x.min, minimum.s1.x.min)
+  a[i].min: min(minimum.s1.x.min, minimum.s0.x.min)
+
+  a_copy[i].max: max(minimum.s0.x.max, minimum.s1.x.max)
+  a[i].max: max(minimum.s1.x.max, minimum.s0.x.max)
+
+  a_copy[i].min: min(minimum.s0.y.min, minimum.s1.y.min)
+  a[i].min: min(minimum.s1.y.min, minimum.s0.y.min)
+
+  a_copy[i].max: max(minimum.s0.y.max, minimum.s1.y.max)
+  a[i].max: max(minimum.s1.y.max, minimum.s0.y.max)
+
+  a_copy[i].min: min(min(minimum.s1.x.min, (spread.s0.x.v3 + spread.s0.x.v3.base)), min(minimum.s1.x.min, minimum.s0.x.min))
+  a[i].min: min(minimum.s1.x.min, min(minimum.s0.x.min, (spread.s0.x.v3.base + spread.s0.x.v3)))
+
+  a_copy[i].max: max(max(minimum.s1.x.max, (spread.s0.x.v3 + spread.s0.x.v3.base)), max(minimum.s1.x.max, minimum.s0.x.max))
+  a[i].max: max(minimum.s1.x.max, max(minimum.s0.x.max, (spread.s0.x.v3.base + spread.s0.x.v3)))
+
+  a_copy[i].min: min(min(minimum.s1.y.min, (spread.s0.y.yi + spread.s0.y.yi.base)), min(minimum.s1.y.min, minimum.s0.y.min))
+  a[i].min: min(minimum.s1.y.min, min(minimum.s0.y.min, (spread.s0.y.yi.base + spread.s0.y.yi)))
+
+  a_copy[i].max: max(max(minimum.s1.y.max, (spread.s0.y.yi + spread.s0.y.yi.base)), max(minimum.s1.y.max, minimum.s0.y.max))
+  a[i].max: max(minimum.s1.y.max, max(minimum.s0.y.max, (spread.s0.y.yi.base + spread.s0.y.yi)))
+
+  a_copy[i].min: min(maximum.s1.x.min, (spread.s0.x.v3.base + spread.s0.x.v3))
+  a[i].min: min(maximum.s1.x.min, (spread.s0.x.v3 + spread.s0.x.v3.base))
+
+  a_copy[i].max: max(maximum.s1.x.max, (spread.s0.x.v3.base + spread.s0.x.v3))
+  a[i].max: max(maximum.s1.x.max, (spread.s0.x.v3 + spread.s0.x.v3.base))
+
+  a_copy[i].min: min(maximum.s1.y.min, (spread.s0.y.yi.base + spread.s0.y.yi))
+  a[i].min: min(maximum.s1.y.min, (spread.s0.y.yi + spread.s0.y.yi.base))
+
+  a_copy[i].max: max(maximum.s1.y.max, (spread.s0.y.yi.base + spread.s0.y.yi))
+  a[i].max: max(maximum.s1.y.max, (spread.s0.y.yi + spread.s0.y.yi.base))
+
+  a_copy[i].min: min(maximum.s0.x.min, maximum.s1.x.min)
+  a[i].min: min(maximum.s1.x.min, maximum.s0.x.min)
+
+  a_copy[i].max: max(maximum.s0.x.max, maximum.s1.x.max)
+  a[i].max: max(maximum.s1.x.max, maximum.s0.x.max)
+
+  a_copy[i].min: min(maximum.s0.y.min, maximum.s1.y.min)
+  a[i].min: min(maximum.s1.y.min, maximum.s0.y.min)
+
+  a_copy[i].max: max(maximum.s0.y.max, maximum.s1.y.max)
+  a[i].max: max(maximum.s1.y.max, maximum.s0.y.max)
+
+  a_copy[i].min: min(min(maximum.s1.x.min, (spread.s0.x.v3 + spread.s0.x.v3.base)), min(maximum.s1.x.min, maximum.s0.x.min))
+  a[i].min: min(maximum.s1.x.min, min(maximum.s0.x.min, (spread.s0.x.v3.base + spread.s0.x.v3)))
+
+  a_copy[i].max: max(max(maximum.s1.x.max, (spread.s0.x.v3 + spread.s0.x.v3.base)), max(maximum.s1.x.max, maximum.s0.x.max))
+  a[i].max: max(maximum.s1.x.max, max(maximum.s0.x.max, (spread.s0.x.v3.base + spread.s0.x.v3)))
+
+  a_copy[i].min: min(min(maximum.s1.y.min, (spread.s0.y.yi + spread.s0.y.yi.base)), min(maximum.s1.y.min, maximum.s0.y.min))
+  a[i].min: min(maximum.s1.y.min, min(maximum.s0.y.min, (spread.s0.y.yi.base + spread.s0.y.yi)))
+
+  a_copy[i].max: max(max(maximum.s1.y.max, (spread.s0.y.yi + spread.s0.y.yi.base)), max(maximum.s1.y.max, maximum.s0.y.max))
+  a[i].max: max(maximum.s1.y.max, max(maximum.s0.y.max, (spread.s0.y.yi.base + spread.s0.y.yi)))
+
+  a_copy[i].min: (min(spread.s0.x.loop_min, (spread.s0.x.loop_max + -15)) + -2)
+  a[i].min: min((spread.s0.x.loop_min + -2), (spread.s0.x.loop_max + -17))
+
+  a_copy[i].max: (min((((spread.s0.x.x.loop_extent*16) + spread.s0.x.loop_min) + -1), spread.s0.x.loop_max) + 2)
+  a[i].max: min(((spread.s0.x.loop_min + (spread.s0.x.x.loop_extent*16)) + 1), (spread.s0.x.loop_max + 2))
+
+  a_copy[i].min: ((spread.s0.y.yi.base + spread.s0.y.yi) + -2)
+  a[i].min: ((spread.s0.y.yi + spread.s0.y.yi.base) + -2)
+
+  a_copy[i].max: ((spread.s0.y.yi.base + spread.s0.y.yi) + 2)
+  a[i].max: ((spread.s0.y.yi + spread.s0.y.yi.base) + 2)
+
+  a_copy[i].min: min(min(spread.s0.x.loop_min, (spread.s0.x.loop_max + -15)), (min(spread.s0.x.loop_min, (spread.s0.x.loop_max + -15)) + 0))
+  a[i].min: min(spread.s0.x.loop_min, (spread.s0.x.loop_max + -15))
+
+  a_copy[i].max: max(min((((spread.s0.x.x.loop_extent*16) + spread.s0.x.loop_min) + -1), spread.s0.x.loop_max), (min((((spread.s0.x.x.loop_extent*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + ((16 + 0) - 1)))
+  a[i].max: min(((spread.s0.x.loop_min + (spread.s0.x.x.loop_extent*16)) + -1), spread.s0.x.loop_max)
+
+  a_copy[i].min: (spread.s0.y.yi.base + spread.s0.y.yi)
+  a[i].min: (spread.s0.y.yi + spread.s0.y.yi.base)
+
+  a_copy[i].max: (spread.s0.y.yi.base + spread.s0.y.yi)
+  a[i].max: (spread.s0.y.yi + spread.s0.y.yi.base)
+
+  a_copy[i].min: min(min(spread.s0.x.loop_min, (spread.s0.x.loop_max + -15)), (min(spread.s0.x.loop_min, (spread.s0.x.loop_max + -15)) + 0))
+  a[i].min: min(spread.s0.x.loop_min, (spread.s0.x.loop_max + -15))
+
+  a_copy[i].max: max(min((((spread.s0.x.x.loop_extent*16) + spread.s0.x.loop_min) + -1), spread.s0.x.loop_max), (min((((spread.s0.x.x.loop_extent*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + ((16 + 0) - 1)))
+  a[i].max: min(((spread.s0.x.loop_min + (spread.s0.x.x.loop_extent*16)) + -1), spread.s0.x.loop_max)
+
+  a_copy[i].min: (spread.s0.y.yi.base + spread.s0.y.yi)
+  a[i].min: (spread.s0.y.yi + spread.s0.y.yi.base)
+
+  a_copy[i].max: (spread.s0.y.yi.base + spread.s0.y.yi)
+  a[i].max: (spread.s0.y.yi + spread.s0.y.yi.base)
+
+  a_copy[i].min: min(min((spread.s0.x.loop_min + -2), (spread.s0.x.loop_max + -17)), (min(spread.s0.x.loop_min, (spread.s0.x.loop_max + -15)) + -2))
+  a[i].min: min((spread.s0.x.loop_min + -2), (spread.s0.x.loop_max + -17))
+
+  a_copy[i].max: max(min(((spread.s0.x.loop_min + (spread.s0.x.x.loop_extent*16)) + 1), (spread.s0.x.loop_max + 2)), (min((((spread.s0.x.x.loop_extent*16) + spread.s0.x.loop_min) + -1), spread.s0.x.loop_max) + 2))
+  a[i].max: min((((spread.s0.x.x.loop_extent*16) + spread.s0.x.loop_min) + 1), (spread.s0.x.loop_max + 2))
+
+  a_copy[i].min: min(((spread.s0.y.yi + spread.s0.y.yi.base) + -2), ((spread.s0.y.yi.base + spread.s0.y.yi) + -2))
+  a[i].min: ((spread.s0.y.yi.base + spread.s0.y.yi) + -2)
+
+  a_copy[i].max: max(((spread.s0.y.yi + spread.s0.y.yi.base) + 2), ((spread.s0.y.yi.base + spread.s0.y.yi) + 2))
+  a[i].max: ((spread.s0.y.yi.base + spread.s0.y.yi) + 2)
+Success!
+
