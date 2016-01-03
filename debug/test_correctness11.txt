@@ -1,0 +1,747 @@
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/sliding_backwards.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_sliding_backwards -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_sliding_backwards
+
+  a_copy[i].min: min((100 - f.s0.x.max), ((100 - f.s0.x.max) + 1))
+  a[i].min: (100 - f.s0.x.max)
+
+  a_copy[i].max: max((100 - f.s0.x.min), ((100 - f.s0.x.min) + 1))
+  a[i].max: (101 - f.s0.x.min)
+
+  a_copy[i].min: min((100 - f.s0.x.max), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, (100 - f.s0.x.max))
+
+  a_copy[i].max: max((101 - f.s0.x.min), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, (101 - f.s0.x.min))
+
+  a_copy[i].min: min((100 - f.s0.x.max), ((100 - f.s0.x.max) + 1))
+  a[i].min: (100 - f.s0.x.max)
+
+  a_copy[i].max: max((100 - f.s0.x.min), ((100 - f.s0.x.min) + 1))
+  a[i].max: (101 - f.s0.x.min)
+
+  a_copy[i].min: min((100 - f.s0.x.max), ((100 - f.s0.x.max) + 1))
+  a[i].min: (100 - f.s0.x.max)
+
+  a_copy[i].max: max((100 - f.s0.x.min), ((100 - f.s0.x.min) + 1))
+  a[i].max: (101 - f.s0.x.min)
+
+  a_copy[i].min: min((100 - f.s0.x), ((100 - f.s0.x) + 1))
+  a[i].min: (100 - f.s0.x)
+
+  a_copy[i].max: max((100 - f.s0.x), ((100 - f.s0.x) + 1))
+  a[i].max: (101 - f.s0.x)
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/sliding_reduction.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_sliding_reduction -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_sliding_reduction
+
+  a_copy[i].min: min(f.s1.y.min, f.s2.y.min)
+  a[i].min: min(f.s2.y.min, f.s1.y.min)
+
+  a_copy[i].max: max(f.s1.y.max, f.s2.y.max)
+  a[i].max: max(f.s2.y.max, f.s1.y.max)
+
+  a_copy[i].min: min(min(f.s2.x.min, 0), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, min(f.s2.x.min, 0))
+
+  a_copy[i].max: max(max(f.s2.x.max, 1), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, max(f.s2.x.max, 1))
+
+  a_copy[i].min: min(min(f.s2.y.min, f.s1.y.min), g.s0.y.min)
+  a[i].min: min(g.s0.y.min, min(f.s2.y.min, f.s1.y.min))
+
+  a_copy[i].max: max(max(f.s2.y.max, f.s1.y.max), g.s0.y.max)
+  a[i].max: max(g.s0.y.max, max(f.s2.y.max, f.s1.y.max))
+
+  a_copy[i].min: min(min(g.s0.x.min, min(f.s2.x.min, 0)), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, min(f.s2.x.min, 0))
+
+  a_copy[i].max: max(max(g.s0.x.max, max(f.s2.x.max, 1)), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, max(f.s2.x.max, 1))
+
+  a_copy[i].min: min(min(g.s0.y.min, min(f.s2.y.min, f.s1.y.min)), (g.s0.y.min - 1))
+  a[i].min: min(g.s0.y.min, min(f.s2.y.min, min(f.s1.y.min, (g.s0.y.min + -1))))
+
+  a_copy[i].max: max(max(g.s0.y.max, max(f.s2.y.max, f.s1.y.max)), (g.s0.y.max - 1))
+  a[i].max: max(g.s0.y.max, max(f.s2.y.max, max(f.s1.y.max, (g.s0.y.max + -1))))
+
+  a_copy[i].min: min(min(g.s0.x.min, min(f.s2.x.min, 0)), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, min(f.s2.x.min, 0))
+
+  a_copy[i].max: max(max(g.s0.x.max, max(f.s2.x.max, 1)), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, max(f.s2.x.max, 1))
+
+  a_copy[i].min: min(min(g.s0.y.min, min(f.s2.y.min, min(f.s1.y.min, (g.s0.y.min + -1)))), (g.s0.y.min - 2))
+  a[i].min: min(g.s0.y.min, min(f.s2.y.min, min(f.s1.y.min, (g.s0.y.min + -2))))
+
+  a_copy[i].max: max(max(g.s0.y.max, max(f.s2.y.max, max(f.s1.y.max, (g.s0.y.max + -1)))), (g.s0.y.max - 2))
+  a[i].max: max(g.s0.y.max, max(f.s2.y.max, max(f.s1.y.max, (g.s0.y.max + -1))))
+
+  a_copy[i].min: min(f.s0.y.min, f.s1.y.min)
+  a[i].min: min(f.s1.y.min, f.s0.y.min)
+
+  a_copy[i].max: max(f.s0.y.max, f.s1.y.max)
+  a[i].max: max(f.s1.y.max, f.s0.y.max)
+
+  a_copy[i].min: min(min(f.s0.x.min, 0), f.s2.x.min)
+  a[i].min: min(f.s2.x.min, min(f.s0.x.min, 0))
+
+  a_copy[i].max: max(max(f.s0.x.max, 0), f.s2.x.max)
+  a[i].max: max(f.s2.x.max, max(f.s0.x.max, 0))
+
+  a_copy[i].min: min(min(f.s1.y.min, f.s0.y.min), f.s2.y.min)
+  a[i].min: min(f.s2.y.min, min(f.s1.y.min, f.s0.y.min))
+
+  a_copy[i].max: max(max(f.s1.y.max, f.s0.y.max), f.s2.y.max)
+  a[i].max: max(f.s2.y.max, max(f.s1.y.max, f.s0.y.max))
+
+  a_copy[i].min: min(min(g.s0.x.min, min(f.s2.x.min, 0)), min(f.s2.x.min, min(f.s0.x.min, 0)))
+  a[i].min: min(g.s0.x.min, min(f.s2.x.min, min(f.s0.x.min, 0)))
+
+  a_copy[i].max: max(max(g.s0.x.max, max(f.s2.x.max, 1)), max(f.s2.x.max, max(f.s0.x.max, 0)))
+  a[i].max: max(g.s0.x.max, max(f.s2.x.max, max(f.s0.x.max, 1)))
+
+  a_copy[i].min: min(min(g.s0.y.min, min(f.s2.y.min, min(f.s1.y.min, (g.s0.y.min + -2)))), min(f.s2.y.min, min(f.s1.y.min, f.s0.y.min)))
+  a[i].min: min(g.s0.y.min, min(f.s2.y.min, min(f.s1.y.min, min(f.s0.y.min, (g.s0.y.min + -2)))))
+
+  a_copy[i].max: max(max(g.s0.y.max, max(f.s2.y.max, max(f.s1.y.max, (g.s0.y.max + -1)))), max(f.s2.y.max, max(f.s1.y.max, f.s0.y.max)))
+  a[i].max: max(g.s0.y.max, max(f.s2.y.max, max(f.s1.y.max, max(f.s0.y.max, (g.s0.y.max + -1)))))
+
+  a_copy[i].min: min(g.s0.y.min, (g.s0.y.min - 1))
+  a[i].min: (g.s0.y.min + -1)
+
+  a_copy[i].max: max(g.s0.y.max, (g.s0.y.max - 1))
+  a[i].max: g.s0.y.max
+
+  a_copy[i].min: min((g.s0.y.min + -1), (g.s0.y.min - 2))
+  a[i].min: (g.s0.y.min + -2)
+
+  a_copy[i].max: max(g.s0.y.max, (g.s0.y.max - 2))
+  a[i].max: g.s0.y.max
+
+  a_copy[i].min: min(f.s1.y.min, f.s2.y.min)
+  a[i].min: min(f.s2.y.min, f.s1.y.min)
+
+  a_copy[i].max: max(f.s1.y.max, f.s2.y.max)
+  a[i].max: max(f.s2.y.max, f.s1.y.max)
+
+  a_copy[i].min: min(min(f.s2.x.min, 0), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, min(f.s2.x.min, 0))
+
+  a_copy[i].max: max(max(f.s2.x.max, 1), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, max(f.s2.x.max, 1))
+
+  a_copy[i].min: min(min(f.s2.y.min, f.s1.y.min), (g.s0.y.min + -2))
+  a[i].min: min(f.s2.y.min, min(f.s1.y.min, (g.s0.y.min + -2)))
+
+  a_copy[i].max: max(max(f.s2.y.max, f.s1.y.max), g.s0.y.max)
+  a[i].max: max(g.s0.y.max, max(f.s2.y.max, f.s1.y.max))
+
+  a_copy[i].min: min(f.s2.x.min, g.s0.x.min)
+  a[i].min: min(g.s0.x.min, f.s2.x.min)
+
+  a_copy[i].max: max(f.s2.x.max, g.s0.x.max)
+  a[i].max: max(g.s0.x.max, f.s2.x.max)
+
+  a_copy[i].max: max(f.s2.y.max, g.s0.y.max)
+  a[i].max: max(g.s0.y.max, f.s2.y.max)
+
+  a_copy[i].min: min(f.s1.y.min, f.s2.y.min)
+  a[i].min: min(f.s2.y.min, f.s1.y.min)
+
+  a_copy[i].max: max(f.s1.y.max, f.s2.y.max)
+  a[i].max: max(f.s2.y.max, f.s1.y.max)
+
+  a_copy[i].min: min(min(f.s2.x.min, 0), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, min(f.s2.x.min, 0))
+
+  a_copy[i].max: max(max(f.s2.x.max, 1), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, max(f.s2.x.max, 1))
+
+  a_copy[i].min: min(min(f.s2.y.min, f.s1.y.min), (g.s0.y.min + -2))
+  a[i].min: min(f.s2.y.min, min(f.s1.y.min, (g.s0.y.min + -2)))
+
+  a_copy[i].max: max(max(f.s2.y.max, f.s1.y.max), g.s0.y.max)
+  a[i].max: max(g.s0.y.max, max(f.s2.y.max, f.s1.y.max))
+
+  a_copy[i].min: min(f.s2.x.min, g.s0.x.min)
+  a[i].min: min(g.s0.x.min, f.s2.x.min)
+
+  a_copy[i].max: max(f.s2.x.max, g.s0.x.max)
+  a[i].max: max(g.s0.x.max, f.s2.x.max)
+
+  a_copy[i].max: max(f.s2.y.max, g.s0.y.max)
+  a[i].max: max(g.s0.y.max, f.s2.y.max)
+
+  a_copy[i].min: min(f.s1.y.min, f.s2.y.min)
+  a[i].min: min(f.s2.y.min, f.s1.y.min)
+
+  a_copy[i].max: max(f.s1.y.max, f.s2.y.max)
+  a[i].max: max(f.s2.y.max, f.s1.y.max)
+
+  a_copy[i].min: min(f.s0.x.min, min(f.s2.x.min, 0))
+  a[i].min: min(f.s2.x.min, min(f.s0.x.min, 0))
+
+  a_copy[i].max: max(f.s0.x.max, max(f.s2.x.max, 0))
+  a[i].max: max(f.s2.x.max, max(f.s0.x.max, 0))
+
+  a_copy[i].min: min(f.s0.y.min, min(f.s2.y.min, f.s1.y.min))
+  a[i].min: min(f.s2.y.min, min(f.s1.y.min, f.s0.y.min))
+
+  a_copy[i].max: max(f.s0.y.max, max(f.s2.y.max, f.s1.y.max))
+  a[i].max: max(f.s2.y.max, max(f.s1.y.max, f.s0.y.max))
+
+  a_copy[i].min: min(min(g.s0.x.min, 0), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, 0)
+
+  a_copy[i].max: max(max(g.s0.x.max, 1), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, 1)
+
+  a_copy[i].min: min((g.s0.y.min + -2), g.s0.y.min)
+  a[i].min: (g.s0.y.min + -2)
+
+  a_copy[i].min: min(min(g.s0.x.min, 0), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, 0)
+
+  a_copy[i].max: max(max(g.s0.x.max, 1), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, 1)
+
+  a_copy[i].min: min((g.s0.y.min + -2), (g.s0.y.min - 1))
+  a[i].min: (g.s0.y.min + -2)
+
+  a_copy[i].max: max(g.s0.y.max, (g.s0.y.max - 1))
+  a[i].max: g.s0.y.max
+
+  a_copy[i].min: min(min(g.s0.x.min, 0), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, 0)
+
+  a_copy[i].max: max(max(g.s0.x.max, 1), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, 1)
+
+  a_copy[i].min: min((g.s0.y.min + -2), (g.s0.y.min - 2))
+  a[i].min: (g.s0.y.min + -2)
+
+  a_copy[i].max: max(g.s0.y.max, (g.s0.y.max - 2))
+  a[i].max: g.s0.y.max
+
+  a_copy[i].min: min(min(g.s0.x.min, 0), g.s0.x.min)
+  a[i].min: min(g.s0.x.min, 0)
+
+  a_copy[i].max: max(max(g.s0.x.max, 1), g.s0.x.max)
+  a[i].max: max(g.s0.x.max, 1)
+
+  a_copy[i].max: max(((g.s0.x.loop_extent + g.s0.x.loop_min) + -1), 1)
+  a[i].max: max(((g.s0.x.loop_min + g.s0.x.loop_extent) + -1), 1)
+
+  a_copy[i].min: min(min(g.s0.x.loop_min, 0), g.s0.x.loop_min)
+  a[i].min: min(g.s0.x.loop_min, 0)
+
+  a_copy[i].max: max(max(((g.s0.x.loop_min + g.s0.x.loop_extent) + -1), 1), ((g.s0.x.loop_extent + g.s0.x.loop_min) - 1))
+  a[i].max: max(((g.s0.x.loop_extent + g.s0.x.loop_min) + -1), 1)
+
+  a_copy[i].min: min((g.s0.y + -2), g.s0.y)
+  a[i].min: (g.s0.y + -2)
+
+  a_copy[i].min: min(min(g.s0.x.loop_min, 0), g.s0.x.loop_min)
+  a[i].min: min(g.s0.x.loop_min, 0)
+
+  a_copy[i].max: max(max(((g.s0.x.loop_extent + g.s0.x.loop_min) + -1), 1), ((g.s0.x.loop_extent + g.s0.x.loop_min) - 1))
+  a[i].max: max(((g.s0.x.loop_min + g.s0.x.loop_extent) + -1), 1)
+
+  a_copy[i].min: min((g.s0.y + -2), (g.s0.y - 1))
+  a[i].min: (g.s0.y + -2)
+
+  a_copy[i].max: max(g.s0.y, (g.s0.y - 1))
+  a[i].max: g.s0.y
+
+  a_copy[i].min: min(min(g.s0.x.loop_min, 0), g.s0.x.loop_min)
+  a[i].min: min(g.s0.x.loop_min, 0)
+
+  a_copy[i].max: max(max(((g.s0.x.loop_min + g.s0.x.loop_extent) + -1), 1), ((g.s0.x.loop_extent + g.s0.x.loop_min) - 1))
+  a[i].max: max(((g.s0.x.loop_extent + g.s0.x.loop_min) + -1), 1)
+
+  a_copy[i].min: min((g.s0.y + -2), (g.s0.y - 2))
+  a[i].min: (g.s0.y + -2)
+
+  a_copy[i].max: max(g.s0.y, (g.s0.y - 2))
+  a[i].max: g.s0.y
+
+  a_copy[i].max: max(((g.s0.x.loop_extent + g.s0.x.loop_min) + -1), 1)
+  a[i].max: max(((g.s0.x.loop_min + g.s0.x.loop_extent) + -1), 1)
+
+  a_copy[i].min: min(min(g.s0.x.loop_min, 0), g.s0.x.loop_min)
+  a[i].min: min(g.s0.x.loop_min, 0)
+
+  a_copy[i].max: max(max(((g.s0.x.loop_min + g.s0.x.loop_extent) + -1), 1), ((g.s0.x.loop_extent + g.s0.x.loop_min) + -1))
+  a[i].max: max(((g.s0.x.loop_extent + g.s0.x.loop_min) + -1), 1)
+
+  a_copy[i].max: max(((g.s0.x.loop_extent + g.s0.x.loop_min) + -1), 1)
+  a[i].max: max(((g.s0.x.loop_min + g.s0.x.loop_extent) + -1), 1)
+
+  a_copy[i].min: min(f$2.s1.x.min, f$2.s2.x.min)
+  a[i].min: min(f$2.s2.x.min, f$2.s1.x.min)
+
+  a_copy[i].max: max(f$2.s1.x.max, f$2.s2.x.max)
+  a[i].max: max(f$2.s2.x.max, f$2.s1.x.max)
+
+  a_copy[i].min: min(min(f$2.s1.x.min, 0), f$2.s2.y.min)
+  a[i].min: min(f$2.s2.y.min, min(f$2.s1.x.min, 0))
+
+  a_copy[i].max: max(max(f$2.s1.x.max, 1), f$2.s2.y.max)
+  a[i].max: max(f$2.s2.y.max, max(f$2.s1.x.max, 1))
+
+  a_copy[i].min: min(min(f$2.s2.x.min, f$2.s1.x.min), g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, min(f$2.s2.x.min, f$2.s1.x.min))
+
+  a_copy[i].max: max(max(f$2.s2.x.max, f$2.s1.x.max), g$2.s0.x.max)
+  a[i].max: max(g$2.s0.x.max, max(f$2.s2.x.max, f$2.s1.x.max))
+
+  a_copy[i].min: min(min(f$2.s2.y.min, min(f$2.s1.x.min, 0)), g$2.s0.y.min)
+  a[i].min: min(g$2.s0.y.min, min(f$2.s2.y.min, min(f$2.s1.x.min, 0)))
+
+  a_copy[i].max: max(max(f$2.s2.y.max, max(f$2.s1.x.max, 1)), g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, max(f$2.s2.y.max, max(f$2.s1.x.max, 1)))
+
+  a_copy[i].min: min(min(g$2.s0.x.min, min(f$2.s2.x.min, f$2.s1.x.min)), g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, min(f$2.s2.x.min, f$2.s1.x.min))
+
+  a_copy[i].max: max(max(g$2.s0.x.max, max(f$2.s2.x.max, f$2.s1.x.max)), g$2.s0.x.max)
+  a[i].max: max(g$2.s0.x.max, max(f$2.s2.x.max, f$2.s1.x.max))
+
+  a_copy[i].min: min(min(g$2.s0.y.min, min(f$2.s2.y.min, min(f$2.s1.x.min, 0))), (g$2.s0.y.min - 1))
+  a[i].min: min(g$2.s0.y.min, min(f$2.s2.y.min, min(f$2.s1.x.min, min((g$2.s0.y.min + -1), 0))))
+
+  a_copy[i].max: max(max(g$2.s0.y.max, max(f$2.s2.y.max, max(f$2.s1.x.max, 1))), (g$2.s0.y.max - 1))
+  a[i].max: max(g$2.s0.y.max, max(f$2.s2.y.max, max(f$2.s1.x.max, max((g$2.s0.y.max + -1), 1))))
+
+  a_copy[i].min: min(min(g$2.s0.x.min, min(f$2.s2.x.min, f$2.s1.x.min)), g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, min(f$2.s2.x.min, f$2.s1.x.min))
+
+  a_copy[i].max: max(max(g$2.s0.x.max, max(f$2.s2.x.max, f$2.s1.x.max)), g$2.s0.x.max)
+  a[i].max: max(g$2.s0.x.max, max(f$2.s2.x.max, f$2.s1.x.max))
+
+  a_copy[i].min: min(min(g$2.s0.y.min, min(f$2.s2.y.min, min(f$2.s1.x.min, min((g$2.s0.y.min + -1), 0)))), (g$2.s0.y.min - 2))
+  a[i].min: min(g$2.s0.y.min, min(f$2.s2.y.min, min(f$2.s1.x.min, min((g$2.s0.y.min + -1), min((g$2.s0.y.min + -2), 0)))))
+
+  a_copy[i].max: max(max(g$2.s0.y.max, max(f$2.s2.y.max, max(f$2.s1.x.max, max((g$2.s0.y.max + -1), 1)))), (g$2.s0.y.max - 2))
+  a[i].max: max(g$2.s0.y.max, max(f$2.s2.y.max, max(f$2.s1.x.max, max((g$2.s0.y.max + -1), max((g$2.s0.y.max + -2), 1)))))
+
+  a_copy[i].min: min(f$2.s0.x.min, f$2.s1.x.min)
+  a[i].min: min(f$2.s1.x.min, f$2.s0.x.min)
+
+  a_copy[i].max: max(f$2.s0.x.max, f$2.s1.x.max)
+  a[i].max: max(f$2.s1.x.max, f$2.s0.x.max)
+
+  a_copy[i].min: min(f$2.s0.y.min, f$2.s1.x.min)
+  a[i].min: min(f$2.s1.x.min, f$2.s0.y.min)
+
+  a_copy[i].max: max(f$2.s0.y.max, f$2.s1.x.max)
+  a[i].max: max(f$2.s1.x.max, f$2.s0.y.max)
+
+  a_copy[i].min: min(min(f$2.s1.x.min, f$2.s0.x.min), f$2.s2.x.min)
+  a[i].min: min(f$2.s2.x.min, min(f$2.s1.x.min, f$2.s0.x.min))
+
+  a_copy[i].max: max(max(f$2.s1.x.max, f$2.s0.x.max), f$2.s2.x.max)
+  a[i].max: max(f$2.s2.x.max, max(f$2.s1.x.max, f$2.s0.x.max))
+
+  a_copy[i].min: min(min(f$2.s1.x.min, f$2.s0.y.min), f$2.s2.y.min)
+  a[i].min: min(f$2.s2.y.min, min(f$2.s1.x.min, f$2.s0.y.min))
+
+  a_copy[i].max: max(max(f$2.s1.x.max, f$2.s0.y.max), f$2.s2.y.max)
+  a[i].max: max(f$2.s2.y.max, max(f$2.s1.x.max, f$2.s0.y.max))
+
+  a_copy[i].min: min(min(g$2.s0.x.min, min(f$2.s2.x.min, f$2.s1.x.min)), min(f$2.s2.x.min, min(f$2.s1.x.min, f$2.s0.x.min)))
+  a[i].min: min(g$2.s0.x.min, min(f$2.s2.x.min, min(f$2.s1.x.min, f$2.s0.x.min)))
+
+  a_copy[i].max: max(max(g$2.s0.x.max, max(f$2.s2.x.max, f$2.s1.x.max)), max(f$2.s2.x.max, max(f$2.s1.x.max, f$2.s0.x.max)))
+  a[i].max: max(g$2.s0.x.max, max(f$2.s2.x.max, max(f$2.s1.x.max, f$2.s0.x.max)))
+
+  a_copy[i].min: min(min(g$2.s0.y.min, min(f$2.s2.y.min, min(f$2.s1.x.min, min((g$2.s0.y.min + -1), min((g$2.s0.y.min + -2), 0))))), min(f$2.s2.y.min, min(f$2.s1.x.min, f$2.s0.y.min)))
+  a[i].min: min(g$2.s0.y.min, min(f$2.s2.y.min, min(f$2.s1.x.min, min(f$2.s0.y.min, min((g$2.s0.y.min + -1), min((g$2.s0.y.min + -2), 0))))))
+
+  a_copy[i].max: max(max(g$2.s0.y.max, max(f$2.s2.y.max, max(f$2.s1.x.max, max((g$2.s0.y.max + -1), max((g$2.s0.y.max + -2), 1))))), max(f$2.s2.y.max, max(f$2.s1.x.max, f$2.s0.y.max)))
+  a[i].max: max(g$2.s0.y.max, max(f$2.s2.y.max, max(f$2.s1.x.max, max(f$2.s0.y.max, max((g$2.s0.y.max + -1), max((g$2.s0.y.max + -2), 1))))))
+
+  a_copy[i].min: min(g$2.s0.y.min, (g$2.s0.y.min - 1))
+  a[i].min: (g$2.s0.y.min + -1)
+
+  a_copy[i].max: max(g$2.s0.y.max, (g$2.s0.y.max - 1))
+  a[i].max: g$2.s0.y.max
+
+  a_copy[i].min: min((g$2.s0.y.min + -1), (g$2.s0.y.min - 2))
+  a[i].min: (g$2.s0.y.min + -2)
+
+  a_copy[i].max: max(g$2.s0.y.max, (g$2.s0.y.max - 2))
+  a[i].max: g$2.s0.y.max
+
+  a_copy[i].min: min(f$2.s1.x.min, f$2.s2.x.min)
+  a[i].min: min(f$2.s2.x.min, f$2.s1.x.min)
+
+  a_copy[i].max: max(f$2.s1.x.max, f$2.s2.x.max)
+  a[i].max: max(f$2.s2.x.max, f$2.s1.x.max)
+
+  a_copy[i].min: min(min(f$2.s1.x.min, 0), f$2.s2.y.min)
+  a[i].min: min(f$2.s2.y.min, min(f$2.s1.x.min, 0))
+
+  a_copy[i].max: max(max(f$2.s1.x.max, 1), f$2.s2.y.max)
+  a[i].max: max(f$2.s2.y.max, max(f$2.s1.x.max, 1))
+
+  a_copy[i].min: min(min(f$2.s2.x.min, f$2.s1.x.min), g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, min(f$2.s2.x.min, f$2.s1.x.min))
+
+  a_copy[i].max: max(max(f$2.s2.x.max, f$2.s1.x.max), g$2.s0.x.max)
+  a[i].max: max(g$2.s0.x.max, max(f$2.s2.x.max, f$2.s1.x.max))
+
+  a_copy[i].min: min(min(f$2.s2.y.min, min(f$2.s1.x.min, 0)), (g$2.s0.y.min + -2))
+  a[i].min: min(f$2.s2.y.min, min(f$2.s1.x.min, min((g$2.s0.y.min + -2), 0)))
+
+  a_copy[i].max: max(max(f$2.s2.y.max, max(f$2.s1.x.max, 1)), g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, max(f$2.s2.y.max, max(f$2.s1.x.max, 1)))
+
+  a_copy[i].min: min(f$2.s2.x.min, g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, f$2.s2.x.min)
+
+  a_copy[i].max: max(f$2.s2.x.max, g$2.s0.x.max)
+  a[i].max: max(g$2.s0.x.max, f$2.s2.x.max)
+
+  a_copy[i].max: max(f$2.s2.y.max, g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, f$2.s2.y.max)
+
+  a_copy[i].min: min(f$2.s1.x.min, f$2.s2.x.min)
+  a[i].min: min(f$2.s2.x.min, f$2.s1.x.min)
+
+  a_copy[i].max: max(f$2.s1.x.max, f$2.s2.x.max)
+  a[i].max: max(f$2.s2.x.max, f$2.s1.x.max)
+
+  a_copy[i].min: min(min(f$2.s1.x.min, 0), f$2.s2.y.min)
+  a[i].min: min(f$2.s2.y.min, min(f$2.s1.x.min, 0))
+
+  a_copy[i].max: max(max(f$2.s1.x.max, 1), f$2.s2.y.max)
+  a[i].max: max(f$2.s2.y.max, max(f$2.s1.x.max, 1))
+
+  a_copy[i].min: min(min(f$2.s2.x.min, f$2.s1.x.min), g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, min(f$2.s2.x.min, f$2.s1.x.min))
+
+  a_copy[i].max: max(max(f$2.s2.x.max, f$2.s1.x.max), g$2.s0.x.max)
+  a[i].max: max(g$2.s0.x.max, max(f$2.s2.x.max, f$2.s1.x.max))
+
+  a_copy[i].min: min(min(f$2.s2.y.min, min(f$2.s1.x.min, 0)), (g$2.s0.y.min + -2))
+  a[i].min: min(f$2.s2.y.min, min(f$2.s1.x.min, min((g$2.s0.y.min + -2), 0)))
+
+  a_copy[i].max: max(max(f$2.s2.y.max, max(f$2.s1.x.max, 1)), g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, max(f$2.s2.y.max, max(f$2.s1.x.max, 1)))
+
+  a_copy[i].min: min(f$2.s2.x.min, g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, f$2.s2.x.min)
+
+  a_copy[i].max: max(f$2.s2.x.max, g$2.s0.x.max)
+  a[i].max: max(g$2.s0.x.max, f$2.s2.x.max)
+
+  a_copy[i].max: max(f$2.s2.y.max, g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, f$2.s2.y.max)
+
+  a_copy[i].min: min(min(g$2.s0.x.min, 0), (g$2.s0.y.min + -2))
+  a[i].min: min(g$2.s0.x.min, min((g$2.s0.y.min + -2), 0))
+
+  a_copy[i].max: max(max(g$2.s0.x.max, 1), g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, max(g$2.s0.x.max, 1))
+
+  a_copy[i].min: min(min(g$2.s0.x.min, min((g$2.s0.y.min + -2), 0)), g$2.s0.y.min)
+  a[i].min: min(g$2.s0.y.min, min(g$2.s0.x.min, min((g$2.s0.y.min + -2), 0)))
+
+  a_copy[i].max: max(max(g$2.s0.y.max, max(g$2.s0.x.max, 1)), g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, max(g$2.s0.x.max, 1))
+
+  a_copy[i].min: min(min(g$2.s0.y.min, min(g$2.s0.x.min, min((g$2.s0.y.min + -2), 0))), (g$2.s0.y.min - 1))
+  a[i].min: min(g$2.s0.y.min, min(g$2.s0.x.min, min((g$2.s0.y.min + -1), min((g$2.s0.y.min + -2), 0))))
+
+  a_copy[i].max: max(max(g$2.s0.y.max, max(g$2.s0.x.max, 1)), (g$2.s0.y.max - 1))
+  a[i].max: max(g$2.s0.y.max, max(g$2.s0.x.max, max((g$2.s0.y.max + -1), 1)))
+
+  a_copy[i].min: min(min(g$2.s0.y.min, min(g$2.s0.x.min, min((g$2.s0.y.min + -1), min((g$2.s0.y.min + -2), 0)))), (g$2.s0.y.min - 2))
+  a[i].min: min(g$2.s0.y.min, min(g$2.s0.x.min, min((g$2.s0.y.min + -1), min((g$2.s0.y.min + -2), 0))))
+
+  a_copy[i].max: max(max(g$2.s0.y.max, max(g$2.s0.x.max, max((g$2.s0.y.max + -1), 1))), (g$2.s0.y.max - 2))
+  a[i].max: max(g$2.s0.y.max, max(g$2.s0.x.max, max((g$2.s0.y.max + -1), max((g$2.s0.y.max + -2), 1))))
+
+  a_copy[i].min: min(min((g$2.s0.y.min + -2), min(g$2.s0.x.min, min((g$2.s0.y.min + -2), 0))), g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, min((g$2.s0.y.min + -2), 0))
+
+  a_copy[i].max: max(max(g$2.s0.y.max, max(g$2.s0.x.max, 1)), g$2.s0.x.max)
+  a[i].max: max(g$2.s0.y.max, max(g$2.s0.x.max, 1))
+
+  a_copy[i].min: min(min(g$2.s0.x.min, min((g$2.s0.y.min + -2), 0)), (g$2.s0.y.min + -2))
+  a[i].min: min(g$2.s0.x.min, min((g$2.s0.y.min + -2), 0))
+
+  a_copy[i].max: max(max(g$2.s0.y.max, max(g$2.s0.x.max, 1)), g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, max(g$2.s0.x.max, 1))
+
+  a_copy[i].min: min(min(g$2.s0.y.min, min(g$2.s0.x.min, min((g$2.s0.y.min + -1), min((g$2.s0.y.min + -2), 0)))), min(g$2.s0.x.min, min((g$2.s0.y.min + -2), 0)))
+  a[i].min: min(g$2.s0.y.min, min(g$2.s0.x.min, min((g$2.s0.y.min + -1), min((g$2.s0.y.min + -2), 0))))
+
+  a_copy[i].max: max(max(g$2.s0.y.max, max(g$2.s0.x.max, max((g$2.s0.y.max + -1), max((g$2.s0.y.max + -2), 1)))), max(g$2.s0.y.max, max(g$2.s0.x.max, 1)))
+  a[i].max: max(g$2.s0.y.max, max(g$2.s0.x.max, max((g$2.s0.y.max + -1), max((g$2.s0.y.max + -2), 1))))
+
+  a_copy[i].max: ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1)
+  a[i].max: ((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1)
+
+  a_copy[i].max: max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 0)
+  a[i].max: max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), 0)
+
+  a_copy[i].max: max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1))
+  a[i].max: ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1)
+
+  a_copy[i].max: max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), 1)
+  a[i].max: max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 1)
+
+  a_copy[i].max: ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1)
+  a[i].max: ((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1)
+
+  a_copy[i].min: min(min(g$2.s0.x.loop_min, 0), (g$2.s0.y + -2))
+  a[i].min: min(g$2.s0.x.loop_min, min((g$2.s0.y + -2), 0))
+
+  a_copy[i].max: max(max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 1), g$2.s0.y)
+  a[i].max: max(g$2.s0.y, max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), 1))
+
+  a_copy[i].max: max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) - 1))
+  a[i].max: ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1)
+
+  a_copy[i].min: min(min(g$2.s0.x.loop_min, min((g$2.s0.y + -2), 0)), g$2.s0.y)
+  a[i].min: min(g$2.s0.y, min(g$2.s0.x.loop_min, min((g$2.s0.y + -2), 0)))
+
+  a_copy[i].max: max(max(g$2.s0.y, max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), 1)), g$2.s0.y)
+  a[i].max: max(g$2.s0.y, max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 1))
+
+  a_copy[i].max: max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) - 1))
+  a[i].max: ((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1)
+
+  a_copy[i].min: min(min(g$2.s0.y, min(g$2.s0.x.loop_min, min((g$2.s0.y + -2), 0))), (g$2.s0.y - 1))
+  a[i].min: min(g$2.s0.y, min(g$2.s0.x.loop_min, min((g$2.s0.y + -1), min((g$2.s0.y + -2), 0))))
+
+  a_copy[i].max: max(max(g$2.s0.y, max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 1)), (g$2.s0.y - 1))
+  a[i].max: max(g$2.s0.y, max((g$2.s0.y + -1), max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), 1)))
+
+  a_copy[i].max: max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) - 1))
+  a[i].max: ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1)
+
+  a_copy[i].min: min(min(g$2.s0.y, min(g$2.s0.x.loop_min, min((g$2.s0.y + -1), min((g$2.s0.y + -2), 0)))), (g$2.s0.y - 2))
+  a[i].min: min(g$2.s0.y, min(g$2.s0.x.loop_min, min((g$2.s0.y + -1), min((g$2.s0.y + -2), 0))))
+
+  a_copy[i].max: max(max(g$2.s0.y, max((g$2.s0.y + -1), max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), 1))), (g$2.s0.y - 2))
+  a[i].max: max(g$2.s0.y, max((g$2.s0.y + -1), max((g$2.s0.y + -2), max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 1))))
+
+  a_copy[i].max: ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1)
+  a[i].max: ((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1)
+
+  a_copy[i].min: min(min((g$2.s0.y + -2), min(g$2.s0.x.loop_min, min((g$2.s0.y + -2), 0))), g$2.s0.x.loop_min)
+  a[i].min: min(g$2.s0.x.loop_min, min((g$2.s0.y + -2), 0))
+
+  a_copy[i].max: max(max(g$2.s0.y, max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 1)), ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1))
+  a[i].max: max(g$2.s0.y, max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), 1))
+
+  a_copy[i].max: max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1))
+  a[i].max: ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1)
+
+  a_copy[i].min: min(min(g$2.s0.x.loop_min, min((g$2.s0.y + -2), 0)), (g$2.s0.y + -2))
+  a[i].min: min(g$2.s0.x.loop_min, min((g$2.s0.y + -2), 0))
+
+  a_copy[i].max: max(max(g$2.s0.y, max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), 1)), g$2.s0.y)
+  a[i].max: max(g$2.s0.y, max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 1))
+
+  a_copy[i].max: ((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1)
+  a[i].max: ((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1)
+
+  a_copy[i].min: min(min(g$2.s0.y, min(g$2.s0.x.loop_min, min((g$2.s0.y + -1), min((g$2.s0.y + -2), 0)))), min(g$2.s0.x.loop_min, min((g$2.s0.y + -2), 0)))
+  a[i].min: min(g$2.s0.y, min(g$2.s0.x.loop_min, min((g$2.s0.y + -1), min((g$2.s0.y + -2), 0))))
+
+  a_copy[i].max: max(max(g$2.s0.y, max((g$2.s0.y + -1), max((g$2.s0.y + -2), max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 1)))), max(g$2.s0.y, max(((g$2.s0.x.loop_extent + g$2.s0.x.loop_min) + -1), 1)))
+  a[i].max: max(g$2.s0.y, max((g$2.s0.y + -1), max((g$2.s0.y + -2), max(((g$2.s0.x.loop_min + g$2.s0.x.loop_extent) + -1), 1))))
+
+  a_copy[i].min: min(f$3.s1.y.min, f$3.s2.y.min)
+  a[i].min: min(f$3.s2.y.min, f$3.s1.y.min)
+
+  a_copy[i].max: max(f$3.s1.y.max, f$3.s2.y.max)
+  a[i].max: max(f$3.s2.y.max, f$3.s1.y.max)
+
+  a_copy[i].min: min(min(f$3.s2.x.min, 0), g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, min(f$3.s2.x.min, 0))
+
+  a_copy[i].max: max(max(f$3.s2.x.max, 2), g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, max(f$3.s2.x.max, 2))
+
+  a_copy[i].min: min(min(f$3.s2.y.min, f$3.s1.y.min), g$3.s0.y.min)
+  a[i].min: min(g$3.s0.y.min, min(f$3.s2.y.min, f$3.s1.y.min))
+
+  a_copy[i].max: max(max(f$3.s2.y.max, f$3.s1.y.max), g$3.s0.y.max)
+  a[i].max: max(g$3.s0.y.max, max(f$3.s2.y.max, f$3.s1.y.max))
+
+  a_copy[i].min: min(min(g$3.s0.x.min, min(f$3.s2.x.min, 0)), g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, min(f$3.s2.x.min, 0))
+
+  a_copy[i].max: max(max(g$3.s0.x.max, max(f$3.s2.x.max, 2)), g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, max(f$3.s2.x.max, 2))
+
+  a_copy[i].min: min(min(g$3.s0.y.min, min(f$3.s2.y.min, f$3.s1.y.min)), (g$3.s0.y.min - 1))
+  a[i].min: min(g$3.s0.y.min, min(f$3.s2.y.min, min(f$3.s1.y.min, (g$3.s0.y.min + -1))))
+
+  a_copy[i].max: max(max(g$3.s0.y.max, max(f$3.s2.y.max, f$3.s1.y.max)), (g$3.s0.y.max - 1))
+  a[i].max: max(g$3.s0.y.max, max(f$3.s2.y.max, max(f$3.s1.y.max, (g$3.s0.y.max + -1))))
+
+  a_copy[i].min: min(min(g$3.s0.x.min, min(f$3.s2.x.min, 0)), g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, min(f$3.s2.x.min, 0))
+
+  a_copy[i].max: max(max(g$3.s0.x.max, max(f$3.s2.x.max, 2)), g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, max(f$3.s2.x.max, 2))
+
+  a_copy[i].min: min(min(g$3.s0.y.min, min(f$3.s2.y.min, min(f$3.s1.y.min, (g$3.s0.y.min + -1)))), (g$3.s0.y.min - 2))
+  a[i].min: min(g$3.s0.y.min, min(f$3.s2.y.min, min(f$3.s1.y.min, (g$3.s0.y.min + -2))))
+
+  a_copy[i].max: max(max(g$3.s0.y.max, max(f$3.s2.y.max, max(f$3.s1.y.max, (g$3.s0.y.max + -1)))), (g$3.s0.y.max - 2))
+  a[i].max: max(g$3.s0.y.max, max(f$3.s2.y.max, max(f$3.s1.y.max, (g$3.s0.y.max + -1))))
+
+  a_copy[i].min: min((min(f$3.s0.y.min, (f$3.s0.y.max + -1)) + 0), f$3.s1.y.min)
+  a[i].min: min(f$3.s1.y.min, min(f$3.s0.y.min, (f$3.s0.y.max + -1)))
+
+  a_copy[i].max: max((min(((((f$3.s0.y.max - f$3.s0.y.min)/2)*2) + f$3.s0.y.min), (f$3.s0.y.max + -1)) + 1), f$3.s1.y.max)
+  a[i].max: max(f$3.s1.y.max, f$3.s0.y.max)
+
+  a_copy[i].min: min(min(f$3.s0.x.min, 0), f$3.s2.x.min)
+  a[i].min: min(f$3.s2.x.min, min(f$3.s0.x.min, 0))
+
+  a_copy[i].max: max(max(f$3.s0.x.max, 0), f$3.s2.x.max)
+  a[i].max: max(f$3.s2.x.max, max(f$3.s0.x.max, 0))
+
+  a_copy[i].min: min(min(f$3.s1.y.min, min(f$3.s0.y.min, (f$3.s0.y.max + -1))), f$3.s2.y.min)
+  a[i].min: min(f$3.s2.y.min, min(f$3.s1.y.min, min(f$3.s0.y.min, (f$3.s0.y.max + -1))))
+
+  a_copy[i].max: max(max(f$3.s1.y.max, f$3.s0.y.max), f$3.s2.y.max)
+  a[i].max: max(f$3.s2.y.max, max(f$3.s1.y.max, f$3.s0.y.max))
+
+  a_copy[i].min: min(min(g$3.s0.x.min, min(f$3.s2.x.min, 0)), min(f$3.s2.x.min, min(f$3.s0.x.min, 0)))
+  a[i].min: min(g$3.s0.x.min, min(f$3.s2.x.min, min(f$3.s0.x.min, 0)))
+
+  a_copy[i].max: max(max(g$3.s0.x.max, max(f$3.s2.x.max, 2)), max(f$3.s2.x.max, max(f$3.s0.x.max, 0)))
+  a[i].max: max(g$3.s0.x.max, max(f$3.s2.x.max, max(f$3.s0.x.max, 2)))
+
+  a_copy[i].min: min(min(g$3.s0.y.min, min(f$3.s2.y.min, min(f$3.s1.y.min, (g$3.s0.y.min + -2)))), min(f$3.s2.y.min, min(f$3.s1.y.min, min(f$3.s0.y.min, (f$3.s0.y.max + -1)))))
+  a[i].min: min(g$3.s0.y.min, min(f$3.s2.y.min, min(f$3.s1.y.min, min(f$3.s0.y.min, min((g$3.s0.y.min + -2), (f$3.s0.y.max + -1))))))
+
+  a_copy[i].max: max(max(g$3.s0.y.max, max(f$3.s2.y.max, max(f$3.s1.y.max, (g$3.s0.y.max + -1)))), max(f$3.s2.y.max, max(f$3.s1.y.max, f$3.s0.y.max)))
+  a[i].max: max(g$3.s0.y.max, max(f$3.s2.y.max, max(f$3.s1.y.max, max(f$3.s0.y.max, (g$3.s0.y.max + -1)))))
+
+  a_copy[i].min: min(g$3.s0.y.min, (g$3.s0.y.min - 1))
+  a[i].min: (g$3.s0.y.min + -1)
+
+  a_copy[i].max: max(g$3.s0.y.max, (g$3.s0.y.max - 1))
+  a[i].max: g$3.s0.y.max
+
+  a_copy[i].min: min((g$3.s0.y.min + -1), (g$3.s0.y.min - 2))
+  a[i].min: (g$3.s0.y.min + -2)
+
+  a_copy[i].max: max(g$3.s0.y.max, (g$3.s0.y.max - 2))
+  a[i].max: g$3.s0.y.max
+
+  a_copy[i].min: min(f$3.s1.y.min, f$3.s2.y.min)
+  a[i].min: min(f$3.s2.y.min, f$3.s1.y.min)
+
+  a_copy[i].max: max(f$3.s1.y.max, f$3.s2.y.max)
+  a[i].max: max(f$3.s2.y.max, f$3.s1.y.max)
+
+  a_copy[i].min: min(min(f$3.s2.x.min, 0), g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, min(f$3.s2.x.min, 0))
+
+  a_copy[i].max: max(max(f$3.s2.x.max, 2), g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, max(f$3.s2.x.max, 2))
+
+  a_copy[i].min: min(min(f$3.s2.y.min, f$3.s1.y.min), (g$3.s0.y.min + -2))
+  a[i].min: min(f$3.s2.y.min, min(f$3.s1.y.min, (g$3.s0.y.min + -2)))
+
+  a_copy[i].max: max(max(f$3.s2.y.max, f$3.s1.y.max), g$3.s0.y.max)
+  a[i].max: max(g$3.s0.y.max, max(f$3.s2.y.max, f$3.s1.y.max))
+
+  a_copy[i].min: min(f$3.s2.x.min, g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, f$3.s2.x.min)
+
+  a_copy[i].max: max(f$3.s2.x.max, g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, f$3.s2.x.max)
+
+  a_copy[i].max: max(f$3.s2.y.max, g$3.s0.y.max)
+  a[i].max: max(g$3.s0.y.max, f$3.s2.y.max)
+
+  a_copy[i].min: min(f$3.s1.y.min, f$3.s2.y.min)
+  a[i].min: min(f$3.s2.y.min, f$3.s1.y.min)
+
+  a_copy[i].max: max(f$3.s1.y.max, f$3.s2.y.max)
+  a[i].max: max(f$3.s2.y.max, f$3.s1.y.max)
+
+  a_copy[i].min: min(min(f$3.s2.x.min, 0), g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, min(f$3.s2.x.min, 0))
+
+  a_copy[i].max: max(max(f$3.s2.x.max, 2), g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, max(f$3.s2.x.max, 2))
+
+  a_copy[i].min: min(min(f$3.s2.y.min, f$3.s1.y.min), (g$3.s0.y.min + -2))
+  a[i].min: min(f$3.s2.y.min, min(f$3.s1.y.min, (g$3.s0.y.min + -2)))
+
+  a_copy[i].max: max(max(f$3.s2.y.max, f$3.s1.y.max), g$3.s0.y.max)
+  a[i].max: max(g$3.s0.y.max, max(f$3.s2.y.max, f$3.s1.y.max))
+
+  a_copy[i].min: min(f$3.s2.x.min, g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, f$3.s2.x.min)
+
+  a_copy[i].max: max(f$3.s2.x.max, g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, f$3.s2.x.max)
+
+  a_copy[i].max: max(f$3.s2.y.max, g$3.s0.y.max)
+  a[i].max: max(g$3.s0.y.max, f$3.s2.y.max)
+
+  a_copy[i].min: min(f$3.s1.y.min, f$3.s2.y.min)
+  a[i].min: min(f$3.s2.y.min, f$3.s1.y.min)
+
+  a_copy[i].max: max(f$3.s1.y.max, f$3.s2.y.max)
+  a[i].max: max(f$3.s2.y.max, f$3.s1.y.max)
+
+  a_copy[i].min: min(f$3.s0.x.min, min(f$3.s2.x.min, 0))
+  a[i].min: min(f$3.s2.x.min, min(f$3.s0.x.min, 0))
+
+  a_copy[i].max: max(f$3.s0.x.max, max(f$3.s2.x.max, 0))
+  a[i].max: max(f$3.s2.x.max, max(f$3.s0.x.max, 0))
+
+  a_copy[i].min: min((min(f$3.s0.y.min, (f$3.s0.y.max + -1)) + 0), min(f$3.s2.y.min, f$3.s1.y.min))
+  a[i].min: min(f$3.s2.y.min, min(f$3.s1.y.min, min(f$3.s0.y.min, (f$3.s0.y.max + -1))))
+
+  a_copy[i].max: max((min(((((f$3.s0.y.max - f$3.s0.y.min)/2)*2) + f$3.s0.y.min), (f$3.s0.y.max + -1)) + 1), max(f$3.s2.y.max, f$3.s1.y.max))
+  a[i].max: max(f$3.s2.y.max, max(f$3.s1.y.max, f$3.s0.y.max))
+
+  a_copy[i].min: min(min(g$3.s0.x.min, 0), g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, 0)
+
+  a_copy[i].max: max(max(g$3.s0.x.max, 2), g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, 2)
+
+  a_copy[i].min: min((g$3.s0.y.min + -2), g$3.s0.y.min)
+  a[i].min: (g$3.s0.y.min + -2)
+
+  a_copy[i].min: min(min(g$3.s0.x.min, 0), g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, 0)
+
+  a_copy[i].max: max(max(g$3.s0.x.max, 2), g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, 2)
+
+  a_copy[i].min: min((g$3.s0.y.min + -2), (g$3.s0.y.min - 1))
+  a[i].min: (g$3.s0.y.min + -2)
+
+  a_copy[i].max: max(g$3.s0.y.max, (g$3.s0.y.max - 1))
+  a[i].max: g$3.s0.y.max
+
+  a_copy[i].min: min(min(g$3.s0.x.min, 0), g$3.s0.x.min)
+  a[i].min: min(g$3.s0.x.min, 0)
+
+  a_copy[i].max: max(max(g$3.s0.x.max, 2), g$3.s0.x.max)
+  a[i].max: max(g$3.s0.x.max, 2)
+
+  a_copy[i].min: min((g$3.s0.y.min + -2), (g$3.s0.y.min - 2))
+  a[i].min: (g$3.s0.y.min + -2)
+
+  a_copy[i].max: max(g$3.s0.y.max, (g$3.s0.y.max - 2))
+  a[i].max: g$3.s0.y.max

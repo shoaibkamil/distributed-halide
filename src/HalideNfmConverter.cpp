@@ -384,9 +384,9 @@ private:
     // nothing about the ceil or floor at this stage. We'll add the ceil/floor
     // back during the conversion from nfm to halide.
     void visit(const Call *op) {
-        assert(op->args.size() == 1);
         user_assert((op->name == "ceil_f32") || (op->name == "floor_f32"))
-            << "ConvertToIneqs only handle ceil_f32 or floor_f32";
+            << "ConvertToIneqs only handle ceil_f32 or floor_f32: " << op->name << "\n";
+        user_assert(op->args.size() == 1) << "op->args.size(): " << op->args.size() << "\n";
         expr = mutate(op->args[0]);
     }
 
@@ -459,14 +459,14 @@ private:
     }
 
     void visit(const Min *op) {
-        debug(0) << "Min: (" << op->a << ") and (" << op->b << ")\n";
+        //debug(0) << "Min: (" << op->a << ") and (" << op->b << ")\n";
         Expr new_expr = convert_select_helper(op, op->a.as<Select>(), op->b.as<Select>());
         if (new_expr.defined()) {
             expr = mutate(new_expr);
             return;
         }
         visit_helper_minmax(op, true);
-        debug(0) << "Min: (" << op->a << ") and (" << op->b << "); RESULT: " << expr << "\n";
+        //debug(0) << "Min: (" << op->a << ") and (" << op->b << "); RESULT: " << expr << "\n";
     }
 
     void visit(const Max *op) {
@@ -756,9 +756,8 @@ private:
     }
 
     void visit(const Select *op) {
-        debug(0) << "Select: (" << op->condition << ") : (" << op->true_value
-                 << ") ? (" << op->false_value << ")\n";
-        select_vals.clear();
+        /*debug(0) << "Select: (" << op->condition << ") : (" << op->true_value
+                 << ") ? (" << op->false_value << ")\n*/        select_vals.clear();
         vector<ConditionVal> true_cond_val;
         vector<ConditionVal> false_cond_val;
 
@@ -769,15 +768,15 @@ private:
         assert(var.type() == op->false_value.type());
 
         Expr cond = mutate(op->condition);
-        debug(0) << "  cond: " << simplify(cond) << "\n";
+        //debug(0) << "  cond: " << simplify(cond) << "\n";
         Expr not_cond = mutate(!op->condition);
-        debug(0) << "  not_cond: " << simplify(not_cond) << "\n";
+        //debug(0) << "  not_cond: " << simplify(not_cond) << "\n";
         Expr true_value = mutate(op->true_value);
         true_cond_val.swap(select_vals);
-        debug(0) << "  true_value: (" << true_cond_val.size() << "): " << simplify(true_value) << "\n";
+        //debug(0) << "  true_value: (" << true_cond_val.size() << "): " << simplify(true_value) << "\n";
         Expr false_value = mutate(op->false_value);
         false_cond_val.swap(select_vals);
-        debug(0) << "  false_value: (" << false_cond_val.size() << "): " << simplify(false_value) << "\n";
+        //debug(0) << "  false_value: (" << false_cond_val.size() << "): " << simplify(false_value) << "\n";
 
         bool select_a = true_cond_val.size();   // True value
         bool select_b = false_cond_val.size();  // False value
@@ -830,7 +829,7 @@ private:
             }
             expr = Or::make(expr, And::make(select_vals[i].cond, val));
         }
-        debug(0) << "  RESULT SELECT: " << simplify(expr) << "\n";
+        //debug(0) << "  RESULT SELECT: " << simplify(expr) << "\n";
     }
 
     void visit(const Let *op) {

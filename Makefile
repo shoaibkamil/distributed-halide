@@ -762,34 +762,34 @@ $(BIN_DIR)/test_internal: $(ROOT_DIR)/test/internal.cpp $(BIN_DIR)/libHalide.so
 
 # Pure runtime correctness tests
 $(BIN_DIR)/correctness_runtime_%: $(ROOT_DIR)/test/correctness/runtime_%.cpp $(HALIDE_DEBUG_RUNTIME) $(INCLUDE_DIR)/HalideRuntime.h
-	$(CXX) $(CXX_FLAGS) $< -I$(INCLUDE_DIR) $(HALIDE_DEBUG_RUNTIME) -lpthread -ldl -lz -o $@
+	$(CXX) $(CXX_FLAGS) $< -I$(INCLUDE_DIR) -I$(NFM_HEADER) $(HALIDE_DEBUG_RUNTIME) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 # Correctness test that link against libHalide
 $(BIN_DIR)/correctness_%: $(ROOT_DIR)/test/correctness/%.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h $(INCLUDE_DIR)/HalideRuntime.h
-	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@
+	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -I$(NFM_HEADER) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(BIN_DIR)/performance_%: $(ROOT_DIR)/test/performance/%.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h $(ROOT_DIR)/apps/support/benchmark.h
-	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@
+	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -I$(NFM_HEADER) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 # Pure runtime error tests
 $(BIN_DIR)/error_runtime_%: $(ROOT_DIR)/test/error/runtime_%.cpp $(HALIDE_DEBUG_RUNTIME) $(INCLUDE_DIR)/HalideRuntime.h
-	$(CXX) $(CXX_FLAGS) $< -I$(INCLUDE_DIR) $(HALIDE_DEBUG_RUNTIME)  -lpthread -ldl -lz -o $@
+	$(CXX) $(CXX_FLAGS) $< -I$(INCLUDE_DIR) -I$(NFM_HEADER) $(HALIDE_DEBUG_RUNTIME)  -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(BIN_DIR)/distributed_%: test/distributed/%.cpp $(BIN_DIR)/libHalide.so include/Halide.h
-	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -Iinclude -Isrc -L$(BIN_DIR) -lHalide $(LLVM_LDFLAGS) -lpthread -ldl -lz -o $@
+	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -Iinclude -I$(NFM_HEADER) -Isrc -L$(BIN_DIR) -lHalide $(LLVM_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 # Error tests that link against libHalide
 $(BIN_DIR)/error_%: $(ROOT_DIR)/test/error/%.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h
-	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@
+	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -I$(NFM_HEADER) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(BIN_DIR)/warning_%: $(ROOT_DIR)/test/warning/%.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h
-	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@
+	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -I$(NFM_HEADER) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(BIN_DIR)/opengl_%: $(ROOT_DIR)/test/opengl/%.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h
-	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -I$(SRC_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@
+	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -I$(NFM_HEADER) -I$(SRC_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(BIN_DIR)/renderscript_%: $(ROOT_DIR)/test/renderscript/%.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h
-	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -I$(SRC_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@
+	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -I$(INCLUDE_DIR) -I$(NFM_HEADER) -I$(SRC_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(TMP_DIR)/static/%/%.o: $(BIN_DIR)/static_%_generate
 	@-mkdir -p $(TMP_DIR)/static/$*

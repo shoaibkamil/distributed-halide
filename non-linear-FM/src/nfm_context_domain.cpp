@@ -175,6 +175,8 @@ void NfmContextDomain::simplify() {
         std::replace(dim_names[i].begin(), dim_names[i].end(), '$', '_');
         std::replace(dim_names[i].begin(), dim_names[i].end(), '.', '_');
         std::replace(dim_names[i].begin(), dim_names[i].end(), ':', '_');
+        std::replace(dim_names[i].begin(), dim_names[i].end(), '[', '_');
+        std::replace(dim_names[i].begin(), dim_names[i].end(), ']', '_');
     }
 
     update_space(NfmSpace(dim_names));

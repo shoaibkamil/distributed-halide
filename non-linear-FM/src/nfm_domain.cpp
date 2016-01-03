@@ -424,6 +424,8 @@ NfmUnionDomain NfmUnionDomain::simplify() {
         std::replace(coeff_names[i].begin(), coeff_names[i].end(), '$', '_');
         std::replace(coeff_names[i].begin(), coeff_names[i].end(), '.', '_');
         std::replace(coeff_names[i].begin(), coeff_names[i].end(), ':', '_');
+        std::replace(coeff_names[i].begin(), coeff_names[i].end(), '[', '_');
+        std::replace(coeff_names[i].begin(), coeff_names[i].end(), ']', '_');
     }
 
     vector<string> dim_names = space_.get_names();
@@ -431,6 +433,8 @@ NfmUnionDomain NfmUnionDomain::simplify() {
         std::replace(dim_names[i].begin(), dim_names[i].end(), '$', '_');
         std::replace(dim_names[i].begin(), dim_names[i].end(), '.', '_');
         std::replace(dim_names[i].begin(), dim_names[i].end(), ':', '_');
+        std::replace(dim_names[i].begin(), dim_names[i].end(), '[', '_');
+        std::replace(dim_names[i].begin(), dim_names[i].end(), ']', '_');
     }
 
     update_coeff_space(NfmSpace(coeff_names));

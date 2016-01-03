@@ -1,0 +1,559 @@
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/scatter.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_scatter -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_scatter
+
+  a_copy[i].min: min((f.s1.r.x$r.min - 1), (g.s0.x.min + 5))
+  a[i].min: min((g.s0.x.min + 5), (f.s1.r.x$r.min + -1))
+
+  a_copy[i].max: max((f.s1.r.x$r.max - 1), (g.s0.x.max + 5))
+  a[i].max: max((g.s0.x.max + 5), (f.s1.r.x$r.max + -1))
+
+  a_copy[i].min: min(f.s0.x.min, f.s1.r.x$r.min)
+  a[i].min: min(f.s1.r.x$r.min, f.s0.x.min)
+
+  a_copy[i].max: max(f.s0.x.max, f.s1.r.x$r.max)
+  a[i].max: max(f.s1.r.x$r.max, f.s0.x.max)
+
+  a_copy[i].min: min(f.s0.y.min, f.s1.y.min)
+  a[i].min: min(f.s1.y.min, f.s0.y.min)
+
+  a_copy[i].max: max(f.s0.y.max, f.s1.y.max)
+  a[i].max: max(f.s1.y.max, f.s0.y.max)
+
+  a_copy[i].min: min(min((g.s0.x.min + 5), (f.s1.r.x$r.min + -1)), min(f.s1.r.x$r.min, f.s0.x.min))
+  a[i].min: min(f.s1.r.x$r.min, min(f.s0.x.min, min((g.s0.x.min + 5), (f.s1.r.x$r.min + -1))))
+
+  a_copy[i].max: max(max((g.s0.x.max + 5), (f.s1.r.x$r.max + -1)), max(f.s1.r.x$r.max, f.s0.x.max))
+  a[i].max: max(f.s1.r.x$r.max, max(f.s0.x.max, max((g.s0.x.max + 5), (f.s1.r.x$r.max + -1))))
+
+  a_copy[i].min: min(min(f.s1.y.min, (g.s0.y.min + 5)), min(f.s1.y.min, f.s0.y.min))
+  a[i].min: min(f.s1.y.min, min(f.s0.y.min, (g.s0.y.min + 5)))
+
+  a_copy[i].max: max(max(f.s1.y.max, (g.s0.y.max + 5)), max(f.s1.y.max, f.s0.y.max))
+  a[i].max: max(f.s1.y.max, max(f.s0.y.max, (g.s0.y.max + 5)))
+
+  a_copy[i].min: min((f.s1.r.x$r.min - 1), (g.s0.x.min + 5))
+  a[i].min: min((g.s0.x.min + 5), (f.s1.r.x$r.min + -1))
+
+  a_copy[i].max: max((f.s1.r.x$r.max - 1), (g.s0.x.max + 5))
+  a[i].max: max((g.s0.x.max + 5), (f.s1.r.x$r.max + -1))
+
+  a_copy[i].min: min((f.s1.r.x$r.min - 1), (g.s0.x.min + 5))
+  a[i].min: min((g.s0.x.min + 5), (f.s1.r.x$r.min + -1))
+
+  a_copy[i].max: max((f.s1.r.x$r.max - 1), (g.s0.x.max + 5))
+  a[i].max: max((g.s0.x.max + 5), (f.s1.r.x$r.max + -1))
+
+  a_copy[i].min: min(f.s0.x.min, f.s1.r.x$r.min)
+  a[i].min: min(f.s1.r.x$r.min, f.s0.x.min)
+
+  a_copy[i].max: max(f.s0.x.max, f.s1.r.x$r.max)
+  a[i].max: max(f.s1.r.x$r.max, f.s0.x.max)
+
+  a_copy[i].min: min(f.s0.y.min, f.s1.y.min)
+  a[i].min: min(f.s1.y.min, f.s0.y.min)
+
+  a_copy[i].max: max(f.s0.y.max, f.s1.y.max)
+  a[i].max: max(f.s1.y.max, f.s0.y.max)
+
+  a_copy[i].min: min(min((g.s0.x.min + 5), (f.s1.r.x$r.min + -1)), min(f.s1.r.x$r.min, f.s0.x.min))
+  a[i].min: min(f.s1.r.x$r.min, min(f.s0.x.min, min((g.s0.x.min + 5), (f.s1.r.x$r.min + -1))))
+
+  a_copy[i].max: max(max((g.s0.x.max + 5), (f.s1.r.x$r.max + -1)), max(f.s1.r.x$r.max, f.s0.x.max))
+  a[i].max: max(f.s1.r.x$r.max, max(f.s0.x.max, max((g.s0.x.max + 5), (f.s1.r.x$r.max + -1))))
+
+  a_copy[i].min: min(min(f.s1.y.min, (g.s0.y.min + 5)), min(f.s1.y.min, f.s0.y.min))
+  a[i].min: min(f.s1.y.min, min(f.s0.y.min, (g.s0.y.min + 5)))
+
+  a_copy[i].max: max(max(f.s1.y.max, (g.s0.y.max + 5)), max(f.s1.y.max, f.s0.y.max))
+  a[i].max: max(f.s1.y.max, max(f.s0.y.max, (g.s0.y.max + 5)))
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/shared_self_references.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_shared_self_references -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_shared_self_references
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/shifted_image.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_shifted_image -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_shifted_image
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/side_effects.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_side_effects -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_side_effects
+
+  a_copy[i].min: (mandelbrot.s1.t.x$r.min - 1)
+  a[i].min: (mandelbrot.s1.t.x$r.min + -1)
+
+  a_copy[i].max: (mandelbrot.s1.t.x$r.max - 1)
+  a[i].max: (mandelbrot.s1.t.x$r.max + -1)
+
+  a_copy[i].min: min((mandelbrot.s1.t.x$r.min + -1), (mandelbrot.s1.t.x$r.min - 1))
+  a[i].min: (mandelbrot.s1.t.x$r.min + -1)
+
+  a_copy[i].max: max((mandelbrot.s1.t.x$r.max + -1), (mandelbrot.s1.t.x$r.max - 1))
+  a[i].max: (mandelbrot.s1.t.x$r.max + -1)
+
+  a_copy[i].min: min((mandelbrot.s1.t.x$r.min + -1), (mandelbrot.s1.t.x$r.min - 1))
+  a[i].min: (mandelbrot.s1.t.x$r.min + -1)
+
+  a_copy[i].max: max((mandelbrot.s1.t.x$r.max + -1), (mandelbrot.s1.t.x$r.max - 1))
+  a[i].max: (mandelbrot.s1.t.x$r.max + -1)
+
+  a_copy[i].min: min((mandelbrot.s1.t.x$r.min + -1), argmin.s1.t.x$r.min)
+  a[i].min: min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))
+
+  a_copy[i].max: max((mandelbrot.s1.t.x$r.max + -1), argmin.s1.t.x$r.max)
+  a[i].max: max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))
+
+  a_copy[i].min: min(min(mandelbrot.s1.x.min, argmin.s1.x.min), argmin.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.x.max, argmin.s1.x.max), argmin.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(min(mandelbrot.s1.y.min, argmin.s1.y.min), argmin.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.y.max, argmin.s1.y.max), argmin.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1)), argmin.s1.t.x$r.min)
+  a[i].min: min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))
+
+  a_copy[i].max: max(max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1)), argmin.s1.t.x$r.max)
+  a[i].max: max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))
+
+  a_copy[i].min: min(min(mandelbrot.s1.x.min, argmin.s1.x.min), argmin.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.x.max, argmin.s1.x.max), argmin.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(min(mandelbrot.s1.y.min, argmin.s1.y.min), argmin.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.y.max, argmin.s1.y.max), argmin.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1)), argmin.s1.t.x$r.min)
+  a[i].min: min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))
+
+  a_copy[i].max: max(max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1)), argmin.s1.t.x$r.max)
+  a[i].max: max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))
+
+  a_copy[i].min: min(min(mandelbrot.s1.x.min, argmin.s1.x.min), argmin.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.x.max, argmin.s1.x.max), argmin.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(min(mandelbrot.s1.y.min, argmin.s1.y.min), argmin.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.y.max, argmin.s1.y.max), argmin.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1)), argmin.s1.t.x$r.min)
+  a[i].min: min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))
+
+  a_copy[i].max: max(max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1)), argmin.s1.t.x$r.max)
+  a[i].max: max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))
+
+  a_copy[i].min: min(argmin.s1.x.min, render.s1.r.x$r.min)
+  a[i].min: min(render.s1.r.x$r.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(argmin.s1.x.max, render.s1.r.x$r.max)
+  a[i].max: max(render.s1.r.x$r.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(argmin.s1.y.min, render.s1.r.y$r.min)
+  a[i].min: min(render.s1.r.y$r.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(argmin.s1.y.max, render.s1.r.y$r.max)
+  a[i].max: max(render.s1.r.y$r.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(min(render.s1.r.x$r.min, argmin.s1.x.min), render.s1.r.x$r.min)
+  a[i].min: min(render.s1.r.x$r.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(max(render.s1.r.x$r.max, argmin.s1.x.max), render.s1.r.x$r.max)
+  a[i].max: max(render.s1.r.x$r.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(min(render.s1.r.y$r.min, argmin.s1.y.min), render.s1.r.y$r.min)
+  a[i].min: min(render.s1.r.y$r.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(max(render.s1.r.y$r.max, argmin.s1.y.max), render.s1.r.y$r.max)
+  a[i].max: max(render.s1.r.y$r.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(mandelbrot.s0.x.min, mandelbrot.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, mandelbrot.s0.x.min)
+
+  a_copy[i].max: max(mandelbrot.s0.x.max, mandelbrot.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, mandelbrot.s0.x.max)
+
+  a_copy[i].min: min(mandelbrot.s0.y.min, mandelbrot.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, mandelbrot.s0.y.min)
+
+  a_copy[i].max: max(mandelbrot.s0.y.max, mandelbrot.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, mandelbrot.s0.y.max)
+
+  a_copy[i].min: min(mandelbrot.s0.z.min, mandelbrot.s1.t.x$r.min)
+  a[i].min: min(mandelbrot.s1.t.x$r.min, mandelbrot.s0.z.min)
+
+  a_copy[i].max: max(mandelbrot.s0.z.max, mandelbrot.s1.t.x$r.max)
+  a[i].max: max(mandelbrot.s1.t.x$r.max, mandelbrot.s0.z.max)
+
+  a_copy[i].min: min(argmin.s0.x.min, argmin.s1.x.min)
+  a[i].min: min(argmin.s1.x.min, argmin.s0.x.min)
+
+  a_copy[i].max: max(argmin.s0.x.max, argmin.s1.x.max)
+  a[i].max: max(argmin.s1.x.max, argmin.s0.x.max)
+
+  a_copy[i].min: min(argmin.s0.y.min, argmin.s1.y.min)
+  a[i].min: min(argmin.s1.y.min, argmin.s0.y.min)
+
+  a_copy[i].max: max(argmin.s0.y.max, argmin.s1.y.max)
+  a[i].max: max(argmin.s1.y.max, argmin.s0.y.max)
+
+  a_copy[i].min: min(min(render.s1.r.x$r.min, argmin.s1.x.min), min(argmin.s1.x.min, argmin.s0.x.min))
+  a[i].min: min(render.s1.r.x$r.min, min(argmin.s1.x.min, argmin.s0.x.min))
+
+  a_copy[i].max: max(max(render.s1.r.x$r.max, argmin.s1.x.max), max(argmin.s1.x.max, argmin.s0.x.max))
+  a[i].max: max(render.s1.r.x$r.max, max(argmin.s1.x.max, argmin.s0.x.max))
+
+  a_copy[i].min: min(min(render.s1.r.y$r.min, argmin.s1.y.min), min(argmin.s1.y.min, argmin.s0.y.min))
+  a[i].min: min(render.s1.r.y$r.min, min(argmin.s1.y.min, argmin.s0.y.min))
+
+  a_copy[i].max: max(max(render.s1.r.y$r.max, argmin.s1.y.max), max(argmin.s1.y.max, argmin.s0.y.max))
+  a[i].max: max(render.s1.r.y$r.max, max(argmin.s1.y.max, argmin.s0.y.max))
+
+  a_copy[i].min: min(min(mandelbrot.s1.x.min, argmin.s1.x.min), min(mandelbrot.s1.x.min, mandelbrot.s0.x.min))
+  a[i].min: min(mandelbrot.s1.x.min, min(mandelbrot.s0.x.min, argmin.s1.x.min))
+
+  a_copy[i].max: max(max(mandelbrot.s1.x.max, argmin.s1.x.max), max(mandelbrot.s1.x.max, mandelbrot.s0.x.max))
+  a[i].max: max(mandelbrot.s1.x.max, max(mandelbrot.s0.x.max, argmin.s1.x.max))
+
+  a_copy[i].min: min(min(mandelbrot.s1.y.min, argmin.s1.y.min), min(mandelbrot.s1.y.min, mandelbrot.s0.y.min))
+  a[i].min: min(mandelbrot.s1.y.min, min(mandelbrot.s0.y.min, argmin.s1.y.min))
+
+  a_copy[i].max: max(max(mandelbrot.s1.y.max, argmin.s1.y.max), max(mandelbrot.s1.y.max, mandelbrot.s0.y.max))
+  a[i].max: max(mandelbrot.s1.y.max, max(mandelbrot.s0.y.max, argmin.s1.y.max))
+
+  a_copy[i].min: min(min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1)), min(mandelbrot.s1.t.x$r.min, mandelbrot.s0.z.min))
+  a[i].min: min(mandelbrot.s1.t.x$r.min, min(mandelbrot.s0.z.min, min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))))
+
+  a_copy[i].max: max(max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1)), max(mandelbrot.s1.t.x$r.max, mandelbrot.s0.z.max))
+  a[i].max: max(mandelbrot.s1.t.x$r.max, max(mandelbrot.s0.z.max, max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))))
+
+  a_copy[i].min: (mandelbrot.s1.t.x$r.min - 1)
+  a[i].min: (mandelbrot.s1.t.x$r.min + -1)
+
+  a_copy[i].max: (mandelbrot.s1.t.x$r.max - 1)
+  a[i].max: (mandelbrot.s1.t.x$r.max + -1)
+
+  a_copy[i].min: (mandelbrot.s1.t.x$r.min - 1)
+  a[i].min: (mandelbrot.s1.t.x$r.min + -1)
+
+  a_copy[i].max: (mandelbrot.s1.t.x$r.max - 1)
+  a[i].max: (mandelbrot.s1.t.x$r.max + -1)
+
+  a_copy[i].min: min(argmin.s1.x.min, mandelbrot.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(argmin.s1.x.max, mandelbrot.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(argmin.s1.y.min, mandelbrot.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(argmin.s1.y.max, mandelbrot.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(argmin.s1.x.min, render.s1.r.x$r.min)
+  a[i].min: min(render.s1.r.x$r.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(argmin.s1.x.max, render.s1.r.x$r.max)
+  a[i].max: max(render.s1.r.x$r.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(argmin.s1.y.min, render.s1.r.y$r.min)
+  a[i].min: min(render.s1.r.y$r.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(argmin.s1.y.max, render.s1.r.y$r.max)
+  a[i].max: max(render.s1.r.y$r.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(argmin.s1.x.min, mandelbrot.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(argmin.s1.x.max, mandelbrot.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(argmin.s1.y.min, mandelbrot.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(argmin.s1.y.max, mandelbrot.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(argmin.s1.x.min, render.s1.r.x$r.min)
+  a[i].min: min(render.s1.r.x$r.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(argmin.s1.x.max, render.s1.r.x$r.max)
+  a[i].max: max(render.s1.r.x$r.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(argmin.s1.y.min, render.s1.r.y$r.min)
+  a[i].min: min(render.s1.r.y$r.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(argmin.s1.y.max, render.s1.r.y$r.max)
+  a[i].max: max(render.s1.r.y$r.max, argmin.s1.y.max)
+
+  a_copy[i].min: (mandelbrot.s1.t.x$r.min - 1)
+  a[i].min: (mandelbrot.s1.t.x$r.min + -1)
+
+  a_copy[i].max: (mandelbrot.s1.t.x$r.max - 1)
+  a[i].max: (mandelbrot.s1.t.x$r.max + -1)
+
+  a_copy[i].min: min((mandelbrot.s1.t.x$r.min + -1), (mandelbrot.s1.t.x$r.min - 1))
+  a[i].min: (mandelbrot.s1.t.x$r.min + -1)
+
+  a_copy[i].max: max((mandelbrot.s1.t.x$r.max + -1), (mandelbrot.s1.t.x$r.max - 1))
+  a[i].max: (mandelbrot.s1.t.x$r.max + -1)
+
+  a_copy[i].min: min((mandelbrot.s1.t.x$r.min + -1), (mandelbrot.s1.t.x$r.min - 1))
+  a[i].min: (mandelbrot.s1.t.x$r.min + -1)
+
+  a_copy[i].max: max((mandelbrot.s1.t.x$r.max + -1), (mandelbrot.s1.t.x$r.max - 1))
+  a[i].max: (mandelbrot.s1.t.x$r.max + -1)
+
+  a_copy[i].min: min((mandelbrot.s1.t.x$r.min + -1), argmin.s1.t.x$r.min)
+  a[i].min: min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))
+
+  a_copy[i].max: max((mandelbrot.s1.t.x$r.max + -1), argmin.s1.t.x$r.max)
+  a[i].max: max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))
+
+  a_copy[i].min: min(min(mandelbrot.s1.x.min, argmin.s1.x.min), argmin.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.x.max, argmin.s1.x.max), argmin.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(min(mandelbrot.s1.y.min, argmin.s1.y.min), argmin.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.y.max, argmin.s1.y.max), argmin.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1)), argmin.s1.t.x$r.min)
+  a[i].min: min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))
+
+  a_copy[i].max: max(max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1)), argmin.s1.t.x$r.max)
+  a[i].max: max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))
+
+  a_copy[i].min: min(min(mandelbrot.s1.x.min, argmin.s1.x.min), argmin.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.x.max, argmin.s1.x.max), argmin.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(min(mandelbrot.s1.y.min, argmin.s1.y.min), argmin.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.y.max, argmin.s1.y.max), argmin.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1)), argmin.s1.t.x$r.min)
+  a[i].min: min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))
+
+  a_copy[i].max: max(max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1)), argmin.s1.t.x$r.max)
+  a[i].max: max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))
+
+  a_copy[i].min: min(min(mandelbrot.s1.x.min, argmin.s1.x.min), argmin.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, argmin.s1.x.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.x.max, argmin.s1.x.max), argmin.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, argmin.s1.x.max)
+
+  a_copy[i].min: min(min(mandelbrot.s1.y.min, argmin.s1.y.min), argmin.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, argmin.s1.y.min)
+
+  a_copy[i].max: max(max(mandelbrot.s1.y.max, argmin.s1.y.max), argmin.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, argmin.s1.y.max)
+
+  a_copy[i].min: min(min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1)), argmin.s1.t.x$r.min)
+  a[i].min: min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))
+
+  a_copy[i].max: max(max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1)), argmin.s1.t.x$r.max)
+  a[i].max: max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))
+
+  a_copy[i].min: min(argmin.s1.x.min, render.s1.r.x$r)
+  a[i].min: min(render.s1.r.x$r, argmin.s1.x.min)
+
+  a_copy[i].max: max(argmin.s1.x.max, render.s1.r.x$r)
+  a[i].max: max(render.s1.r.x$r, argmin.s1.x.max)
+
+  a_copy[i].min: min(argmin.s1.y.min, render.s1.r.y$r)
+  a[i].min: min(render.s1.r.y$r, argmin.s1.y.min)
+
+  a_copy[i].max: max(argmin.s1.y.max, render.s1.r.y$r)
+  a[i].max: max(render.s1.r.y$r, argmin.s1.y.max)
+
+  a_copy[i].min: min(min(render.s1.r.x$r, argmin.s1.x.min), render.s1.r.x$r)
+  a[i].min: min(render.s1.r.x$r, argmin.s1.x.min)
+
+  a_copy[i].max: max(max(render.s1.r.x$r, argmin.s1.x.max), render.s1.r.x$r)
+  a[i].max: max(render.s1.r.x$r, argmin.s1.x.max)
+
+  a_copy[i].min: min(min(render.s1.r.y$r, argmin.s1.y.min), render.s1.r.y$r)
+  a[i].min: min(render.s1.r.y$r, argmin.s1.y.min)
+
+  a_copy[i].max: max(max(render.s1.r.y$r, argmin.s1.y.max), render.s1.r.y$r)
+  a[i].max: max(render.s1.r.y$r, argmin.s1.y.max)
+
+  a_copy[i].min: min(mandelbrot.s0.x.min, mandelbrot.s1.x.min)
+  a[i].min: min(mandelbrot.s1.x.min, mandelbrot.s0.x.min)
+
+  a_copy[i].max: max(mandelbrot.s0.x.max, mandelbrot.s1.x.max)
+  a[i].max: max(mandelbrot.s1.x.max, mandelbrot.s0.x.max)
+
+  a_copy[i].min: min(mandelbrot.s0.y.min, mandelbrot.s1.y.min)
+  a[i].min: min(mandelbrot.s1.y.min, mandelbrot.s0.y.min)
+
+  a_copy[i].max: max(mandelbrot.s0.y.max, mandelbrot.s1.y.max)
+  a[i].max: max(mandelbrot.s1.y.max, mandelbrot.s0.y.max)
+
+  a_copy[i].min: min(mandelbrot.s0.z.min, mandelbrot.s1.t.x$r.min)
+  a[i].min: min(mandelbrot.s1.t.x$r.min, mandelbrot.s0.z.min)
+
+  a_copy[i].max: max(mandelbrot.s0.z.max, mandelbrot.s1.t.x$r.max)
+  a[i].max: max(mandelbrot.s1.t.x$r.max, mandelbrot.s0.z.max)
+
+  a_copy[i].min: min(min(mandelbrot.s1.x.min, argmin.s1.x.min), min(mandelbrot.s1.x.min, mandelbrot.s0.x.min))
+  a[i].min: min(mandelbrot.s1.x.min, min(mandelbrot.s0.x.min, argmin.s1.x.min))
+
+  a_copy[i].max: max(max(mandelbrot.s1.x.max, argmin.s1.x.max), max(mandelbrot.s1.x.max, mandelbrot.s0.x.max))
+  a[i].max: max(mandelbrot.s1.x.max, max(mandelbrot.s0.x.max, argmin.s1.x.max))
+
+  a_copy[i].min: min(min(mandelbrot.s1.y.min, argmin.s1.y.min), min(mandelbrot.s1.y.min, mandelbrot.s0.y.min))
+  a[i].min: min(mandelbrot.s1.y.min, min(mandelbrot.s0.y.min, argmin.s1.y.min))
+
+  a_copy[i].max: max(max(mandelbrot.s1.y.max, argmin.s1.y.max), max(mandelbrot.s1.y.max, mandelbrot.s0.y.max))
+  a[i].max: max(mandelbrot.s1.y.max, max(mandelbrot.s0.y.max, argmin.s1.y.max))
+
+  a_copy[i].min: min(min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1)), min(mandelbrot.s1.t.x$r.min, mandelbrot.s0.z.min))
+  a[i].min: min(mandelbrot.s1.t.x$r.min, min(mandelbrot.s0.z.min, min(argmin.s1.t.x$r.min, (mandelbrot.s1.t.x$r.min + -1))))
+
+  a_copy[i].max: max(max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1)), max(mandelbrot.s1.t.x$r.max, mandelbrot.s0.z.max))
+  a[i].max: max(mandelbrot.s1.t.x$r.max, max(mandelbrot.s0.z.max, max(argmin.s1.t.x$r.max, (mandelbrot.s1.t.x$r.max + -1))))
+
+  a_copy[i].min: min(argmin.s1.x.min, render.s1.r.x$r)
+  a[i].min: min(render.s1.r.x$r, argmin.s1.x.min)
+
+  a_copy[i].max: max(argmin.s1.x.max, render.s1.r.x$r)
+  a[i].max: max(render.s1.r.x$r, argmin.s1.x.max)
+
+  a_copy[i].min: min(argmin.s1.y.min, render.s1.r.y$r)
+  a[i].min: min(render.s1.r.y$r, argmin.s1.y.min)
+
+  a_copy[i].max: max(argmin.s1.y.max, render.s1.r.y$r)
+  a[i].max: max(render.s1.r.y$r, argmin.s1.y.max)
+
+  a_copy[i].min: min(min(render.s1.r.x$r, argmin.s1.x.min), render.s1.r.x$r)
+  a[i].min: min(render.s1.r.x$r, argmin.s1.x.min)
+
+  a_copy[i].max: max(max(render.s1.r.x$r, argmin.s1.x.max), render.s1.r.x$r)
+  a[i].max: max(render.s1.r.x$r, argmin.s1.x.max)
+
+  a_copy[i].min: min(min(render.s1.r.y$r, argmin.s1.y.min), render.s1.r.y$r)
+  a[i].min: min(render.s1.r.y$r, argmin.s1.y.min)
+
+  a_copy[i].max: max(max(render.s1.r.y$r, argmin.s1.y.max), render.s1.r.y$r)
+  a[i].max: max(render.s1.r.y$r, argmin.s1.y.max)
+
+  a_copy[i].min: min(argmin.s0.x.min, argmin.s1.x.min)
+  a[i].min: min(argmin.s1.x.min, argmin.s0.x.min)
+
+  a_copy[i].max: max(argmin.s0.x.max, argmin.s1.x.max)
+  a[i].max: max(argmin.s1.x.max, argmin.s0.x.max)
+
+  a_copy[i].min: min(argmin.s0.y.min, argmin.s1.y.min)
+  a[i].min: min(argmin.s1.y.min, argmin.s0.y.min)
+
+  a_copy[i].max: max(argmin.s0.y.max, argmin.s1.y.max)
+  a[i].max: max(argmin.s1.y.max, argmin.s0.y.max)
+
+  a_copy[i].min: min(min(render.s1.r.x$r, argmin.s1.x.min), min(argmin.s1.x.min, argmin.s0.x.min))
+  a[i].min: min(render.s1.r.x$r, min(argmin.s1.x.min, argmin.s0.x.min))
+
+  a_copy[i].max: max(max(render.s1.r.x$r, argmin.s1.x.max), max(argmin.s1.x.max, argmin.s0.x.max))
+  a[i].max: max(render.s1.r.x$r, max(argmin.s1.x.max, argmin.s0.x.max))
+
+  a_copy[i].min: min(min(render.s1.r.y$r, argmin.s1.y.min), min(argmin.s1.y.min, argmin.s0.y.min))
+  a[i].min: min(render.s1.r.y$r, min(argmin.s1.y.min, argmin.s0.y.min))
+
+  a_copy[i].max: max(max(render.s1.r.y$r, argmin.s1.y.max), max(argmin.s1.y.max, argmin.s0.y.max))
+  a[i].max: max(render.s1.r.y$r, max(argmin.s1.y.max, argmin.s0.y.max))
+
+OVERLAP BOXES
+  Box A:
+Used: (undefined)
+Dim (_interval$1839) min: mandelbrot.s0.x; max: mandelbrot.s0.x
+Dim (_interval$1840) min: mandelbrot.s0.y; max: mandelbrot.s0.y
+Dim (_interval$1841) min: mandelbrot.s0.z; max: mandelbrot.s0.z
+  Box B:
+Used: (undefined)
+boxes_overlap_halide? 0
+boxes_overlap_nfm? 0
+
+OVERLAP BOXES
+  Box A:
+Used: (undefined)
+Dim (_interval$1845) min: mandelbrot.s1.x; max: mandelbrot.s1.x
+Dim (_interval$1846) min: mandelbrot.s1.y; max: mandelbrot.s1.y
+Dim (_interval$1847) min: mandelbrot.s1.t.x$r; max: mandelbrot.s1.t.x$r
+  Box B:
+Used: (undefined)
+Dim (_interval$1851) min: mandelbrot.s1.x; max: mandelbrot.s1.x
+Dim (_interval$1852) min: mandelbrot.s1.y; max: mandelbrot.s1.y
+Dim (_interval$1853) min: (mandelbrot.s1.t.x$r + -1); max: (mandelbrot.s1.t.x$r + -1)
+boxes_overlap_halide? 0
+boxes_overlap_nfm? 0
+
+OVERLAP BOXES
+  Box A:
+Used: (undefined)
+Dim (_interval$1886) min: argmin.s0.x; max: argmin.s0.x
+Dim (_interval$1887) min: argmin.s0.y; max: argmin.s0.y
+  Box B:
+Used: (undefined)
+boxes_overlap_halide? 0
+boxes_overlap_nfm? 0
+
+OVERLAP BOXES
+  Box A:
+Used: (undefined)
+Dim (_interval$1890) min: argmin.s1.x; max: argmin.s1.x
+Dim (_interval$1891) min: argmin.s1.y; max: argmin.s1.y
+  Box B:
+Used: (undefined)
+Dim (_interval$1910) min: argmin.s1.x; max: argmin.s1.x
+Dim (_interval$1911) min: argmin.s1.y; max: argmin.s1.y
+boxes_overlap_halide? 1
+boxes_overlap_nfm? 1
+
+..............::::::::::::-------------------::::::::::::::::::::::::::
+............::::::::----------------~~~~*=**~~~----::::::::::::::::::::
+...........:::::----------------~~~~~~**={#&# *~~~~----::::::::::::::::
+..........:::----------------~~~~~~~***{@#@ @&=**~~~~-----:::::::::::::
+........:::---------------~~~~~~**==={{&@    @}{==***~~-----:::::::::::
+........:--------------~~~~****={@ @@@          @&@%@&*~------:::::::::
+.......:-----------~~*******===}@@                  @{=*~------::::::::
+......:-----~~~~~*={@}{{&}{{{}}@                    @ @*~~------:::::::
+......--~~~~~~****{{&@ @   @@#@                      @}*~~~------::::::
+......~~~~~**=={}@%#@         @                      @=*~~~------::::::
+......                                             @}{=*~~~------::::::
+......~~~~~**=={}@%#@         @                      @=*~~~------::::::
+......--~~~~~~****{{&@ @   @@#@                      @}*~~~------::::::
+......:-----~~~~~*={@}{{&}{{{}}@                    @ @*~~------:::::::
+.......:-----------~~*******===}@@                  @{=*~------::::::::
+........:--------------~~~~****={@ @@@          @&@%@&*~------:::::::::
+........:::---------------~~~~~~**==={{&@    @}{==***~~-----:::::::::::
+..........:::----------------~~~~~~~***{@#@ @&=**~~~~-----:::::::::::::
+...........:::::----------------~~~~~~**={#&# *~~~~----::::::::::::::::
+............::::::::----------------~~~~*=**~~~----::::::::::::::::::::
+..............::::::::::::-------------------::::::::::::::::::::::::::
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/simd_op_check.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_simd_op_check -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp

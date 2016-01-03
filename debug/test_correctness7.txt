@@ -1,0 +1,249 @@
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/introspection.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_introspection -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_introspection
+Halide C++ introspection claims to be working with this build config
+Continuing with further tests...
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/inverse.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_inverse -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_inverse
+Testing accuracy of inverse
+Pass.
+Testing accuracy of inverse sqrt
+Pass.
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/isnan.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_isnan -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_isnan
+Success
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/iterate_over_circle.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_iterate_over_circle -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_iterate_over_circle
+
+  a_copy[i].min: min(f.s0.x.min, f.s1.x.min)
+  a[i].min: min(f.s1.x.min, f.s0.x.min)
+
+  a_copy[i].max: max(f.s0.x.max, f.s1.x.max)
+  a[i].max: max(f.s1.x.max, f.s0.x.max)
+
+  a_copy[i].min: min(f.s0.y.min, f.s1.y.min)
+  a[i].min: min(f.s1.y.min, f.s0.y.min)
+
+  a_copy[i].max: max(f.s0.y.max, f.s1.y.max)
+  a[i].max: max(f.s1.y.max, f.s0.y.max)
+
+  a_copy[i].min: min(f.s1.x.min, min(f.s1.x.min, f.s0.x.min))
+  a[i].min: min(f.s1.x.min, f.s0.x.min)
+
+  a_copy[i].max: max(f.s1.x.max, max(f.s1.x.max, f.s0.x.max))
+  a[i].max: max(f.s1.x.max, f.s0.x.max)
+
+  a_copy[i].min: min(f.s1.y.min, min(f.s1.y.min, f.s0.y.min))
+  a[i].min: min(f.s1.y.min, f.s0.y.min)
+
+  a_copy[i].max: max(f.s1.y.max, max(f.s1.y.max, f.s0.y.max))
+  a[i].max: max(f.s1.y.max, f.s0.y.max)
+
+  a_copy[i].min: min(f.s1.x.min, in.s0.x.min)
+  a[i].min: min(in.s0.x.min, f.s1.x.min)
+
+  a_copy[i].max: max(f.s1.x.max, in.s0.x.max)
+  a[i].max: max(in.s0.x.max, f.s1.x.max)
+
+  a_copy[i].min: min(f.s1.y.min, in.s0.y.min)
+  a[i].min: min(in.s0.y.min, f.s1.y.min)
+
+  a_copy[i].max: max(f.s1.y.max, in.s0.y.max)
+  a[i].max: max(in.s0.y.max, f.s1.y.max)
+
+  a_copy[i].min: min(f.min.0, f.s1.x.min)
+  a[i].min: min(f.s1.x.min, f.min.0)
+
+  a_copy[i].max: max(((f.min.0 + f.extent.0) - 1), f.s1.x.max)
+  a[i].max: max(f.s1.x.max, ((f.extent.0 + f.min.0) + -1))
+
+  a_copy[i].min: min(f.min.1, f.s1.y.min)
+  a[i].min: min(f.s1.y.min, f.min.1)
+
+  a_copy[i].max: max(((f.min.1 + f.extent.1) - 1), f.s1.y.max)
+  a[i].max: max(f.s1.y.max, ((f.extent.1 + f.min.1) + -1))
+
+  a_copy[i].min: min(f.s1.x.min, in.s0.x.min)
+  a[i].min: min(in.s0.x.min, f.s1.x.min)
+
+  a_copy[i].max: max(f.s1.x.max, in.s0.x.max)
+  a[i].max: max(in.s0.x.max, f.s1.x.max)
+
+  a_copy[i].min: min(f.s1.y.min, in.s0.y.min)
+  a[i].min: min(in.s0.y.min, f.s1.y.min)
+
+  a_copy[i].max: max(f.s1.y.max, in.s0.y.max)
+  a[i].max: max(in.s0.y.max, f.s1.y.max)
+Func 'in' should only have been loaded from at points within the circle x*x + y*y < 10*10. It was loaded 400 times, but there are 86 points within that circle
+Passing for now. TODO: re-enable this test once trim-no-ops is in.
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/lambda.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_lambda -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_lambda
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/lazy_convolution.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_lazy_convolution -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_lazy_convolution
+
+  a_copy[i].min: min(sum.s0.x.min, sum.s1.x.min)
+  a[i].min: min(sum.s1.x.min, sum.s0.x.min)
+
+  a_copy[i].max: max(sum.s0.x.max, sum.s1.x.max)
+  a[i].max: max(sum.s1.x.max, sum.s0.x.max)
+
+  a_copy[i].min: min(sum.s0.y.min, sum.s1.y.min)
+  a[i].min: min(sum.s1.y.min, sum.s0.y.min)
+
+  a_copy[i].max: max(sum.s0.y.max, sum.s1.y.max)
+  a[i].max: max(sum.s1.y.max, sum.s0.y.max)
+
+  a_copy[i].min: min(min(sum.s1.x.min, blur.s0.x.min), min(sum.s1.x.min, sum.s0.x.min))
+  a[i].min: min(sum.s1.x.min, min(sum.s0.x.min, blur.s0.x.min))
+
+  a_copy[i].max: max(max(sum.s1.x.max, blur.s0.x.max), max(sum.s1.x.max, sum.s0.x.max))
+  a[i].max: max(sum.s1.x.max, max(sum.s0.x.max, blur.s0.x.max))
+
+  a_copy[i].min: min(min(sum.s1.y.min, blur.s0.y.min), min(sum.s1.y.min, sum.s0.y.min))
+  a[i].min: min(sum.s1.y.min, min(sum.s0.y.min, blur.s0.y.min))
+
+  a_copy[i].max: max(max(sum.s1.y.max, blur.s0.y.max), max(sum.s1.y.max, sum.s0.y.max))
+  a[i].max: max(sum.s1.y.max, max(sum.s0.y.max, blur.s0.y.max))
+
+  a_copy[i].min: min(blur.s0.x.min, sum.s1.x.min)
+  a[i].min: min(sum.s1.x.min, blur.s0.x.min)
+
+  a_copy[i].max: max(blur.s0.x.max, sum.s1.x.max)
+  a[i].max: max(sum.s1.x.max, blur.s0.x.max)
+
+  a_copy[i].min: min(blur.s0.y.min, sum.s1.y.min)
+  a[i].min: min(sum.s1.y.min, blur.s0.y.min)
+
+  a_copy[i].max: max(blur.s0.y.max, sum.s1.y.max)
+  a[i].max: max(sum.s1.y.max, blur.s0.y.max)
+
+  a_copy[i].min: min(blur.s0.x.min, sum.s1.x.min)
+  a[i].min: min(sum.s1.x.min, blur.s0.x.min)
+
+  a_copy[i].max: max(blur.s0.x.max, sum.s1.x.max)
+  a[i].max: max(sum.s1.x.max, blur.s0.x.max)
+
+  a_copy[i].min: min(blur.s0.y.min, sum.s1.y.min)
+  a[i].min: min(sum.s1.y.min, blur.s0.y.min)
+
+  a_copy[i].max: max(blur.s0.y.max, sum.s1.y.max)
+  a[i].max: max(sum.s1.y.max, blur.s0.y.max)
+
+  a_copy[i].min: min(sum.s0.x.min, sum.s1.x.min)
+  a[i].min: min(sum.s1.x.min, sum.s0.x.min)
+
+  a_copy[i].max: max(sum.s0.x.max, sum.s1.x.max)
+  a[i].max: max(sum.s1.x.max, sum.s0.x.max)
+
+  a_copy[i].min: min(sum.s0.y.min, sum.s1.y.min)
+  a[i].min: min(sum.s1.y.min, sum.s0.y.min)
+
+  a_copy[i].max: max(sum.s0.y.max, sum.s1.y.max)
+  a[i].max: max(sum.s1.y.max, sum.s0.y.max)
+
+  a_copy[i].min: min(min(sum.s1.x.min, blur.s0.x), min(sum.s1.x.min, sum.s0.x.min))
+  a[i].min: min(sum.s1.x.min, min(sum.s0.x.min, blur.s0.x))
+
+  a_copy[i].max: max(max(sum.s1.x.max, blur.s0.x), max(sum.s1.x.max, sum.s0.x.max))
+  a[i].max: max(sum.s1.x.max, max(sum.s0.x.max, blur.s0.x))
+
+  a_copy[i].min: min(min(sum.s1.y.min, blur.s0.y), min(sum.s1.y.min, sum.s0.y.min))
+  a[i].min: min(sum.s1.y.min, min(sum.s0.y.min, blur.s0.y))
+
+  a_copy[i].max: max(max(sum.s1.y.max, blur.s0.y), max(sum.s1.y.max, sum.s0.y.max))
+  a[i].max: max(sum.s1.y.max, max(sum.s0.y.max, blur.s0.y))
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/legal_race_condition.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_legal_race_condition -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_legal_race_condition
+
+  a_copy[i].min: min(f.s0.x.min, (f.s1.r.x$r.min/2))
+  a[i].min: min(int32(ceil_f32(float32((f.s1.r.x$r.min/2)))), f.s0.x.min)
+
+  a_copy[i].max: max(f.s0.x.max, (f.s1.r.x$r.max/2))
+  a[i].max: max(int32(floor_f32(float32((f.s1.r.x$r.max/2)))), f.s0.x.max)
+
+  a_copy[i].max: max(f$2.s0.x$2.max, (256 - 1))
+  a[i].max: max(f$2.s0.x$2.max, 255)
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/lerp.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_lerp -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_lerp
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/likely.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_likely -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_likely
+
+  a_copy[i].min: min(max(min(repeat_edge.s0.x.min, ((0 + 100) - 1)), 0), f.s0.x.min)
+  a[i].min: min(f.s0.x.min, min(max(repeat_edge.s0.x.min, 0), 99))
+
+  a_copy[i].max: max(max(min(repeat_edge.s0.x.max, ((0 + 100) - 1)), 0), f.s0.x.max)
+  a[i].max: max(f.s0.x.max, max(min(repeat_edge.s0.x.max, 99), 0))
+
+  a_copy[i].min: min(max(min(repeat_edge.s0.x.min, ((0 + 100) - 1)), 0), f.s0.x.min)
+  a[i].min: min(f.s0.x.min, min(max(repeat_edge.s0.x.min, 0), 99))
+
+  a_copy[i].max: max(max(min(repeat_edge.s0.x.max, ((0 + 100) - 1)), 0), f.s0.x.max)
+  a[i].max: max(f.s0.x.max, max(min(repeat_edge.s0.x.max, 99), 0))
+
+  a_copy[i].min: min((min(g.s0.x.min, (g.s0.x.max + -7)) + 0), f.s0.x.min)
+  a[i].min: min(g.s0.x.min, min(f.s0.x.min, (g.s0.x.max + -7)))
+
+  a_copy[i].max: max((min(((((g.s0.x.max - g.s0.x.min)/8)*8) + g.s0.x.min), (g.s0.x.max + -7)) + 7), f.s0.x.max)
+  a[i].max: max(g.s0.x.max, f.s0.x.max)
+
+  a_copy[i].min: min((min(g.s0.x.min, (g.s0.x.max + -7)) + 0), f.s0.x.min)
+  a[i].min: min(g.s0.x.min, min(f.s0.x.min, (g.s0.x.max + -7)))
+
+  a_copy[i].max: max((min(((((g.s0.x.max - g.s0.x.min)/8)*8) + g.s0.x.min), (g.s0.x.max + -7)) + 7), f.s0.x.max)
+  a[i].max: max(g.s0.x.max, f.s0.x.max)
+
+  a_copy[i].min: min(min(max(min((min((((2*10) - 1) - 19), 0) + 0), ((0 + 10) - 1)), 0), max(min(mirror_image.s0.x.min, ((0 + 10) - 1)), 0)), g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, 0)
+
+  a_copy[i].max: max(max(max(min((max((((2*10) - 1) - 0), 19) + 0), ((0 + 10) - 1)), 0), max(min(mirror_image.s0.x.max, ((0 + 10) - 1)), 0)), g$2.s0.x.max)
+  a[i].max: max(g$2.s0.x.max, 9)
+
+  a_copy[i].min: min(min(max(min((min((((2*10) - 1) - 19), 0) + 0), ((0 + 10) - 1)), 0), max(min(mirror_image.s0.y.min, ((0 + 10) - 1)), 0)), g$2.s0.y.min)
+  a[i].min: min(g$2.s0.y.min, 0)
+
+  a_copy[i].max: max(max(max(min((max((((2*10) - 1) - 0), 19) + 0), ((0 + 10) - 1)), 0), max(min(mirror_image.s0.y.max, ((0 + 10) - 1)), 0)), g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, 9)
+
+  a_copy[i].min: min(min(max(min((min((((2*10) - 1) - 19), 0) + 0), ((0 + 10) - 1)), 0), max(min(mirror_image.s0.x.min, ((0 + 10) - 1)), 0)), g$2.s0.x.min)
+  a[i].min: min(g$2.s0.x.min, 0)
+
+  a_copy[i].max: max(max(max(min((max((((2*10) - 1) - 0), 19) + 0), ((0 + 10) - 1)), 0), max(min(mirror_image.s0.x.max, ((0 + 10) - 1)), 0)), g$2.s0.x.max)
+  a[i].max: max(g$2.s0.x.max, 9)
+
+  a_copy[i].min: min(min(max(min((min((((2*10) - 1) - 19), 0) + 0), ((0 + 10) - 1)), 0), max(min(mirror_image.s0.y.min, ((0 + 10) - 1)), 0)), g$2.s0.y.min)
+  a[i].min: min(g$2.s0.y.min, 0)
+
+  a_copy[i].max: max(max(max(min((max((((2*10) - 1) - 0), 19) + 0), ((0 + 10) - 1)), 0), max(min(mirror_image.s0.y.max, ((0 + 10) - 1)), 0)), g$2.s0.y.max)
+  a[i].max: max(g$2.s0.y.max, 9)
+
+  a_copy[i].min: min(min((((10 - 1) - int32(max(uint32((0 - (min(((2*(10 - 1)) + 1), 0) - (10 - 1)))), uint32((max(((2*(10 - 1)) - 1), 0) - (10 - 1)))))) + 0), max(min((min(h.s0.x.min, (h.s0.x.max + -7)) - 1), ((0 + 10) - 1)), 0)), min((((10 - 1) - int32(max(uint32((0 - (min(((2*(10 - 1)) + 1), 0) - (10 - 1)))), uint32((max(((2*(10 - 1)) - 1), 0) - (10 - 1)))))) + 0), max(min((min(h.s0.x.min, (h.s0.x.max + -7)) + 1), ((0 + 10) - 1)), 0)))
+  a[i].min: 0
+
+  a_copy[i].max: max(max((((10 - 1) - int32((uint32)0)) + 0), max(min((min((((((h.s0.x.max - h.s0.x.min)/8)*8) + h.s0.x.min) + 7), h.s0.x.max) - 1), ((0 + 10) - 1)), 0)), max((((10 - 1) - int32((uint32)0)) + 0), max(min((min((((((h.s0.x.max - h.s0.x.min)/8)*8) + h.s0.x.min) + 7), h.s0.x.max) + 1), ((0 + 10) - 1)), 0)))
+  a[i].max: 9
+
+  a_copy[i].min: min(min((((10 - 1) - int32(max(uint32((0 - (min(((2*(10 - 1)) + 1), 0) - (10 - 1)))), uint32((max(((2*(10 - 1)) - 1), 0) - (10 - 1)))))) + 0), max(min((h.s0.x.min - 1), ((0 + 10) - 1)), 0)), min((((10 - 1) - int32(max(uint32((0 - (min(((2*(10 - 1)) + 1), 0) - (10 - 1)))), uint32((max(((2*(10 - 1)) - 1), 0) - (10 - 1)))))) + 0), max(min((h.s0.x.min + 1), ((0 + 10) - 1)), 0)))
+  a[i].min: 0
+
+  a_copy[i].max: max(max((((10 - 1) - int32((uint32)0)) + 0), max(min((h.s0.x.max - 1), ((0 + 10) - 1)), 0)), max((((10 - 1) - int32((uint32)0)) + 0), max(min((h.s0.x.max + 1), ((0 + 10) - 1)), 0)))
+  a[i].max: 9
+
+  a_copy[i].min: min(min((((10 - 1) - int32(max(uint32((0 - (min(((2*(10 - 1)) + 1), 0) - (10 - 1)))), uint32((max(((2*(10 - 1)) - 1), 0) - (10 - 1)))))) + 0), max(min((min(h.s0.x.min, (h.s0.x.max + -7)) - 1), ((0 + 10) - 1)), 0)), min((((10 - 1) - int32(max(uint32((0 - (min(((2*(10 - 1)) + 1), 0) - (10 - 1)))), uint32((max(((2*(10 - 1)) - 1), 0) - (10 - 1)))))) + 0), max(min((min(h.s0.x.min, (h.s0.x.max + -7)) + 1), ((0 + 10) - 1)), 0)))
+  a[i].min: 0
+
+  a_copy[i].max: max(max((((10 - 1) - int32((uint32)0)) + 0), max(min((min((((((h.s0.x.max - h.s0.x.min)/8)*8) + h.s0.x.min) + 7), h.s0.x.max) - 1), ((0 + 10) - 1)), 0)), max((((10 - 1) - int32((uint32)0)) + 0), max(min((min((((((h.s0.x.max - h.s0.x.min)/8)*8) + h.s0.x.min) + 7), h.s0.x.max) + 1), ((0 + 10) - 1)), 0)))
+  a[i].max: 9

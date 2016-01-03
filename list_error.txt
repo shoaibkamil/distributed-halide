@@ -1,0 +1,117 @@
+cascaded_filters -> modulus
+
+/home/psuriana/distributed-halide/bin/correctness_chunk_sharing: Permission denied
+
+Error at /home/psuriana/distributed-halide/test/correctness/compute_at_split_rvar.cpp:33:
+Output buffer g is accessed at 10, which is beyond the max (9) in dimension 0
+
+Error at /home/psuriana/distributed-halide/test/correctness/computed_index.cpp:13:
+Input buffer in2 is accessed at 255, which is beyond the max (9) in dimension 2
+
+correctness_compute_outermost
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness/compute_outermost.cpp:38:
+Condition failed: a.defined()
+Add of undefined
+
+Error at /home/psuriana/distributed-halide/test/correctness/convolution.cpp:88:
+Output buffer blur1 is accessed at 18, which is beyond the max (15) in dimension 0
+
+Error at /home/psuriana/distributed-halide/test/correctness/dynamic_reduction_bounds.cpp:16:
+ConvertToIneqs only handle ceil_f32 or floor_f32: sqrt_f32
+
+bash: line 1: 12764 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_extern_bounds_inference
+
+bash: line 1: 12995 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_extern_consumer
+make: *** [correctness_extern_consumer] Error 139
+
+bash: line 1: 13209 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_extern_error
+make: *** [correctness_extern_error] Error 139
+
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness/fuse.cpp:33:
+Condition failed: a.defined()
+Add of undefined
+
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness/fused_where_inner_extent_is_zero.cpp:25:
+Condition failed: a.defined()
+Add of undefined
+bash: line 1: 14115 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_fused_where_inner_extent_is_zero
+
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness/interleave.cpp:145:
+Condition failed: a.defined()
+Add of undefined
+bash: line 1: 16040 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_interleave
+
+Internal error at /home/psuriana/distributed-halide/src/Bounds.cpp:711 triggered by user code at /home/psuriana/distributed-halide/test/correctness/likely.cpp:74:
+Bounds of vectorbash: line 1: 16710 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_likely
+
+correctness_many_dimensions: /home/psuriana/distributed-halide/src/HalideNfmConverter.cpp:458: virtual void Halide::Internal::{anonymous}::ConvertToIneqs::visit(const Halide::Internal::Mod*): Assertion `false' failed
+
+bash: line 1: 17337 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_many_small_extern_stages
+
+bash: line 1: 17663 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_memoize
+
+Error at /home/psuriana/distributed-halide/test/correctness/multipass_constraints.cpp:33:
+Inferring input bounds on Pipeline didn't converge after 16 iterations. There may be unsatisfiable constraints
+bash: line 1: 18057 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_multipass_constraints
+
+Error at /home/psuriana/distributed-halide/test/correctness/multi_pass_reduction.cpp:130:
+Output buffer f$4 is accessed at 102, which is beyond the max (99) in dimension 0
+
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness/parallel_rvar.cpp:36:
+Condition failed: a.defined()
+Add of undefined
+
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:198 triggered by user code at /home/psuriana/distributed-halide/test/correctness/parameter_constraints.cpp:31:
+Condition failed: a.type() == b.type()
+GE of mismatched types
+
+Internal error at /home/psuriana/distributed-halide/src/Bounds.cpp:711 triggered by user code at /home/psuriana/distributed-halide/test/correctness/partition_loops_bug.cpp:32:
+Bounds of vectorbash: line 1: 19780 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_partition_loops_bug
+
+bash: line 1: 19997 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_pipeline_set_jit_externs_func
+
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:222 triggered by user code at /home/psuriana/distributed-halide/test/correctness/reduction_chain.cpp:27:
+Condition failed: a.defined()
+Or of undefined
+
+Error at /home/psuriana/distributed-halide/test/correctness/reorder_rvars.cpp:64:
+Output buffer sat is accessed at 102, which is beyond the max (99) in dimension 0
+
+bash: line 1: 22102 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_skip_stages_external_array_functions
+
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:222 triggered by user code at /home/psuriana/distributed-halide/test/correctness/sliding_reduction.cpp:109:
+Condition failed: a.defined()
+Or of undefined
+bash: line 1: 22376 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_sliding_reduction
+
+Internal error at /home/psuriana/distributed-halide/src/HalideNfmConverter.cpp:130 triggered by user code at /home/psuriana/distributed-halide/test/correctness/specialize.cpp:187:
+HalideNfmConverter can't handle Not
+bash: line 1: 22785 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_specialize
+
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness/split_fuse_rvar.cpp:22:
+Condition failed: a.defined()
+Add of undefined
+
+
+Warning at /home/psuriana/distributed-halide/test/correctness/vector_math.cpp:264:
+This pipeline is guaranteed to fail an assertion at runtime:
+assert((uint1)0, halide_error_access_out_of_bounds("Output buffer f6", 0, f6.min.0, ((f6.min.0 + f6.extent.0) + 2), f6.min.0, ((f6.min.0 + f6.extent.0) + -1)))
+Warning at /home/psuriana/distributed-halide/test/correctness/vector_math.cpp:264:
+This pipeline is guaranteed to fail an assertion at runtime:
+assert((uint1)0, halide_error_access_out_of_bounds("Output buffer f6", 0, f6.min.0, ((f6.min.0 + f6.extent.0) + 2), f6.min.0, ((f6.min.0 + f6.extent.0) + -1)))
+Warning at /home/psuriana/distributed-halide/test/correctness/vector_math.cpp:264:
+This pipeline is guaranteed to fail an assertion at runtime:
+assert((uint1)0, halide_error_access_out_of_bounds("Output buffer f6", 0, f6.min.0, ((f6.min.0 + f6.extent.0) + 2), f6.min.0, ((f6.min.0 + f6.extent.0) + -1)))
+Warning at /home/psuriana/distributed-halide/test/correctness/vector_math.cpp:264:
+This pipeline is guaranteed to fail an assertion at runtime:
+assert((uint1)0, halide_error_access_out_of_bounds("Output buffer f6", 0, f6.min.0, ((f6.min.0 + f6.extent.0) + 2), f6.min.0, ((f6.min.0 + f6.extent.0) + -1)))
+Warning at /home/psuriana/distributed-halide/test/correctness/vector_math.cpp:264:
+This pipeline is guaranteed to fail an assertion at runtime:
+assert((uint1)0, halide_error_access_out_of_bounds("Output buffer f6", 0, f6.min.0, ((f6.min.0 + f6.extent.0) + 2), f6.min.0, ((f6.min.0 + f6.extent.0) + -1)))
+Warning at /home/psuriana/distributed-halide/test/correctness/vector_math.cpp:264:
+This pipeline is guaranteed to fail an assertion at runtime:
+assert((uint1)0, halide_error_access_out_of_bounds("Output buffer f6", 0, f6.min.0, ((f6.min.0 + f6.extent.0) + 2), f6.min.0, ((f6.min.0 + f6.extent.0) + -1)))
+Error at /home/psuriana/distributed-halide/test/correctness/vector_math.cpp:264:
+Output buffer f6 is accessed at 322, which is beyond the max (319) in dimension 0
+
+
