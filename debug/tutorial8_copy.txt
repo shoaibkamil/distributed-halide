@@ -4,6 +4,8 @@ Evaluating producer-consumer pipeline with default schedule
 
 Pseudo-code for the schedule:
 
+TOP: NFM
+BOTTOM: HALIDE
 
 Evaluating producer.compute_root()
 

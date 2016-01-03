@@ -1,5 +1,8 @@
 cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/halide/bin:/home/psuriana/halide/non-linear-FM/bin/:/home/psuriana/halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/halide/bin/tutorial_lesson_09_update_definitions
 
+TOP: NFM
+BOTTOM: HALIDE
+
   a_copy[i].min: min(f.s1.x.min, f.s0.x.min)
   a[i].min: min(f.s0.x.min, (f.s1.x.min + 0))
 

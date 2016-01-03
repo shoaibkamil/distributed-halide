@@ -769,15 +769,15 @@ private:
         assert(var.type() == op->false_value.type());
 
         Expr cond = mutate(op->condition);
-        //debug(0) << "  cond: " << simplify(cond) << "\n";
+        debug(0) << "  cond: " << simplify(cond) << "\n";
         Expr not_cond = mutate(!op->condition);
-        //debug(0) << "  not_cond: " << simplify(not_cond) << "\n";
+        debug(0) << "  not_cond: " << simplify(not_cond) << "\n";
         Expr true_value = mutate(op->true_value);
         true_cond_val.swap(select_vals);
-        //debug(0) << "  true_value: (" << true_cond_val.size() << "): " << simplify(true_value) << "\n";
+        debug(0) << "  true_value: (" << true_cond_val.size() << "): " << simplify(true_value) << "\n";
         Expr false_value = mutate(op->false_value);
         false_cond_val.swap(select_vals);
-        //debug(0) << "  false_value: (" << false_cond_val.size() << "): " << simplify(false_value) << "\n";
+        debug(0) << "  false_value: (" << false_cond_val.size() << "): " << simplify(false_value) << "\n";
 
         bool select_a = true_cond_val.size();   // True value
         bool select_b = false_cond_val.size();  // False value

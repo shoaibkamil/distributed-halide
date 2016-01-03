@@ -1,6 +1,9 @@
 cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/halide/bin:/home/psuriana/halide/non-linear-FM/bin/:/home/psuriana/halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/halide/bin/tutorial_lesson_12_using_the_gpu
 Testing performance on CPU:
 
+TOP: HALIDE
+BOTTOM: NFM
+
   a_copy[i].min: min(min(p1:sharpen.s0.v0.min, (p1:sharpen.s0.v0.max + -7)), (min(p1:sharpen.s0.v0.min, (p1:sharpen.s0.v0.max + -7)) - 1))
   a[i].min: min((p1:sharpen.s0.v0.min + -1), (p1:sharpen.s0.v0.max + -8))
 

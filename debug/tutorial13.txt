@@ -1,5 +1,8 @@
 cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/halide/bin:/home/psuriana/halide/non-linear-FM/bin/:/home/psuriana/halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/halide/bin/tutorial_lesson_13_tuples
 
+TOP: HALIDE
+BOTTOM: NFM
+
 OVERLAP BOXES
   Box A:
 Used: (undefined)

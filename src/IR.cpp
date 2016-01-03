@@ -85,7 +85,8 @@ Expr Mul::make(Expr a, Expr b) {
 Expr Div::make(Expr a, Expr b) {
     internal_assert(a.defined()) << "Div of undefined\n";
     internal_assert(b.defined()) << "Div of undefined\n";
-    internal_assert(a.type() == b.type()) << "Div of mismatched types\n";
+    internal_assert(a.type() == b.type()) << "Div of mismatched types; a: "
+        << a << "; b: " << b << "; a.type(): " << a.type() << "; b.type(): " << b.type() << "\n";
 
     Div *node = new Div;
     node->type = a.type();

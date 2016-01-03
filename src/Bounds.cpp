@@ -1016,7 +1016,7 @@ void merge_boxes(Box &a, const Box &b) {
     Box a_copy(a);
     Box b_copy(b);
 
-    /*std::cout << "\nMERGE BOXES\n";
+    std::cout << "\nMERGE BOXES\n";
     std::cout << "  Box A:\n";
     std::cout << "Used: " << a.used << "\n";
     for (size_t i = 0; i < a.size(); ++i) {
@@ -1026,15 +1026,15 @@ void merge_boxes(Box &a, const Box &b) {
     std::cout << "Used: " << a.used << "\n";
     for (size_t i = 0; i < b.size(); ++i) {
         std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
-    }*/
+    }
 
-    merge_boxes_nfm(a, b);
+    //merge_boxes_nfm(a, b);
     //merge_boxes_halide(a_copy, b_copy);
 
-    /*merge_boxes_nfm(a_copy, b_copy);
-    merge_boxes_halide(a, b);*/
+    merge_boxes_nfm(a_copy, b_copy);
+    merge_boxes_halide(a, b);
 
-    /*std::cout << "MERGE RESULT USING NFM\n";
+    std::cout << "MERGE RESULT USING NFM\n";
     for (size_t i = 0; i < a.size(); ++i) {
         std::cout << "Dim: " << a[i].var << "\n  min: " << a[i].min << "\n  max: " << a[i].max << "\n";
     }
@@ -1044,16 +1044,16 @@ void merge_boxes(Box &a, const Box &b) {
     for (size_t i = 0; i < a_copy.size(); ++i) {
         std::cout << "Dim: " << a_copy[i].var << "\n  min: " << a_copy[i].min << "\n  max: " << a_copy[i].max << "\n";
     }
-    std::cout << "\n";*/
+    std::cout << "\n";
 
-    /*for (size_t i = 0; i < a_copy.size(); ++i) {
+    for (size_t i = 0; i < a_copy.size(); ++i) {
         if (!equal(a_copy[i].min, a[i].min)) {
             std::cout << "\n  a_copy[i].min: " << a_copy[i].min << "\n  a[i].min: " << a[i].min << "\n";
         }
         if (!equal(a_copy[i].max, a[i].max)) {
             std::cout << "\n  a_copy[i].max: " << a_copy[i].max << "\n  a[i].max: " << a[i].max << "\n";
         }
-    }*/
+    }
 }
 
 void merge_boxes_halide(Box &a, const Box &b) {
