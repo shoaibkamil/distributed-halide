@@ -752,7 +752,7 @@ $(BIN_DIR)/test_nfm: $(ROOT_DIR)/test/nfm.cpp $(BIN_DIR)/libHalide.so
 	$(CXX) $(CXX_FLAGS)  $< -I$(SRC_DIR) -I$(NFM_HEADER) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(BIN_DIR)/test_internal: $(ROOT_DIR)/test/internal.cpp $(BIN_DIR)/libHalide.so
-	$(CXX) $(CXX_FLAGS)  $< -I$(SRC_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@
+	$(CXX) $(CXX_FLAGS)  $< -I$(SRC_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 # We follow the convention that a test source file that starts with the prefix
 # ``runtime_`` is a pure runtime test (links against Halide runtime and not
