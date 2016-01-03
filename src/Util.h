@@ -43,6 +43,8 @@
 namespace Halide {
 namespace Internal {
 
+bool use_NFM();
+
 /** An aggressive form of reinterpret cast used for correct type-punning. */
 template<typename DstType, typename SrcType>
 DstType reinterpret_bits(const SrcType &src) {
