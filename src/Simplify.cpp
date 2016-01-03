@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "Simplify.h"
+#include "Util.h"
 #include "IROperator.h"
 #include "IREquality.h"
 #include "IRPrinter.h"
@@ -1221,7 +1222,7 @@ private:
             // (y - x*4) / 2 -> y/2 - x*2
             Expr ratio = make_const(op->type, div_imp(ia, ib));
             expr = mutate((sub_a->a / b) - (mul_a_b->a * ratio));
-        } else if (b.type().is_float() && is_simple_const(b)) {
+        } else if (b.type().is_float() && is_simple_const(b) && !use_NFM()) {
             // Convert const float division to multiplication
             // x / 2 -> x * 0.5
             expr = mutate(a * (make_one(b.type()) / b));
