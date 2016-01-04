@@ -1016,17 +1016,27 @@ void merge_boxes(Box &a, const Box &b) {
     Box a_copy(a);
     Box b_copy(b);
 
-    /*std::cout << "\nMERGE BOXES\n";
+    std::cout << "\nMERGE BOXES\n";
     std::cout << "  Box A:\n";
-    std::cout << "Used: " << a.used << "\n";
+    std::cout << "Used: " << a.used;
+    if (a.used.defined()) {
+        std::cout << " (" << a.used.type() << ")\n";
+    } else {
+        std::cout << "\n";
+    }
     for (size_t i = 0; i < a.size(); ++i) {
         std::cout << "Dim (" << a[i].var << ") min: " << a[i].min << "; max: " << a[i].max << "\n";
     }
     std::cout << "  Box B:\n";
-    std::cout << "Used: " << a.used << "\n";
+    std::cout << "Used: " << b.used;
+    if (b.used.defined()) {
+        std::cout << " (" << b.used.type() << ")\n";
+    } else {
+        std::cout << "\n";
+    }
     for (size_t i = 0; i < b.size(); ++i) {
         std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
-    }*/
+    }
 
     merge_boxes_nfm(a, b);
     merge_boxes_halide(a_copy, b_copy);

@@ -105,7 +105,10 @@ protected:
     void visit(const GE *) { error("GE"); }
     void visit(const And *) { error("And"); }
     void visit(const Or *) { error("Or"); }
-    void visit(const Not *) { error("Not"); }
+    void visit(const Not *op) {
+        std::cout << "NOT " << op->a << "\n";
+        error("Not");
+    }
     void visit(const Select *) { error("Select"); }
     void visit(const Load *) { error("Load"); }
     void visit(const Ramp *) { error("Ramp"); }
@@ -1304,6 +1307,8 @@ public:
     string get_sym_const_names_str() const { return sym_const_names_str; }
 
     NfmUnionDomain convert_to_nfm() {
+        debug(0) << "CONVERTING " << in_expr << "\n\n";
+
         NfmUnionDomain union_dom(sym_const_names, dim_names);
         if (!in_expr.defined() || is_one(in_expr)) { // Undefined expression -> no constraint (universe)
             NfmDomain domain(sym_const_names, dim_names);
@@ -1347,19 +1352,19 @@ public:
         vector<vector<Expr>> dnf = split.result;
         assert(dnf.size() > 0);
 
-        /*debug(0) << "DNF " << dnf.size() << "\n";
+        debug(0) << "DNF " << dnf.size() << "\n";
         for (const auto& ands : dnf) {
             for (auto& e : ands) {
                 std::cout << "(" << simplify(e) << ") and ";
             }
             std::cout << "\n";
-        }*/
+        }
 
         for (const auto& ands : dnf) { // For each disjunctive constraint set
-            //debug(0) << "DNF CONSTRAINT: " << "\n";
+            debug(0) << "DNF CONSTRAINT: " << "\n";
             NfmDomain domain(sym_const_names, dim_names);
             for (const auto& and_term : ands) { // For each constraint within the set
-                //debug(0) << "   AND: " << and_term << "\n";
+                debug(0) << "   AND: " << and_term << "\n";
                 const EQ *eq_a = and_term.as<EQ>();
                 const GE *ge_a = and_term.as<GE>();
                 if (eq_a) { // It's an equality
@@ -1380,12 +1385,12 @@ public:
             union_dom.add_domain(std::move(domain));
         }
         //debug(0) << "\nUnion Domain (" << union_dom.get_domains().size() << "): \n" << union_dom.to_string() << "\n\n";
-        /*debug(0) << "\nUnion Domain (" << union_dom.get_domains().size() << ")\n";
+        debug(0) << "\nUnion Domain (" << union_dom.get_domains().size() << ")\n";
         union_dom.sort();
         for (const auto& dom : union_dom.get_domains()) {
             debug(0) << dom << "\n";
         }
-        debug(0) << "\n";*/
+        debug(0) << "\n";
 
         //NfmUnionDomain simplified_isl = union_dom.simplify();
         //debug(0) << "Union Domain (AFTER SIMPLIFY using ISL) (" << simplified_isl.get_domains().size() << "): \n" << simplified_isl.to_string() << "\n";
@@ -1398,13 +1403,13 @@ public:
 
         NfmUnionDomain simplified_union_dom = NfmSolver::nfm_union_domain_simplify(union_dom);
         //debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n" << simplified_union_dom.to_string() << "\n\n";
-        /*debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
+        debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
         simplified_union_dom.sort();
         for (const auto& dom : simplified_union_dom.get_domains()) {
             debug(0) << dom << "\n";
             debug(0) << "    Context: " << dom.get_context_domain() << "\n";
         }
-        debug(0) << "\n\n";*/
+        debug(0) << "\n\n";
         return simplified_union_dom;
     }
 
@@ -1518,7 +1523,7 @@ private:
     }
 
     NfmPoly convert_constraint_to_nfm_helper(Expr lhs, bool is_equality) {
-        //debug(0) << "convert_constraint_to_nfm_helper: " << lhs << "\n";
+        debug(0) << "convert_constraint_to_nfm_helper: " << lhs << "\n";
         // Convert into summation of multiplication term
         DistributeMul dist;
         dist.mutate(lhs);
