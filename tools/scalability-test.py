@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import numpy as np
 from optparse import OptionParser
@@ -6,15 +6,18 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 class Config:
-    def __init__(self, output_dir, nodes, srcfile, baseline, args):
+    def __init__(self, output_dir, nodes, srcfile, baseline, timelimits, fakerun, args):
         self.output_dir = output_dir
         self.nodes = map(int, nodes.split(","))
         self.tasks_per_node = 2
-        self.cores_per_socket = 12
+        self.cores_per_socket = 16
         self.srcfile = srcfile
         self.baseline = float(baseline) if baseline else None
+        self.timelimit = timelimits.split(",")
+        self.fakerun = fakerun
         self.exe = args
         self.input_size = "%sx%s" % (args[-2], args[-1])
 
@@ -30,35 +33,98 @@ class Result:
         self.num_nodes = num_nodes
         self.timing = value
 
-def make_run_cmd(config, num_nodes, baseline=False):
-    os.environ["MV2_ENABLE_AFFINITY"] = "0"
-    if baseline:
-        os.environ["HL_DISABLE_DISTRIBUTED"] = "1"
-    else:
-        os.environ["HL_DISABLE_DISTRIBUTED"] = "0"
-    cmd = ["srun", "--exclusive"]
-    # if nranks == num_nodes * 2:
-    #     cmd.extend(["--cpu_bind=verbose,sockets"])
-    # elif nranks > num_nodes:
-    #     cmd.extend(["--cpu_bind=verbose,cores"])
-    # else:
-    #     cmd.extend(["--cpu_bind=verbose"])
-    if baseline:
-        nranks = num_nodes
-        cmd.extend(["--cpu_bind=verbose"])
-    else:
-        nranks = num_nodes * config.tasks_per_node
-        cmd.extend(["--cpu_bind=verbose,sockets"])
-    cmd.extend(["--ntasks=%d" % nranks])
-    cmd.extend(["--nodes=%d" % num_nodes])
-    cmd.extend(config.exe)
-    cmd = map(str, cmd)
-    return cmd
+cori_slurm_template = """#!/bin/bash -l
+#SBATCH -p regular
+#SBATCH -N %(numnodes)d
+#SBATCH -t %(walltime)s
+#SBATCH -o %(outputfile)s
 
-def execute(cmd):
-    print "Executing HL_DISABLE_DISTRIBUTED=%s %s..." % (os.environ["HL_DISABLE_DISTRIBUTED"], " ".join(cmd))
+export MV2_ENABLE_AFFINITY=0
+export MPICH_MAX_THREAD_SAFETY=multiple
+export HL_JIT_TARGET=host
+export HL_DISABLE_DISTRIBUTED=%(disabledistributed)s
+export XTPE_LINK_TYPE=dynamic
+
+module load PrgEnv-gnu
+module unload atp
+module unload cray-shmem
+module load zlib
+module load python
+module load numpy
+
+srun -n %(mpitasks)d -c %(threadspertask)d %(cpubind)s %(exefile)s
+"""
+
+def get_unique_path(template):
+    i = 0
+    while True:
+        path = template % i
+        i += 1
+        if not os.path.exists(path):
+            return path
+    sys.exit(1)
+
+def make_run_cmd_cori(config, num_nodes, timelimit, baseline=False):
+    appname = os.path.basename(config.exe[0])
+    outputfile = get_unique_path(appname + "_" + config.input_size + ".%d.out")
+    disabledistributed = 1 if baseline else 0
+    mpitasks = 1 if baseline else num_nodes * 2
+    taskspernode = 1 if baseline else 2
+    threadspertask = 32 if baseline else config.cores_per_socket
+    cpubind = "" if baseline else "--cpu_bind=verbose,sockets"
+    exefile = ' '.join(config.exe)
+    pbs_contents = cori_slurm_template % {"outputfile": outputfile,
+                                          "walltime": timelimit,
+                                          "disabledistributed": disabledistributed,
+                                          "numnodes": num_nodes, "cpubind": cpubind,
+                                          "mpitasks": mpitasks, "taskspernode": taskspernode,
+                                          "threadspertask": threadspertask, "exefile": exefile}
+    pbsfile = get_unique_path(appname + "_" + config.input_size + ".%d.sbatch")
+    with open(pbsfile, "w") as f:
+        f.write(pbs_contents)
+    cmd = ["sbatch", pbsfile]
+    return cmd, outputfile
+
+def make_run_cmd(config, num_nodes, timelimit, baseline=False):
+    return make_run_cmd_cori(config, num_nodes, timelimit, baseline)
+
+def parse_job_id(output):
+    # Submitted batch job 813839
+    exp = "Submitted batch job (\d+)"
+    m = re.search(exp, output)
+    if m:
+        jobid = int(m.groups()[0])
+        return jobid
+    else:
+        return -1
+
+def job_is_done(jobid):
+    cmd = "sacct -n -j %d.0 -o State" % jobid
     try:
-        return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        output = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT)
+        if (re.search("COMPLETED", output) or
+            re.search("FAILED", output) or
+            re.search("CANCELLED", output)):
+            return True
+        else:
+            return False
+    except subprocess.CalledProcessError as e:
+        print e
+        return True
+
+def execute(cmd, outputfile):
+    print "Executing %s..." % (" ".join(cmd))
+    try:
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        jobid = parse_job_id(output)
+        if len(outputfile) == 0:
+            return output
+        else:
+            while not job_is_done(jobid):
+                time.sleep(6)
+            with open(outputfile, "r") as f:
+                output = f.read()
+            return output
     except subprocess.CalledProcessError as e:
         print e
         return ""
@@ -78,34 +144,30 @@ def get_time(output):
         percentile80 = float(m.groups()[2])
         return Timing(runtime, percentile20, percentile80)
     else:
+        print "No time match from "
+        print output
         return -1
-
-def get_unique_path(template):
-    i = 0
-    while True:
-        path = template % i
-        i += 1
-        if not os.path.exists(path):
-            return path
-    sys.exit(1)
 
 def run(config):
     results = {}
     if not config.baseline:
         # Run baseline of a single node
-        cmd = make_run_cmd(config, 1, baseline=True)
-        result = get_time(execute(cmd))
-        print "Result was: %f sec" % result.runtime
-        results["baseline"] = Result(["HL_DISABLE_DISTRIBUTED=1"] + cmd, 1, result)
+        cmd, outputfile = make_run_cmd(config, 1, config.timelimit[0], baseline=True)
+        if not config.fakerun:
+            result = get_time(execute(cmd, outputfile))
+            print "Result was: %f sec" % result.runtime
+            results["baseline"] = Result(["HL_DISABLE_DISTRIBUTED=1"] + cmd, 1, result)
     else:
         results["baseline"] = Result("Baseline specified on command line", 1, config.baseline)
     # Run all other tests.
-    for num_nodes in config.nodes:
+    for i, num_nodes in enumerate(config.nodes):
         nranks = num_nodes * config.tasks_per_node if num_nodes > 1 else 1
-        cmd = make_run_cmd(config, num_nodes)
-        result = get_time(execute(cmd))
-        print "Result was: %f sec" % result.runtime
-        results[nranks] = Result(cmd, num_nodes, result)
+        timelimit_idx = min(i, len(config.timelimit)-1)
+        cmd, outputfile = make_run_cmd(config, num_nodes, config.timelimit[timelimit_idx])
+        if not config.fakerun:
+            result = get_time(execute(cmd, outputfile))
+            print "Result was: %f sec" % result.runtime
+            results[nranks] = Result(cmd, num_nodes, result)
     return results
 
 def calc_speedup(singlerank, numranks, timing):
@@ -152,9 +214,10 @@ def report(config, results):
         # speedup.runtime is actually a speedup, not a runtime.
         contents += "%s: %f\t%.3f\n" % (nranks, v.timing.runtime, speedup.runtime)
     contents += "--END DATA--\n"
-    contents += "Raw source dump:\n"
-    contents += "// File name %s\n" % config.srcfile
-    contents += readall(config.srcfile)
+    if config.srcfile:
+        contents += "Raw source dump:\n"
+        contents += "// File name %s\n" % config.srcfile
+        contents += readall(config.srcfile)
 
     exe = os.path.basename(config.exe[0])
     txttemplate = "%s-%s-%s-%%d.txt" % (exe, ",".join(map(str, config.nodes)),
@@ -197,22 +260,26 @@ def parse_config_argv():
                       help="Comma separated number of nodes to run tests on.")
     parser.add_option("-b", "--baseline", dest="baseline",
                       help="Specify a single rank runtime instead of running it.")
+    parser.add_option("-t", "--timelimit", dest="timelimit",
+                      default="00:10:00",
+                      help="Specify a maximum wall clock time for the job.")
+    parser.add_option("-f", "--fake-run", dest="fakerun",
+                      action="store_true", default=False,
+                      help="Just create batch files, don't actually submit them.")
     (options, args) = parser.parse_args()
     if (len(args) == 0 or len(options.nodes) == 0):
         parser.print_help()
         sys.exit(1)
     config = Config(options.output_dir, options.nodes,
-                    options.srcfile, options.baseline, args)
+                    options.srcfile, options.baseline,
+                    options.timelimit, options.fakerun, args)
     return config
 
 def main():
     config = parse_config_argv()
-    try:
-        results = run(config)
-    except KeyboardInterrupt:
-        execute(["skill", "-u", "tyler"])
-        sys.exit(1)
-    report(config, results)
+    results = run(config)
+    if not config.fakerun:
+        report(config, results)
 
 if __name__ == "__main__":
     main()

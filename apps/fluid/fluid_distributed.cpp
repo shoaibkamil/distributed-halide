@@ -18,7 +18,7 @@ int p = 0, q = 0, r = 0;
 // Input parameters
 const int DM = 3;
 // const int nsteps = 5;
-const int nsteps = 10;
+const int nsteps = 15;
 const int plot_int = 5;
 int n_cell = 0;
 const int max_grid_size = 64;
@@ -757,6 +757,7 @@ static double courno_C(DistributedImage<double> &Q) {
 
 #pragma omp parallel for private(x,y,z,c,courx,coury,courz) reduction(max:courmx,courmy,courmz)
     for (z = 0; z < Q.extent(2); z++) {
+        //if (z == 0 && omp_get_thread_num() == 0) printf("OpenMP num threads: %d\n", omp_get_num_threads());
         for (y = 0; y < Q.extent(1); y++) {
             for (x = 0; x < Q.extent(0); x++) {
                 c     = sqrt(GAMMA*Q(x,y,z,4)/Q(x,y,z,0));
@@ -798,7 +799,9 @@ int main(int argc, char **argv) {
 
     auto proc_grid = approx_factors_near_cubert(numprocs);
     p = proc_grid[0]; q = proc_grid[1]; r = proc_grid[2];
-    if (rank == 0) printf("Using process grid %dx%dx%d\n", p, q, r);
+    if (rank == 0) {
+        printf("Using process grid %dx%dx%d\n", p, q, r);
+    }
 
     global_w = std::stoi(argv[1]);
     global_h = std::stoi(argv[2]);

@@ -27,6 +27,9 @@ test: test.cpp halide_blur.o
 distributed_blur: halide_blur_distributed.cpp
 	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 halide_blur_distributed.cpp $(LIB_HALIDE) -o distributed_blur -ldl -lpthread -lz $(LDFLAGS)
 
+coritest: coritest.cpp
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 $^ $(LIB_HALIDE) -o $@ -ldl -lpthread -lz $(LDFLAGS)
+
 nondistributed_blur: ../../ halide_blur_distributed.cpp
 	$(MAKE) -C ../../ $(LIB_HALIDE)
 	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 halide_blur_distributed.cpp -DNON_DISTRIBUTED ../../$(LIB_HALIDE) -o nondistributed_blur -ldl -lpthread -lz $(LDFLAGS)
