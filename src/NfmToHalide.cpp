@@ -1141,8 +1141,8 @@ Interval convert_nfm_union_domain_to_halide_interval(
     for (size_t i = 0; i < domains.size(); ++i) { // OR of lower/upper bound (IF-ELSE IF-....-ELSE)
         LowerUpperBound bound = convert_nfm_domain_to_lower_upper_bound(
             type, domains[i], dim_name, dim_idx, sym_const_vars, dim_vars, let_assignments);
-        /*std::cout << "LowerUpperBound bound: condition: " << bound.condition
-            << "; lb: " << bound.lb << "; ub: " << bound.ub << "\n";*/
+        std::cout << "LowerUpperBound bound: condition: " << bound.condition
+            << "; lb: " << bound.lb << "; ub: " << bound.ub << "\n";
         if (!bound.is_defined()) {
             continue;
         }
@@ -1154,11 +1154,15 @@ Interval convert_nfm_union_domain_to_halide_interval(
         if (bound.has_lower_bound()) {
             const auto& iter = lower_bounds_temp.find(bound.lb);
             if (iter != lower_bounds_temp.end()) {
-                //std::cout << "  lb: " << bound.lb << "; cond: " <<  lower_bounds_temp[bound.lb] << "\n";
-                if (iter->second.defined()) {
-                    iter->second = Or::make(bound.condition, iter->second);
+                std::cout << "  lb: " << bound.lb << "; cond: " <<  lower_bounds_temp[bound.lb] << "\n";
+                //TODO: might want to revisit this later, to make sure we always get the correct result
+                // If condition is undefined, it means universe. Everything
+                // OR with universe is a universe
+                if (!iter->second.defined() || !bound.condition.defined()) {
+                    iter->second = Expr();
                 } else {
-                    iter->second = bound.condition;
+                    assert(iter->second.defined() && bound.condition.defined());
+                    iter->second = Or::make(bound.condition, iter->second);
                 }
             } else {
                 lower_bounds_temp.emplace(bound.lb, bound.condition);
@@ -1168,11 +1172,15 @@ Interval convert_nfm_union_domain_to_halide_interval(
         if (bound.has_upper_bound()) {
             auto iter = upper_bounds_temp.find(bound.ub);
             if (iter != upper_bounds_temp.end()) {
-                //std::cout << "  ub: " << bound.ub << "; cond: " <<  upper_bounds_temp[bound.ub] << "\n";
-                if (iter->second.defined()) {
-                    iter->second = Or::make(bound.condition, iter->second);
+                std::cout << "  ub: " << bound.ub << "; cond: " <<  upper_bounds_temp[bound.ub] << "\n";
+                //TODO: might want to revisit this later, to make sure we always get the correct result
+                // If condition is undefined, it means universe. Everything
+                // OR with universe is a universe
+                if (!iter->second.defined() || !bound.condition.defined()) {
+                    iter->second = Expr();
                 } else {
-                    iter->second = bound.condition;
+                    assert(iter->second.defined() && bound.condition.defined());
+                    iter->second = Or::make(bound.condition, iter->second);
                 }
             } else {
                 upper_bounds_temp.emplace(bound.ub, bound.condition);
@@ -1325,10 +1333,14 @@ Box convert_nfm_union_domain_to_halide_box(
                 const auto& iter = lower_bounds_temp.find(bound.lb);
                 if (iter != lower_bounds_temp.end()) {
                     //std::cout << "  lb: " << bound.lb << "; cond: " <<  lower_bounds_temp[bound.lb] << "\n";
-                    if (iter->second.defined()) {
-                        iter->second = Or::make(bound.condition, iter->second);
+                    //TODO: might want to revisit this later, to make sure we always get the correct result
+                    // If condition is undefined, it means universe. Everything
+                    // OR with universe is a universe
+                    if (!iter->second.defined() || !bound.condition.defined()) {
+                        iter->second = Expr();
                     } else {
-                        iter->second = bound.condition;
+                        assert(iter->second.defined() && bound.condition.defined());
+                        iter->second = Or::make(bound.condition, iter->second);
                     }
                 } else {
                     lower_bounds_temp.emplace(bound.lb, bound.condition);
@@ -1339,10 +1351,14 @@ Box convert_nfm_union_domain_to_halide_box(
                 auto iter = upper_bounds_temp.find(bound.ub);
                 if (iter != upper_bounds_temp.end()) {
                     //std::cout << "  ub: " << bound.ub << "; cond: " <<  upper_bounds_temp[bound.ub] << "\n";
-                    if (iter->second.defined()) {
-                        iter->second = Or::make(bound.condition, iter->second);
+                    //TODO: might want to revisit this later, to make sure we always get the correct result
+                    // If condition is undefined, it means universe. Everything
+                    // OR with universe is a universe
+                    if (!iter->second.defined() || !bound.condition.defined()) {
+                        iter->second = Expr();
                     } else {
-                        iter->second = bound.condition;
+                        assert(iter->second.defined() && bound.condition.defined());
+                        iter->second = Or::make(bound.condition, iter->second);
                     }
                 } else {
                     upper_bounds_temp.emplace(bound.ub, bound.condition);

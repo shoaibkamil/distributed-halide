@@ -15,13 +15,6 @@ using std::vector;
 using std::ostringstream;
 using std::map;
 
-bool use_NFM() {
-	    char *e = getenv("HL_USE_NFM");
-	        // disable = 0 => return true
-	        // disable != 0 => return false
-	        return !e || atoi(e) == 0;
-}
-
 string unique_name(char prefix) {
     // arrays with static storage duration should be initialized to zero automatically
     static int instances[256];

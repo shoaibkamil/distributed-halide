@@ -47,8 +47,7 @@ Expr Cast::make(Type t, Expr v) {
 }
 
 Expr Add::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "Add of undefined; a: " << a << "; b: "
-        << b << "; b.type: " << b.type() << "\n";
+    internal_assert(a.defined()) << "Add of undefined\n";
     internal_assert(b.defined()) << "Add of undefined\n";
     internal_assert(a.type() == b.type()) << "Add of mismatched types\n";
 
@@ -196,8 +195,7 @@ Expr GT::make(Expr a, Expr b) {
 Expr GE::make(Expr a, Expr b) {
     internal_assert(a.defined()) << "GE of undefined\n";
     internal_assert(b.defined()) << "GE of undefined\n";
-    internal_assert(a.type() == b.type()) << "GE of mismatched types; a: " << a
-        << "; b: " << b << "; a.type: " << a.type() << "; b.type: " << b.type() << "\n";
+    internal_assert(a.type() == b.type()) << "GE of mismatched types\n";
 
     GE *node = new GE;
     node->type = Bool(a.type().lanes());
@@ -222,8 +220,7 @@ Expr And::make(Expr a, Expr b) {
 
 Expr Or::make(Expr a, Expr b) {
     internal_assert(a.defined()) << "Or of undefined\n"
-        << "Or of mismatched types; a: " << a
-        << "; b: " << b << "; b.type: " << b.type() << "\n";
+        << "a: " << a << "; b: " << b << "\n";
     internal_assert(b.defined()) << "Or of undefined\n";
     internal_assert(a.type().is_bool()) << "lhs of Or is not a bool\n";
     internal_assert(b.type().is_bool()) << "rhs of Or is not a bool\n";

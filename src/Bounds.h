@@ -8,7 +8,6 @@
 
 #include "IROperator.h"
 #include "Scope.h"
-#include "Util.h"
 
 namespace Halide {
 namespace Internal {

@@ -371,7 +371,10 @@ void test() {
     //Expr expr = EQ::make(w, max(min(x, y), z) + 1 - min(min(z, y-1), 3));
     //Expr expr = GE::make(w, max(max(x, y), z)+1);
     //Expr expr = w >= min(select((s < ((y + (z*4)) + 3)), ((s + x) + -2), ((((z*4) + y) + x) + 1)), ((min(((z*4) + y), (s + -3)) + x) + 1));
-    Expr expr = w >= min(min(((x + y) + (z*4)), ((x + s) + -3)), ((min(((z*4) + y), (s + -3)) + x) + 1));
+    //Expr expr = w >= min(min(((x + y) + (z*4)), ((x + s) + -3)), ((min(((z*4) + y), (s + -3)) + x) + 1));
+    //Expr expr = min(select((y < x), (y + -2), (x + -3)), (min(y, (x + -1)) + -2)) <= w;
+    Expr expr = w <= max(((min(((((y - x) + 2)/2)*2), -1) + y) + 1), y);
+    //Expr expr = select(!z, min((x + -1), y), y) <= w;
     Expr simplified_expr = simplify_expr(expr, loop_dims);
 }
 
@@ -379,9 +382,9 @@ int main(int argc, const char **argv) {
     //example_expr();
     //example_interval();
     //simplify_interval_test();
-    //test();
+    test();
     //boxes_merge_test();
-    boxes_overlap_test();
+    //boxes_overlap_test();
     //box_encloses_test();
     return 0;
 }

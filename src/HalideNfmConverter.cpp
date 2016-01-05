@@ -370,6 +370,17 @@ private:
         select_vals.swap(result);
     }
 
+    void visit(const Variable* op) {
+        // Sometime we have the following case: select(x, 10, 2) where x is a
+        // boolean. Need to convert the condition into a equality (select(x==1, 10, 2))
+        // when converting into NFM
+        if (op->type.is_bool()) {
+            expr = (Variable::make(Int(32), op->name) == 1);
+        } else {
+            HalideNfmConverter::visit(op);
+        }
+    }
+
     void visit(const FloatImm *op) {
         // Float has to actually be an integer, e.g. 10.0f
         //debug(0) << "FloatImm: " << op->value << "\n";
@@ -753,6 +764,8 @@ private:
             // !(!a) -> a
             expr = mutate(not_a->a);
         } else {
+            debug(0) << "Not: !(" << op->a << ")\n";
+            debug(0) << "a.type: " << op->a.type() << "\n";
             expr = Not::make(a);
         }
         //debug(0) << "  Not result: " << (expr) << "\n";

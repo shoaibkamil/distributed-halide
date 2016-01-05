@@ -1,17 +1,33 @@
+CONVERTING (min(int32((float32(f.s0.x.min)/min(max(p, 1.000000f), 10.000000f))), g.s0.x.min) <= _interval$63)
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:198 triggered by user code at /home/psuriana/distributed-halide/test/correctness_parameter_constraints.cpp:31:
+Condition failed: a.type() == b.type()
+GE of mismatched types; a: p; b: 1; a.type: float32; b.type: int32
+
+
+
 cascaded_filters -> modulus
+
+correctness_memoize: /home/psuriana/distributed-halide/src/HalideNfmConverter.cpp:461: virtual void Halide::Internal::{anonymous}::ConvertToIneqs::visit(const Halide::Internal::Mod*): Assertion `false' failed.
+bash: line 1: 13808 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_memoize
+CONVERTING (min((f$12.s0.y$10 % 4), count_calls$10.s0.e27.min) <= _interval$3786)
 
 correctness_many_dimensions: /home/psuriana/distributed-halide/src/HalideNfmConverter.cpp:458: virtual void Halide::Internal::{anonymous}::ConvertToIneqs::visit(const Halide::Internal::Mod*): Assertion `false' failed
 
-/home/psuriana/distributed-halide/bin/correctness_chunk_sharing: Permission denied
 
-Internal error at /home/psuriana/distributed-halide/src/Bounds.cpp:711 triggered by user code at /home/psuriana/distributed-halide/test/correctness/likely.cpp:74:
-Bounds of vectorbash: line 1: 16710 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_likely
 
-Internal error at /home/psuriana/distributed-halide/src/Bounds.cpp:711 triggered by user code at /home/psuriana/distributed-halide/test/correctness/partition_loops_bug.cpp:32:
-Bounds of vectorbash: line 1: 19780 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_partition_loops_bug
+Error at /home/psuriana/distributed-halide/test/correctness_extern_bounds_inference.cpp:103:
+ConvertToIneqs only handle ceil_f32 or floor_f32: extract_buffer_min
+
+Error at /home/psuriana/distributed-halide/test/correctness_many_small_extern_stages.cpp:81:
+ConvertToIneqs only handle ceil_f32 or floor_f32: extract_buffer_min
+
+Error at /home/psuriana/distributed-halide/test/correctness_skip_stages_external_array_functions.cpp:74:
+ConvertToIneqs only handle ceil_f32 or floor_f32: extract_buffer_min
 
 Error at /home/psuriana/distributed-halide/test/correctness/dynamic_reduction_bounds.cpp:16:
 ConvertToIneqs only handle ceil_f32 or floor_f32: sqrt_f32
+
+
 
 Error at /home/psuriana/distributed-halide/test/correctness/compute_at_split_rvar.cpp:33:
 Output buffer g is accessed at 10, which is beyond the max (9) in dimension 0
@@ -27,6 +43,8 @@ Output buffer f$4 is accessed at 102, which is beyond the max (99) in dimension 
 
 Error at /home/psuriana/distributed-halide/test/correctness/reorder_rvars.cpp:64:
 Output buffer sat is accessed at 102, which is beyond the max (99) in dimension 0
+
+
 
 correctness_compute_outermost
 Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness/compute_outermost.cpp:38:
@@ -51,61 +69,48 @@ Add of undefined
 bash: line 1: 16040 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_interleave
 convert_constraint_to_nfm_helper: ((((((((((interleaved.s0.y.max - interleaved.s0.y.min) + 1)*((interleaved.s0.x.max - interleaved.s0.x.min) + 1)) + -1)/12)*12) + 11)/((interleaved.s0.y.max - interleaved.s0.y.min) + 1)) + interleaved.s0.x.min) - _interval$5020)
 
-
-
-bash: line 1: 12764 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_extern_bounds_inference
-
-bash: line 1: 12995 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_extern_consumer
-make: *** [correctness_extern_consumer] Error 139
-
-bash: line 1: 13209 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_extern_error
-make: *** [correctness_extern_error] Error 139
-
-bash: line 1: 17337 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/
-distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_many_small_extern_stages
-
-bash: line 1: 17663 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_memoize
-
-bash: line 1: 19997 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_pipeline_set_jit_externs_func
-
-bash: line 1: 22102 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_skip_stages_external_array_functions
-
-
-
-Error at /home/psuriana/distributed-halide/test/correctness/multipass_constraints.cpp:33:
-Inferring input bounds on Pipeline didn't converge after 16 iterations. There may be unsatisfiable constraints
-bash: line 1: 18057 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_multipass_constraints
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness_split_fuse_rvar.cpp:22:
+Condition failed: a.defined()
+Add of undefined
+convert_constraint_to_nfm_helper: ((((((((((g.s1.r.x$r.max - g.s1.r.x$r.min) + 1)*((g.s1.r.y$r.max - g.s1.r.y$r.min) + 1)) + -1)/2)*2) + 1)/((g.s1.r.x$r.max - g.s1.r.x$r.min) + 1)) + g.s1.r.y$r.min) - _interval$149)
 
 Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness/parallel_rvar.cpp:36:
 Condition failed: a.defined()
 Add of undefined
 convert_constraint_to_nfm_helper: (((((((((f[0].s1.r.x$r.max - f[0].s1.r.x$r.min) + 4)/4)*(((f[0].s1.r.y$r.max - f[0].s1.r.y$r.min) + 2)/2)) + -1)/(((f[0].s1.r.x$r.max - f[0].s1.r.x$r.min) + 4)/4))*2) + f[0].s1.r.y$r.min) - (_interval$178 + -1))
 
-Internal error at /home/psuriana/distributed-halide/src/IR.cpp:198 triggered by user code at /home/psuriana/distributed-halide/test/correctness_parameter_constraints.cpp:31:
-Condition failed: a.type() == b.type()
-GE of mismatched types; a: p; b: 1; a.type: float32; b.type: int32
+
+
+Internal error at /home/psuriana/distributed-halide/src/Bounds.cpp:711 triggered by user code at /home/psuriana/distributed-halide/test/correctness/likely.cpp:74:
+Bounds of vectorbash: line 1: 16710 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_likely
+
+
+Error at /home/psuriana/distributed-halide/test/correctness/multipass_constraints.cpp:33:
+Inferring input bounds on Pipeline didn't converge after 16 iterations. There may be unsatisfiable constraints
+bash: line 1: 18057 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_multipass_constraints
+
+
 
 Internal error at /home/psuriana/distributed-halide/src/IR.cpp:222 triggered by user code at /home/psuriana/distributed-halide/test/correctness_reduction_chain.cpp:27:
 Condition failed: a.defined()
 Or of undefined
+CONVERTING (min(select((out.s0.y.min < out.s0.x.min), (out.s0.y.min + -2), (out.s0.x.min + -3)), (min(out.s0.y.min, (out.s0.x.min + -1)) + -2)) <= _interval$965)
 
-Internal error at /home/psuriana/distributed-halide/src/IR.cpp:222 triggered by user code at /home/psuriana/distributed-halide/test/correctness/sliding_reduction.cpp:109:
+
+Internal error at /home/psuriana/distributed-halide/src/IR.cpp:222 triggered by user code at /home/psuriana/distributed-halide/test/correctness_sliding_reduction.cpp:109:
 Condition failed: a.defined()
 Or of undefined
 bash: line 1: 22376 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_sliding_reduction
+CONVERTING (_interval$2934 <= max(((min(((((g$3.s0.y.max - g$3.s0.y.min) + 2)/2)*2), -1) + g$3.s0.y.max) + 1), g$3.s0.y.max))
 
-Internal error at /home/psuriana/distributed-halide/src/HalideNfmConverter.cpp:130 triggered by user code at /home/psuriana/distributed-halide/test/correctness/specialize.cpp:187:
+
+Internal error at /home/psuriana/distributed-halide/src/HalideNfmConverter.cpp:130 triggered by user code at /home/psuriana/distributed-halide/test/correctness_specialize.cpp:187:
 HalideNfmConverter can't handle Not
 bash: line 1: 22785 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_specialize
 CONVERTING (select(!param$2, min((out$2.s0.x$2.min + -1), f2.s0.x$2.min), f2.s0.x$2.min) <= _interval$339)
 
-Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness_split_fuse_rvar.cpp:22:
-Condition failed: a.defined()
-Add of undefined
-convert_constraint_to_nfm_helper: ((((((((((g.s1.r.x$r.max - g.s1.r.x$r.min) + 1)*((g.s1.r.y$r.max - g.s1.r.y$r.min) + 1)) + -1)/2)*2) + 1)/((g.s1.r.x$r.max - g.s1.r.x$r.min) + 1)) + g.s1.r.y$r.min) - _interval$149)
 
-
-Warning at /home/psuriana/distributed-halide/test/correctness/vector_math.cpp:264:
+Warning at /home/psuriana/distributed-halide/test/correctness_vector_math.cpp:264:
 This pipeline is guaranteed to fail an assertion at runtime:
 assert((uint1)0, halide_error_access_out_of_bounds("Output buffer f6", 0, f6.min.0, ((f6.min.0 + f6.extent.0) + 2), f6.min.0, ((f6.min.0 + f6.extent.0) + -1)))
 Warning at /home/psuriana/distributed-halide/test/correctness/vector_math.cpp:264:
