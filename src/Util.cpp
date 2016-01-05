@@ -16,10 +16,8 @@ using std::ostringstream;
 using std::map;
 
 bool use_NFM() {
-	    char *e = getenv("HL_USE_NFM");
-	        // disable = 0 => return true
-	        // disable != 0 => return false
-	        return !e || atoi(e) == 0;
+    char *e = getenv("HL_USE_NFM");
+    return (atoi(e) == 1);
 }
 
 string unique_name(char prefix) {

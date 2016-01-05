@@ -13,5 +13,5 @@ else
 	cd -
 	cd $APP
 	WITH_MPI=1 make -j3 -B distributed_${APP}
-	HL_DEBUG_CODEGEN=1 ./distributed_${APP} 512 512 512
+	HL_USE_NFM=1 HL_DEBUG_CODEGEN=1 ./distributed_${APP} 512 512 512
 fi

@@ -1,9 +1,11 @@
 #include <iostream>
 #include <sstream>
+#include <math.h>
 
 #include "IRPrinter.h"
 #include "IROperator.h"
 #include "Module.h"
+#include "Util.h"
 
 namespace Halide {
 
@@ -228,15 +230,32 @@ void IRPrinter::visit(const UIntImm *op) {
 }
 
 void IRPrinter::visit(const FloatImm *op) {
-  switch (op->type.bits()) {
+
+ /* If NFM is used, and if the decimal part of op->value
+    is 0, then do not print the decimal part of op->value.
+    This is needed by the NFM library, since NFM expects
+    its input to be integers.
+  */
+ long integer_format = (long) (op->value);
+
+ switch (op->type.bits()) {
     case 64:
-        stream << op->value;
+	if (use_NFM() && (op->value == integer_format))
+		stream << integer_format;
+	else
+	        stream << op->value;
         break;
     case 32:
-        stream << op->value << 'f';
+	if (use_NFM() && (op->value == integer_format))
+		stream << integer_format;
+	else
+		stream << op->value << 'f';
         break;
     case 16:
-        stream << op->value << 'h';
+	if (use_NFM() && (op->value == integer_format))
+		stream << integer_format;
+	else
+	        stream << op->value << 'h';
         break;
     default:
         internal_error << "Bad bit-width for float: " << op->type << "\n";
