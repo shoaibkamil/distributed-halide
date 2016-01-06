@@ -473,14 +473,14 @@ private:
     }
 
     void visit(const Min *op) {
-        //debug(0) << "Min: (" << op->a << ") and (" << op->b << ")\n";
+        debug(0) << "Min: (" << op->a << ") and (" << op->b << ")\n";
         Expr new_expr = convert_select_helper(op, op->a.as<Select>(), op->b.as<Select>());
         if (new_expr.defined()) {
             expr = mutate(new_expr);
             return;
         }
         visit_helper_minmax(op, true);
-        //debug(0) << "Min: (" << op->a << ") and (" << op->b << "); RESULT: " << expr << "\n";
+        debug(0) << "Min: (" << op->a << ") and (" << op->b << "); \n  RESULT: " << expr << "\n";
     }
 
     void visit(const Max *op) {
@@ -556,7 +556,7 @@ private:
 
     void visit(const LE *op) {
         // Convert: a <= b into b - a >= 0
-        //debug(0) << "LE: (" << op->a << ") <= (" << op->b << ")\n";
+        debug(0) << "LE: (" << op->a << ") <= (" << op->b << ")\n";
         Expr new_expr = convert_select_helper(op, op->a.as<Select>(), op->b.as<Select>());
         if (new_expr.defined()) {
             expr = mutate(new_expr);
@@ -577,6 +577,7 @@ private:
         } else {
             expr = mutate(GE::make(op->b, op->a));
         }
+        debug(0) << "LE: (" << op->a << ") <= (" << op->b << "); \n  RESULT: " << expr << "\n";
     }
 
     void visit(const GT *op) {
@@ -606,7 +607,7 @@ private:
 
     void visit(const GE *op) {
         // Convert: a >= b into a - b >= 0
-        //debug(0) << "GE: (" << op->a << ") >= (" << op->b << ")\n";
+        debug(0) << "GE: (" << op->a << ") >= (" << op->b << ")\n";
         Expr new_expr = convert_select_helper(op, op->a.as<Select>(), op->b.as<Select>());
         if (new_expr.defined()) {
             expr = mutate(new_expr);
@@ -708,6 +709,7 @@ private:
                 visit_helper_ineq(op);
             }
         }
+        debug(0) << "GE: (" << op->a << ") >= (" << op->b << "); \n  RESULT: " << expr << "\n";
     }
 
     void visit(const And *op) {

@@ -758,7 +758,7 @@ void convert_to_value_helper(
             temp1 = ands[i];
         }
     }
-    //std::cout << "    temp1: " << temp1 << "\n";
+    std::cout << "    temp1: " << temp1 << "\n";
     temp1 = simplify(temp1);
     //std::cout << "    simplify temp1: " << temp1 << "\n";
 
@@ -768,7 +768,7 @@ void convert_to_value_helper(
     } else {
         temp2 = convert_to_let_helper(ands, n_ineqs_lets, value);
     }
-    //std::cout << "    temp2: " << temp2 << "\n";
+    std::cout << "    temp2: " << temp2 << "\n";
     temp2 = simplify(temp2);
     //std::cout << "    simplify temp2: " << temp2 << "\n";
 
@@ -816,7 +816,7 @@ Expr convert_to_value(const vector<string>& sym_const_vars, const vector<string>
         value = simplify(iter->first);*/
         condition = iter->second;
         value = iter->first;
-        //std::cout << "   cond: " << condition << "; value: " << value << "\n";
+        std::cout << "   cond: " << condition << "; value: " << value << "\n";
         assert(!expr.defined());
         /*if (is_lower_bound) {
             expr = value.type().min();
@@ -834,7 +834,7 @@ Expr convert_to_value(const vector<string>& sym_const_vars, const vector<string>
         value = simplify(iter->first);*/
         condition = iter->second;
         value = iter->first;
-        //std::cout << "   cond: " << condition << "; value: " << value << "\n";
+        std::cout << "   cond: " << condition << "; value: " << value << "\n";
         assert(expr.defined());
         expr = select(condition, value, expr);
         ++iter;
@@ -846,7 +846,7 @@ Expr convert_to_value(const vector<string>& sym_const_vars, const vector<string>
             value = simplify(iter->first);*/
             condition = iter->second;
             value = iter->first;
-            //std::cout << "   cond: " << condition << "; value: " << value << "\n";
+            std::cout << "   cond: " << condition << "; value: " << value << "\n";
             assert(expr.defined());
             expr = select(condition, value, expr);
         }
@@ -1194,7 +1194,7 @@ Interval convert_nfm_union_domain_to_halide_interval(
     // Map from condition to upper bound
     map<Expr, Expr, IRDeepCompare> upper_bounds;
     for (auto& it : lower_bounds_temp) { // it (value, condition)
-        //std::cout << "  lb: " << it.first << "; cond: " <<  it.second << "\n";
+        std::cout << "  lb: " << it.first << "; cond: " <<  it.second << "\n";
         auto iter = lower_bounds.find(it.second);
         if (iter != lower_bounds.end()) {
             // Halide can only represent box bound; need to take the bounding box
@@ -1205,7 +1205,7 @@ Interval convert_nfm_union_domain_to_halide_interval(
         }
     }
     for (auto& it : upper_bounds_temp) { // it (value, condition)
-        //std::cout << "  ub: " << it.first << "; cond: " <<  it.second << "\n";
+        std::cout << "  ub: " << it.first << "; cond: " <<  it.second << "\n";
         auto iter = upper_bounds.find(it.second);
         if (iter != upper_bounds.end()) {
             // Halide can only represent box bound; need to take the bounding box
@@ -1252,8 +1252,8 @@ Interval convert_nfm_union_domain_to_halide_interval(
         result.max = convert_to_value(coeff_space.get_names(), space.get_names(),
                                       upper_bounds, false, let_assignments);
     }
-    //debug(0) << "\nresult.min: " << result.min << "\n";
-    //debug(0) << "result.max: " << result.max << "\n";
+    debug(0) << "\nresult.min: " << result.min << "\n";
+    debug(0) << "result.max: " << result.max << "\n";
     result.min = simplify(result.min); // NOTE: Simplify sometimes give odd-looking results
     result.max = simplify(result.max);
     return result;

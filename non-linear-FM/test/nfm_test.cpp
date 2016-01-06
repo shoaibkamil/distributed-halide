@@ -843,7 +843,7 @@ int main(int argc, char **argv) {
         "max(max(max(s, u), u), max(max(max(min((((y - x)/2)*2) + x, y - 1) + 1, 3), x), u)) + 1"
         "- min(min(min(z, t), t), min(min(min(min(x, y-1) + 0, 3), z), t))}";*/
 
-    std::string str = "{[x, y] : (1<=x<=3 and 1<=y<=2) or (2<=x<=4 and 1<=y<=3)}";
+    std::string str = "{[x, y, w] : w <= max(((min((((y - x + 2)/2)*2), -1) + y) + 1), y)}";
     isl_set *set = isl_set_read_from_str(ctx, str.c_str());
     //printf("set size: %d\n", isl_set_n_basic_set(set));
     //printf("is universe? %d\n", isl_set_plain_is_universe(set));
@@ -870,7 +870,7 @@ int main(int argc, char **argv) {
     //test_dom_equal(ctx);
     //test_poly_term(ctx);
     //test_poly_compare(ctx);
-    test_redundant(ctx);
+    //test_redundant(ctx);
     isl_ctx_free(ctx);
 
     return 0;
