@@ -145,8 +145,33 @@ public:
         Expr cond;
         Expr val;
     };
+
+    Expr get_result() {
+        if (result.defined()) {
+            return result;
+        }
+        result = expr;
+        for (auto& cst : additional_constraints) {
+            result = result && cst;
+        }
+        return result;
+    }
+
+    const vector<string>& get_additional_sym_consts() const {
+        return additional_sym_consts;
+    }
+
+    const map<string, Expr>& get_substitutions() const {
+        return expr_substitutions;
+    }
+
 private:
     vector<ConditionVal> select_vals; // Disjuction of values (ORs)
+    vector<Expr> additional_constraints;
+    vector<string> additional_sym_consts;
+    map<string, Expr> expr_substitutions;
+
+    Expr result;
 
     using HalideNfmConverter::visit;
 
@@ -389,19 +414,37 @@ private:
     }
 
     void visit(const Cast *op) {
-        // Do nothing. Cast the div to float_32 when converting from nfm back
-        // to halide
-        expr = mutate(op->value);
+        //debug(0) << "Cast " << op->type << ": " << op->value << "\n";
+        if (op->type.is_int() && (op->value.as<IntImm>() != NULL)) {
+            expr = mutate(op->value);
+        } else {
+            assert(op->type.is_int());
+            Expr val = Cast::make(op->type, op->value);
+            string var_name = unique_name("_cast");
+            additional_sym_consts.push_back(var_name);
+            Expr var = Variable::make(Int(32), var_name);
+            expr_substitutions.emplace(var_name, val);
+            expr = var;
+        }
     }
 
     // Only handle call to ceil_f32 or floor_f32 (single argument). We do
     // nothing about the ceil or floor at this stage. We'll add the ceil/floor
     // back during the conversion from nfm to halide.
     void visit(const Call *op) {
-        user_assert((op->name == "ceil_f32") || (op->name == "floor_f32"))
+        /*user_assert((op->name == "ceil_f32") || (op->name == "floor_f32"))
             << "ConvertToIneqs only handle ceil_f32 or floor_f32: " << op->name << "\n";
         user_assert(op->args.size() == 1) << "op->args.size(): " << op->args.size() << "\n";
-        expr = mutate(op->args[0]);
+        expr = mutate(op->args[0]);*/
+
+        //debug(0) << "Call: " << op->name << "\n";
+        Expr val = Call::make(op->type, op->name, op->args, op->call_type, op->func,
+            op->value_index, op->image, op->param);
+        string var_name = unique_name("_call");
+        additional_sym_consts.push_back(var_name);
+        Expr var = Variable::make(Int(32), var_name);
+        expr_substitutions.emplace(var_name, val);
+        expr = var;
     }
 
     template <typename T>
@@ -464,23 +507,43 @@ private:
             expr = mutate(new_expr);
             return;
         }
-        visit_helper_arithmetic(op);
+        //visit_helper_arithmetic(op);
+
+        Expr val = Div::make(op->a, op->b);
+
+        // Normalize division, e.g convert w >= y/c for example into the following:
+        // (w >= t) and (c*t <= y <= c*t + c - 1). NOTE: c has to be symbolic constant
+        // and positive. Division is equivalent to floor function
+        // TODO: Expand this to handle the case when c is not symbolic constant and
+        // is not positive
+        string var_name = unique_name("_div");
+        additional_sym_consts.push_back(var_name);
+        Expr var = Variable::make(Int(32), var_name);
+        //additional_constraints.push_back(num - denom*var >= 0);
+        //additional_constraints.push_back(denom*var + denom - 1 - num >= 0);
+        expr_substitutions.emplace(var_name, val);
+        expr = var;
     }
 
     void visit(const Mod *op) {
         //TODO: handle modulus (q = floor(op->a/op->b), result = op->a-q*op->b)
-        assert(false);
+        Expr val = Mod::make(op->a, op->b);
+        string var_name = unique_name("_mod");
+        additional_sym_consts.push_back(var_name);
+        Expr var = Variable::make(Int(32), var_name);
+        expr_substitutions.emplace(var_name, val);
+        expr = var;
     }
 
     void visit(const Min *op) {
-        debug(0) << "Min: (" << op->a << ") and (" << op->b << ")\n";
+        //debug(0) << "Min: (" << op->a << ") and (" << op->b << ")\n";
         Expr new_expr = convert_select_helper(op, op->a.as<Select>(), op->b.as<Select>());
         if (new_expr.defined()) {
             expr = mutate(new_expr);
             return;
         }
         visit_helper_minmax(op, true);
-        debug(0) << "Min: (" << op->a << ") and (" << op->b << "); \n  RESULT: " << expr << "\n";
+        //debug(0) << "Min: (" << op->a << ") and (" << op->b << "); \n  RESULT: " << expr << "\n";
     }
 
     void visit(const Max *op) {
@@ -556,7 +619,7 @@ private:
 
     void visit(const LE *op) {
         // Convert: a <= b into b - a >= 0
-        debug(0) << "LE: (" << op->a << ") <= (" << op->b << ")\n";
+        //debug(0) << "LE: (" << op->a << ") <= (" << op->b << ")\n";
         Expr new_expr = convert_select_helper(op, op->a.as<Select>(), op->b.as<Select>());
         if (new_expr.defined()) {
             expr = mutate(new_expr);
@@ -577,7 +640,7 @@ private:
         } else {
             expr = mutate(GE::make(op->b, op->a));
         }
-        debug(0) << "LE: (" << op->a << ") <= (" << op->b << "); \n  RESULT: " << expr << "\n";
+        //debug(0) << "LE: (" << op->a << ") <= (" << op->b << "); \n  RESULT: " << expr << "\n";
     }
 
     void visit(const GT *op) {
@@ -607,7 +670,7 @@ private:
 
     void visit(const GE *op) {
         // Convert: a >= b into a - b >= 0
-        debug(0) << "GE: (" << op->a << ") >= (" << op->b << ")\n";
+        //debug(0) << "GE: (" << op->a << ") >= (" << op->b << ")\n";
         Expr new_expr = convert_select_helper(op, op->a.as<Select>(), op->b.as<Select>());
         if (new_expr.defined()) {
             expr = mutate(new_expr);
@@ -709,7 +772,7 @@ private:
                 visit_helper_ineq(op);
             }
         }
-        debug(0) << "GE: (" << op->a << ") >= (" << op->b << "); \n  RESULT: " << expr << "\n";
+        //debug(0) << "GE: (" << op->a << ") >= (" << op->b << "); \n  RESULT: " << expr << "\n";
     }
 
     void visit(const And *op) {
@@ -766,8 +829,6 @@ private:
             // !(!a) -> a
             expr = mutate(not_a->a);
         } else {
-            debug(0) << "Not: !(" << op->a << ")\n";
-            debug(0) << "a.type: " << op->a.type() << "\n";
             expr = Not::make(a);
         }
         //debug(0) << "  Not result: " << (expr) << "\n";
@@ -1199,8 +1260,9 @@ private:
     }
 
     void visit(const Div *op) {
+        internal_error << "DistributeMul: can't handle Div\n";
         //std::cout << "Div: (" << op->a << ")/(" << op->b << "\n";
-        first_entry = false;
+        /*first_entry = false;
         result.clear();
         vector<Expr> a_result;
         vector<Expr> b_result;
@@ -1243,7 +1305,7 @@ private:
             }
         } else{
             expr = make_zero(a.type());
-        }
+        }*/
     }
 };
 
@@ -1297,33 +1359,15 @@ public:
 
     ConvertToNfmStructs(Expr e, const vector<string>& sym_const, const vector<string>& dim)
                         : in_expr(e), dim_names(dim), sym_const_names(sym_const) {
-        ostringstream stream;
         for (size_t i = 0; i < dim_names.size(); ++i) {
             dim_to_idx[dim_names[i]] = i;
-            stream << dim_names[i];
-            if (i != dim_names.size()) {
-                stream << ",";
-            }
         }
-        dim_names_str = stream.str();
-
-        stream.clear();
         for (size_t i = 0; i < sym_const_names.size(); ++i) {
             sym_const_to_idx[sym_const_names[i]] = i;
-            stream << sym_const_names[i];
-            if (i != sym_const_names.size()) {
-                stream << ",";
-            }
         }
-        sym_const_names_str = stream.str();
     }
 
-    string get_dim_names_str() const { return dim_names_str; }
-    string get_sym_const_names_str() const { return sym_const_names_str; }
-
     NfmUnionDomain convert_to_nfm() {
-        debug(0) << "CONVERTING " << in_expr << "\n\n";
-
         NfmUnionDomain union_dom(sym_const_names, dim_names);
         if (!in_expr.defined() || is_one(in_expr)) { // Undefined expression -> no constraint (universe)
             NfmDomain domain(sym_const_names, dim_names);
@@ -1336,7 +1380,12 @@ public:
 
         // Convert into (in-)equalities
         ConvertToIneqs convert;
-        Expr ineqs_expr = convert.mutate(in_expr);
+        convert.mutate(in_expr);
+        expr_substitutions = std::move(convert.get_substitutions());
+        for (auto& str : convert.get_additional_sym_consts()) {
+            insert_sym_const(str);
+        }
+        Expr ineqs_expr = convert.get_result();
 
         /*{
             SplitOrs split;
@@ -1367,19 +1416,19 @@ public:
         vector<vector<Expr>> dnf = split.result;
         assert(dnf.size() > 0);
 
-        debug(0) << "DNF " << dnf.size() << "\n";
+        /*debug(0) << "DNF " << dnf.size() << "\n";
         for (const auto& ands : dnf) {
             for (auto& e : ands) {
                 std::cout << "(" << simplify(e) << ") and ";
             }
             std::cout << "\n";
-        }
+        }*/
 
         for (const auto& ands : dnf) { // For each disjunctive constraint set
-            debug(0) << "DNF CONSTRAINT: " << "\n";
+            //debug(0) << "DNF CONSTRAINT: " << "\n";
             NfmDomain domain(sym_const_names, dim_names);
             for (const auto& and_term : ands) { // For each constraint within the set
-                debug(0) << "   AND: " << and_term << "\n";
+                //debug(0) << "   AND: " << and_term << "\n";
                 const EQ *eq_a = and_term.as<EQ>();
                 const GE *ge_a = and_term.as<GE>();
                 if (eq_a) { // It's an equality
@@ -1399,13 +1448,14 @@ public:
             //debug(0) << "Domain: \n" << domain.to_string() << "\n\n";
             union_dom.add_domain(std::move(domain));
         }
+        union_dom.update_coeff_space(std::move(NfmSpace(sym_const_names)));
         //debug(0) << "\nUnion Domain (" << union_dom.get_domains().size() << "): \n" << union_dom.to_string() << "\n\n";
-        debug(0) << "\nUnion Domain (" << union_dom.get_domains().size() << ")\n";
+        /*debug(0) << "\nUnion Domain (" << union_dom.get_domains().size() << ")\n";
         union_dom.sort();
         for (const auto& dom : union_dom.get_domains()) {
             debug(0) << dom << "\n";
         }
-        debug(0) << "\n";
+        debug(0) << "\n";*/
 
         //NfmUnionDomain simplified_isl = union_dom.simplify();
         //debug(0) << "Union Domain (AFTER SIMPLIFY using ISL) (" << simplified_isl.get_domains().size() << "): \n" << simplified_isl.to_string() << "\n";
@@ -1418,14 +1468,18 @@ public:
 
         NfmUnionDomain simplified_union_dom = NfmSolver::nfm_union_domain_simplify(union_dom);
         //debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n" << simplified_union_dom.to_string() << "\n\n";
-        debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
+        /*debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
         simplified_union_dom.sort();
         for (const auto& dom : simplified_union_dom.get_domains()) {
             debug(0) << dom << "\n";
             debug(0) << "    Context: " << dom.get_context_domain() << "\n";
         }
-        debug(0) << "\n\n";
+        debug(0) << "\n\n";*/
         return simplified_union_dom;
+    }
+
+    const map<string, Expr>& get_expr_substitutions() const {
+        return expr_substitutions;
     }
 
 private:
@@ -1435,12 +1489,12 @@ private:
     using HalideNfmConverter::visit;
 
     Expr in_expr; // Need to convert this into a representable form in NFM
-    const vector<string> dim_names;
-    const vector<string> sym_const_names;
+    vector<string> dim_names;
+    vector<string> sym_const_names;
     map<string, int> dim_to_idx; // Mapping of dim to idx in dim_names
     map<string, int> sym_const_to_idx;  // Mapping of sym const to idx in sym_const_names
-    string dim_names_str; // Loop var from outermost to innermost
-    string sym_const_names_str;
+
+    map<string, Expr> expr_substitutions;
 
     string to_string(const MulTerm& term) {
         ostringstream stream;
@@ -1474,7 +1528,13 @@ private:
         return stream.str();
     }
 
-    int get_dim_idx(string var) {
+    void insert_sym_const(const string& var) {
+        sym_const_names.push_back(var);
+        size_t idx = sym_const_names.size()-1;
+        sym_const_to_idx[var] = idx;
+    }
+
+    int get_dim_idx(const string& var) {
         auto it = dim_to_idx.find(var);
         if (it != dim_to_idx.end()) {
             return it->second;
@@ -1482,7 +1542,7 @@ private:
         return -1;
     }
 
-    int get_sym_const_idx(string var) {
+    int get_sym_const_idx(const string& var) {
         auto it = sym_const_to_idx.find(var);
         if (it != sym_const_to_idx.end()) {
             return it->second;
@@ -1494,7 +1554,7 @@ private:
         mul_term = MulTerm(sym_const_names.size(), dim_names.size());
     }
 
-    void insert_mul_term_mul(string var) {
+    void insert_mul_term_mul(const string& var) {
         int dim_idx = get_dim_idx(var);
         if (dim_idx >= 0) {
             mul_term.insert_dim_mul(dim_idx);
@@ -1504,7 +1564,7 @@ private:
                 // If you can't find it in sym const either, there is a chance that
                 // the simplify function has replaced the var with var.s
                 assert(ends_with(var, ".s"));
-                var = var.substr(0, var.size()-2);
+                string var = var.substr(0, var.size()-2);
                 dim_idx = get_dim_idx(var);
                 if (dim_idx >= 0) {
                     mul_term.insert_dim_mul(dim_idx);
@@ -1512,13 +1572,20 @@ private:
                 } else {
                     sym_idx = get_sym_const_idx(var);
                 }
+                if (sym_idx < 0) {
+                    // If still can't find it, it's probably temp var from division
+                    // normalization. We add it to the end of the sym_vars
+                    sym_const_names.push_back(var);
+                    sym_const_to_idx[var] = sym_const_names.size()-1;
+                    debug(0) << "ConvertToNfmStructs: adding new symbolic constants " << var << "\n";
+                }
             }
             user_assert(sym_idx >= 0) << "insert_mul_term_mul var: " << var << "\n";
             mul_term.insert_sym_const_mul(sym_idx);
         }
     }
 
-    void insert_mul_term_div(string var) {
+    void insert_mul_term_div(const string& var) {
         int dim_idx = get_dim_idx(var);
         if (dim_idx >= 0) {
             mul_term.insert_dim_div(dim_idx);
@@ -1538,7 +1605,7 @@ private:
     }
 
     NfmPoly convert_constraint_to_nfm_helper(Expr lhs, bool is_equality) {
-        debug(0) << "convert_constraint_to_nfm_helper: " << lhs << "\n";
+        //debug(0) << "convert_constraint_to_nfm_helper: " << lhs << "\n";
         // Convert into summation of multiplication term
         DistributeMul dist;
         dist.mutate(lhs);
@@ -1619,14 +1686,15 @@ private:
     // 2 ORs (one for when the divisor is positive and one for negative case)
     // TODO: can't handle this case: 2/(M+N)
     void visit(const Div *op) {
+        internal_error << "ConvertToNfmStructs: can't handle Div\n";
         /*assert(op->b.as<IntImm>() != NULL)
             << "can only handle division by integer\n";*/
         //debug(0) << "Div: (" << op->a << ")/(" << op->b << ")\n";
-        is_div = false;
+        /*is_div = false;
         mutate(op->a);
         is_div = true;
         mutate(op->b);
-        is_div = false;
+        is_div = false;*/
     }
 };
 
@@ -1637,6 +1705,7 @@ void ir_nfm_test() {
     Expr y = Variable::make(Int(32), "y");
     Expr z = Variable::make(Int(32), "z");
     Expr w = Variable::make(Int(32), "w");
+    Expr s = Variable::make(Int(32), "s");
     Expr M = Variable::make(Int(32), "M");
     Expr N = Variable::make(Int(32), "N");
 
@@ -1663,8 +1732,9 @@ void ir_nfm_test() {
 
     ConvertToIneqs convert;
     //Expr expr = Select::make(M >= 0, select(N >= 0, x, y), z);
-    Expr expr = !(min(x,4) < y);
-    std::cout << convert.mutate(expr) << "\n\n";
+    Expr expr = EQ::make(w, (((((((((y - x) + 16)/16)*(((z - s) + 16)/16)) + -1)/(((y - x) + 16)/16))*16) + s) + 15));
+    convert.mutate(expr);
+    std::cout << convert.get_result() << "\n\n";
     /*std::cout << convert.mutate(x) << "\n\n";
     std::cout << convert.mutate(eq_expr) << "\n\n";
     std::cout << convert.mutate(gt_expr) << "\n\n";
@@ -1800,37 +1870,46 @@ Expr convert_interval_to_expr_upper_bound(const Interval& interval) {
 
 NfmUnionDomain convert_halide_interval_to_nfm_union_domain(
         const Interval& interval,
-        const vector<Dim>& loop_dims) {
+        const vector<Dim>& loop_dims,
+        map<string, Expr> *expr_substitutions) {
     Expr expr = convert_interval_to_expr(interval);
-    return convert_halide_expr_to_nfm_union_domain(expr, loop_dims);
+    return convert_halide_expr_to_nfm_union_domain(expr, loop_dims, expr_substitutions);
 }
 
 NfmUnionDomain convert_halide_interval_to_nfm_union_domain(
         const Interval& interval,
         const vector<string>& sym_const,
-        const vector<string>& dim) {
+        const vector<string>& dim,
+        map<string, Expr> *expr_substitutions) {
     Expr expr = convert_interval_to_expr(interval);
-    return convert_halide_expr_to_nfm_union_domain(expr, sym_const, dim);
+    return convert_halide_expr_to_nfm_union_domain(expr, sym_const, dim, expr_substitutions);
 }
 
 
 NfmUnionDomain convert_halide_expr_to_nfm_union_domain(
         const Expr& expr,
-        const vector<Dim>& loop_dims) { // Loop var from innermost to outermost
+        const vector<Dim>& loop_dims,
+        map<string, Expr> *expr_substitutions) { // Loop var from innermost to outermost
     CollectVars collect(loop_dims);
     collect.mutate(expr);
     vector<string> dim = collect.get_dims();
     vector<string> sym_const = collect.get_sym_consts();
-    return convert_halide_expr_to_nfm_union_domain(expr, sym_const, dim);
+    return convert_halide_expr_to_nfm_union_domain(expr, sym_const, dim, expr_substitutions);
 }
 
 NfmUnionDomain convert_halide_expr_to_nfm_union_domain(
         const Expr& expr,
         const vector<string>& sym_const,
-        const vector<string>& dim) {  // Loop var from outermost to innermost
+        const vector<string>& dim,
+        map<string, Expr> *expr_substitutions) {  // Loop var from outermost to innermost
     Expr simplified_expr = simplify(expr);
     ConvertToNfmStructs convert(simplified_expr, sym_const, dim);
     NfmUnionDomain union_dom = convert.convert_to_nfm();
+    if (expr_substitutions != NULL) {
+        for (auto& iter : convert.get_expr_substitutions()) {
+            (*expr_substitutions).emplace(iter.first, iter.second);
+        }
+    }
     return union_dom;
 }
 

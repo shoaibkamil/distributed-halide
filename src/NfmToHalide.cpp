@@ -5,12 +5,12 @@
 #include "NfmToHalide.h"
 
 #include "HalideNfmConverter.h"
-#include "IREquality.h"
 #include "IROperator.h"
 #include "IRPrinter.h"
 #include "Module.h"
 #include "Schedule.h"
 #include "Simplify.h"
+#include "Substitute.h"
 
 namespace Halide {
 namespace Internal {
@@ -159,7 +159,8 @@ vector<T> operator-(const vector<T>& a, const vector<T>& b) {
 
 Expr exponent_to_expr(const vector<int>& p_exp, const vector<Expr>& var) {
     user_assert(p_exp.size() > 0) << "p_exp size should be bigger than 0";
-    assert(p_exp.size() == var.size());
+    user_assert(p_exp.size() == var.size()) << "p_exp.size: " << p_exp.size()
+        << "; var.size: " << var.size() << "\n";
     Expr expr = 1;
     for (size_t i = 0; i < p_exp.size(); ++i) {
         assert(p_exp[i] >= 0);
@@ -758,7 +759,7 @@ void convert_to_value_helper(
             temp1 = ands[i];
         }
     }
-    std::cout << "    temp1: " << temp1 << "\n";
+    //std::cout << "    temp1: " << temp1 << "\n";
     temp1 = simplify(temp1);
     //std::cout << "    simplify temp1: " << temp1 << "\n";
 
@@ -768,7 +769,7 @@ void convert_to_value_helper(
     } else {
         temp2 = convert_to_let_helper(ands, n_ineqs_lets, value);
     }
-    std::cout << "    temp2: " << temp2 << "\n";
+    //std::cout << "    temp2: " << temp2 << "\n";
     temp2 = simplify(temp2);
     //std::cout << "    simplify temp2: " << temp2 << "\n";
 
@@ -816,7 +817,7 @@ Expr convert_to_value(const vector<string>& sym_const_vars, const vector<string>
         value = simplify(iter->first);*/
         condition = iter->second;
         value = iter->first;
-        std::cout << "   cond: " << condition << "; value: " << value << "\n";
+        //std::cout << "   cond: " << condition << "; value: " << value << "\n";
         assert(!expr.defined());
         /*if (is_lower_bound) {
             expr = value.type().min();
@@ -834,7 +835,7 @@ Expr convert_to_value(const vector<string>& sym_const_vars, const vector<string>
         value = simplify(iter->first);*/
         condition = iter->second;
         value = iter->first;
-        std::cout << "   cond: " << condition << "; value: " << value << "\n";
+        //std::cout << "   cond: " << condition << "; value: " << value << "\n";
         assert(expr.defined());
         expr = select(condition, value, expr);
         ++iter;
@@ -846,7 +847,7 @@ Expr convert_to_value(const vector<string>& sym_const_vars, const vector<string>
             value = simplify(iter->first);*/
             condition = iter->second;
             value = iter->first;
-            std::cout << "   cond: " << condition << "; value: " << value << "\n";
+            //std::cout << "   cond: " << condition << "; value: " << value << "\n";
             assert(expr.defined());
             expr = select(condition, value, expr);
         }
@@ -1058,7 +1059,8 @@ Expr convert_nfm_domain_to_halide_expr(Type type, NfmDomain& dom,
 }
 
 Expr convert_nfm_union_domain_to_halide_expr(Type type, NfmUnionDomain& union_dom,
-                                             const vector<string> *let_assignments) {
+                                             const vector<string> *let_assignments,
+                                             const map<string, Expr> *expr_substitutions) {
     if (union_dom.is_empty()) {
         return 1 < 0;
     }
@@ -1092,13 +1094,17 @@ Expr convert_nfm_union_domain_to_halide_expr(Type type, NfmUnionDomain& union_do
             or_expr = expr;
         }
     }
+    if (expr_substitutions != NULL) {
+        or_expr = simplify(substitute(*expr_substitutions, or_expr));
+    }
     return or_expr;
 }
 
 // Convert the union_domain into interval of dim_name, i.e. lb(...) <= dim_name <= ub(...)
 Interval convert_nfm_union_domain_to_halide_interval(
         Type type, const Nfm::Internal::NfmUnionDomain& p_union_dom,
-        const string& dim_name, const vector<string> *let_assignments) {
+        const string& dim_name, const vector<string> *let_assignments,
+        const map<string, Expr> *expr_substitutions) {
     // TODO: Not really clear what should be returned if the union dom is empty.
     // Technically, we could return something like -4 >= x >= 0, but it seems
     // that it's a valid interval in Halide (???)
@@ -1141,8 +1147,8 @@ Interval convert_nfm_union_domain_to_halide_interval(
     for (size_t i = 0; i < domains.size(); ++i) { // OR of lower/upper bound (IF-ELSE IF-....-ELSE)
         LowerUpperBound bound = convert_nfm_domain_to_lower_upper_bound(
             type, domains[i], dim_name, dim_idx, sym_const_vars, dim_vars, let_assignments);
-        std::cout << "LowerUpperBound bound: condition: " << bound.condition
-            << "; lb: " << bound.lb << "; ub: " << bound.ub << "\n";
+        /*std::cout << "LowerUpperBound bound: condition: " << bound.condition
+            << "; lb: " << bound.lb << "; ub: " << bound.ub << "\n";*/
         if (!bound.is_defined()) {
             continue;
         }
@@ -1154,7 +1160,7 @@ Interval convert_nfm_union_domain_to_halide_interval(
         if (bound.has_lower_bound()) {
             const auto& iter = lower_bounds_temp.find(bound.lb);
             if (iter != lower_bounds_temp.end()) {
-                std::cout << "  lb: " << bound.lb << "; cond: " <<  lower_bounds_temp[bound.lb] << "\n";
+                //std::cout << "  lb: " << bound.lb << "; cond: " <<  lower_bounds_temp[bound.lb] << "\n";
                 //TODO: might want to revisit this later, to make sure we always get the correct result
                 // If condition is undefined, it means universe. Everything
                 // OR with universe is a universe
@@ -1172,7 +1178,7 @@ Interval convert_nfm_union_domain_to_halide_interval(
         if (bound.has_upper_bound()) {
             auto iter = upper_bounds_temp.find(bound.ub);
             if (iter != upper_bounds_temp.end()) {
-                std::cout << "  ub: " << bound.ub << "; cond: " <<  upper_bounds_temp[bound.ub] << "\n";
+                //std::cout << "  ub: " << bound.ub << "; cond: " <<  upper_bounds_temp[bound.ub] << "\n";
                 //TODO: might want to revisit this later, to make sure we always get the correct result
                 // If condition is undefined, it means universe. Everything
                 // OR with universe is a universe
@@ -1194,7 +1200,7 @@ Interval convert_nfm_union_domain_to_halide_interval(
     // Map from condition to upper bound
     map<Expr, Expr, IRDeepCompare> upper_bounds;
     for (auto& it : lower_bounds_temp) { // it (value, condition)
-        std::cout << "  lb: " << it.first << "; cond: " <<  it.second << "\n";
+        //std::cout << "  lb: " << it.first << "; cond: " <<  it.second << "\n";
         auto iter = lower_bounds.find(it.second);
         if (iter != lower_bounds.end()) {
             // Halide can only represent box bound; need to take the bounding box
@@ -1205,7 +1211,7 @@ Interval convert_nfm_union_domain_to_halide_interval(
         }
     }
     for (auto& it : upper_bounds_temp) { // it (value, condition)
-        std::cout << "  ub: " << it.first << "; cond: " <<  it.second << "\n";
+        //std::cout << "  ub: " << it.first << "; cond: " <<  it.second << "\n";
         auto iter = upper_bounds.find(it.second);
         if (iter != upper_bounds.end()) {
             // Halide can only represent box bound; need to take the bounding box
@@ -1252,10 +1258,15 @@ Interval convert_nfm_union_domain_to_halide_interval(
         result.max = convert_to_value(coeff_space.get_names(), space.get_names(),
                                       upper_bounds, false, let_assignments);
     }
-    debug(0) << "\nresult.min: " << result.min << "\n";
-    debug(0) << "result.max: " << result.max << "\n";
-    result.min = simplify(result.min); // NOTE: Simplify sometimes give odd-looking results
-    result.max = simplify(result.max);
+    //debug(0) << "\nresult.min: " << result.min << "\n";
+    //debug(0) << "result.max: " << result.max << "\n";
+    if (expr_substitutions != NULL) {
+        result.min = simplify(substitute(*expr_substitutions, result.min));
+        result.max = simplify(substitute(*expr_substitutions, result.max));
+    } else {
+        result.min = simplify(result.min); // NOTE: Simplify sometimes give odd-looking results
+        result.max = simplify(result.max);
+    }
     return result;
 }
 
@@ -1263,7 +1274,8 @@ Interval convert_nfm_union_domain_to_halide_interval(
 Box convert_nfm_union_domain_to_halide_box(
         Type type, const Nfm::Internal::NfmUnionDomain& p_union_dom,
         const std::vector<std::string>& box_dims,
-        const vector<string> *let_assignments) {
+        const vector<string> *let_assignments,
+        const map<string, Expr> *expr_substitutions) {
     assert(box_dims.size() > 0);
     if (p_union_dom.is_empty()) {
         return Box();
@@ -1444,8 +1456,13 @@ Box convert_nfm_union_domain_to_halide_box(
         }
         //debug(0) << "\nresult[" << j << "].min: " << result[j].min << "\n";
         //debug(0) << "result[" << j << "].max: " << result[j].max << "\n";
-        result[j].min = simplify(result[j].min); // NOTE: Simplify sometimes give odd-looking results
-        result[j].max = simplify(result[j].max);
+        if (expr_substitutions != NULL) {
+            result[j].min = simplify(substitute(*expr_substitutions, result[j].min));
+            result[j].max = simplify(substitute(*expr_substitutions, result[j].max));
+        } else {
+            result[j].min = simplify(result[j].min); // NOTE: Simplify sometimes give odd-looking results
+            result[j].max = simplify(result[j].max);
+        }
     }
     return result;
 }
@@ -1462,10 +1479,11 @@ Interval nfm_simplify_interval(const Interval& interval) {
         CollectVars collect({interval.var});
         collect.mutate(expr);
         const auto& let_assignments = collect.get_let_assignments();
+        map<string, Expr> expr_substitutions;
         NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
-            expr, collect.get_sym_consts(), collect.get_dims());
-        Interval temp =
-            convert_nfm_union_domain_to_halide_interval(Int(32), union_dom, interval.var, &let_assignments);
+            expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions);
+        Interval temp = convert_nfm_union_domain_to_halide_interval(
+            Int(32), union_dom, interval.var, &let_assignments, &expr_substitutions);
         //std::cout << "    After simplifying lower bound: " << temp.min << "\n";
         result.min = temp.min;
     }
@@ -1477,10 +1495,11 @@ Interval nfm_simplify_interval(const Interval& interval) {
         CollectVars collect({interval.var});
         collect.mutate(expr);
         const auto& let_assignments = collect.get_let_assignments();
+        map<string, Expr> expr_substitutions;
         NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
-            expr, collect.get_sym_consts(), collect.get_dims());
-        Interval temp =
-            convert_nfm_union_domain_to_halide_interval(Int(32), union_dom, interval.var, &let_assignments);
+            expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions);
+        Interval temp = convert_nfm_union_domain_to_halide_interval(
+            Int(32), union_dom, interval.var, &let_assignments, &expr_substitutions);
         //std::cout << "    After simplifying upper bound: " << temp.max << "\n";
         result.max = temp.max;
     }
@@ -1498,8 +1517,9 @@ Expr nfm_simplify_expr(const Expr& expr) {
     CollectVars collect;
     collect.mutate(expr);
     const auto& let_assignments = collect.get_let_assignments();
+    map<string, Expr> expr_substitutions;
     NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
-        expr, collect.get_sym_consts(), collect.get_dims());
+        expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions);
 
     /*debug(0) << "  Union Domain (AFTER SIMPLIFY using NFM) (" << union_dom.get_domains().size() << "): \n";
     union_dom.sort();
@@ -1510,7 +1530,8 @@ Expr nfm_simplify_expr(const Expr& expr) {
     std::cout << "is universe? " << union_dom.is_universe() << "\n";
     std::cout << "is empty? " << union_dom.is_empty() << "\n";*/
 
-    result = convert_nfm_union_domain_to_halide_expr(Int(32), union_dom, &let_assignments);
+    result = convert_nfm_union_domain_to_halide_expr(
+        Int(32), union_dom, &let_assignments, &expr_substitutions);
     //std::cout << "Result nfm_simplify_expr: " << result << "\n";
     return result;
 }

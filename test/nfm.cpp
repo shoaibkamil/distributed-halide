@@ -5,6 +5,7 @@
 #include "IR.h"
 #include "IREquality.h"
 #include "Simplify.h"
+#include "Substitute.h"
 #include "IRPrinter.h"
 #include "Util.h"
 #include "Var.h"
@@ -54,16 +55,24 @@ Expr simplify_expr(Expr expr, vector<string>& loop_dims) {
     }
     std::cout << "\n";
 
+    std::map<std::string, Expr> expr_substitutions;
     NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
-        expr, collect.get_sym_consts(), collect.get_dims());
+        expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions);
     //std::cout << "\nNfmUnionDomain: " << union_dom << "\n\n";
 
+    std::cout << "\nSubstitutions: ";
+    for (auto& iter : expr_substitutions) {
+        std::cout << "FROM " << iter.first << " TO: " << iter.second << "\n";
+    }
+    std::cout << "\n";
+
     Expr simplified_expr = convert_nfm_union_domain_to_halide_expr(
-        Int(32), union_dom, &let_assignments);
+        Int(32), union_dom, &let_assignments, &expr_substitutions);
     std::cout << "\n\nSimplified expr: " << simplified_expr << "\n\n";
 
     Interval result =
-        convert_nfm_union_domain_to_halide_interval(Int(32), union_dom, "w", &let_assignments);
+        convert_nfm_union_domain_to_halide_interval(Int(32), union_dom, "w",
+            &let_assignments, &expr_substitutions);
     std::cout << "\n\nSimplified interval:\n"
               << "  Min: " << result.min << "\n"
               << "  Max: " << result.max << "\n\n";
@@ -130,22 +139,36 @@ Interval simplify_interval(Interval interval, vector<string>& sym_consts,
     }
     std::cout << "\n";
 
+    std::map<std::string, Expr> expr_substitutions;
     NfmUnionDomain union_dom = convert_halide_interval_to_nfm_union_domain(
-        interval, sym_consts, dims);
+        interval, sym_consts, dims, &expr_substitutions);
     //std::cout << "\nNfmUnionDomain: " << union_dom << "\n\n";
 
-    Interval result =
-        convert_nfm_union_domain_to_halide_interval(Int(32), union_dom, interval.var, &let_assignments);
+    std::cout << "\nSubstitutions: ";
+    for (auto& iter : expr_substitutions) {
+        std::cout << "FROM " << iter.first << " TO: " << iter.second << "\n";
+    }
+    std::cout << "\n";
+
+    Interval result = convert_nfm_union_domain_to_halide_interval(
+        Int(32), union_dom, interval.var, &let_assignments, &expr_substitutions);
     std::cout << "Simplified interval:\n"
               << "  Min: " << result.min << "\n"
               << "  Max: " << result.max << "\n\n";
 
+    std::map<std::string, Expr> expr_substitutions2;
     NfmUnionDomain union_dom2 = convert_halide_interval_to_nfm_union_domain(
-        result, sym_consts, dims);
+        result, sym_consts, dims, &expr_substitutions2);
     //std::cout << "\nNfmUnionDomain: " << union_dom << "\n\n";
 
-    Interval result2 =
-        convert_nfm_union_domain_to_halide_interval(Int(32), union_dom2, result.var, &let_assignments);
+    std::cout << "\nSubstitutions 2: ";
+    for (auto& iter : expr_substitutions2) {
+        std::cout << "FROM " << iter.first << " TO: " << iter.second << "\n";
+    }
+    std::cout << "\n";
+
+    Interval result2 = convert_nfm_union_domain_to_halide_interval(
+        Int(32), union_dom2, result.var, &let_assignments, &expr_substitutions2);
     std::cout << "Simplified interval:\n"
               << "  Min: " << result2.min << "\n"
               << "  Max: " << result2.max << "\n\n";
@@ -356,6 +379,10 @@ void test() {
     Expr s = Variable::make(Int(32), "s");
     Expr t = Variable::make(Int(32), "t");
     Expr u = Variable::make(Int(32), "u");
+    Expr t1 = Variable::make(Int(32), "t1");
+    Expr t2 = Variable::make(Int(32), "t2");
+    Expr t3 = Variable::make(Int(32), "t3");
+    Expr t4 = Variable::make(Int(32), "t4");
     //vector<string> loop_dims = {"x", "y", "z", "s", "t", "u", "w"};
     vector<string> loop_dims = {"w"};
 
@@ -375,6 +402,16 @@ void test() {
     //Expr expr = min(select((y < x), (y + -2), (x + -3)), (min(y, (x + -1)) + -2)) <= w;
     Expr expr = w <= max(((min(((((y - x) + 2)/2)*2), -1) + y) + 1), y);
     //Expr expr = select(!z, min((x + -1), y), y) <= w;
+    //Expr expr = Let::make("z", y/2, w <= z-1);
+    //Expr expr = EQ::make(w, (((((((((y - x) + 16)/16)*(((z - s) + 16)/16)) + -1)/(((y - x) + 16)/16))*16) + s) + 15));
+    //Expr expr = w <= cast(Int(32), floor(x/2));
+
+    /*Expr expr = (w == t4*6 + s + 15);
+    std::map<string, Expr> expr_substitutions;
+    expr_substitutions.emplace("t4",  ((((((y - x) + 16)/16)*(((z - s) + 16)/16)) + -1)/(((y - x) + 16)/16)));
+    std::cout << "simplify: " << simplify(expr) << "\n";
+    std::cout << "\tsubstituted: " << simplify(substitute(expr_substitutions, expr)) << "\n";*/
+
     Expr simplified_expr = simplify_expr(expr, loop_dims);
 }
 

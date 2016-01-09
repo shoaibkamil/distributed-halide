@@ -843,7 +843,7 @@ int main(int argc, char **argv) {
         "max(max(max(s, u), u), max(max(max(min((((y - x)/2)*2) + x, y - 1) + 1, 3), x), u)) + 1"
         "- min(min(min(z, t), t), min(min(min(min(x, y-1) + 0, 3), z), t))}";*/
 
-    std::string str = "{[x, y, w] : w <= max(((min((((y - x + 2)/2)*2), -1) + y) + 1), y)}";
+    std::string str = "{[x, y, w] : w <= max(min(2*y - x + 3, y), y)}";
     isl_set *set = isl_set_read_from_str(ctx, str.c_str());
     //printf("set size: %d\n", isl_set_n_basic_set(set));
     //printf("is universe? %d\n", isl_set_plain_is_universe(set));
