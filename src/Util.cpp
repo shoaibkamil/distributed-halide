@@ -17,6 +17,9 @@ using std::map;
 
 bool use_NFM() {
     char *e = getenv("HL_USE_NFM");
+    if (e == NULL) {
+        return false;
+    }
     return (atoi(e) == 1);
 }
 

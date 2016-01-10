@@ -1096,6 +1096,8 @@ Expr convert_nfm_union_domain_to_halide_expr(Type type, NfmUnionDomain& union_do
     }
     if (expr_substitutions != NULL) {
         or_expr = simplify(substitute(*expr_substitutions, or_expr));
+    } else {
+        or_expr = simplify(or_expr);
     }
     return or_expr;
 }
@@ -1267,6 +1269,8 @@ Interval convert_nfm_union_domain_to_halide_interval(
         result.min = simplify(result.min); // NOTE: Simplify sometimes give odd-looking results
         result.max = simplify(result.max);
     }
+    //debug(0) << "\nAFTER SUBSTITUTION result.min: " << result.min << "\n";
+    //debug(0) << "result.max: " << result.max << "\n";
     return result;
 }
 

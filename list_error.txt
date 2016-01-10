@@ -1,10 +1,3 @@
-CONVERTING (min(int32((float32(f.s0.x.min)/min(max(p, 1.000000f), 10.000000f))), g.s0.x.min) <= _interval$63)
-Internal error at /home/psuriana/distributed-halide/src/IR.cpp:198 triggered by user code at /home/psuriana/distributed-halide/test/correctness_parameter_constraints.cpp:31:
-Condition failed: a.type() == b.type()
-GE of mismatched types; a: p; b: 1; a.type: float32; b.type: int32
-Segmentation fault
-
-
 Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness_fuse.cpp:33:
 Condition failed: a.defined()
 Add of undefined

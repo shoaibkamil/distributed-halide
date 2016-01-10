@@ -231,31 +231,35 @@ void IRPrinter::visit(const UIntImm *op) {
 
 void IRPrinter::visit(const FloatImm *op) {
 
- /* If NFM is used, and if the decimal part of op->value
+    /*
+    If NFM is used, and if the decimal part of op->value
     is 0, then do not print the decimal part of op->value.
     This is needed by the NFM library, since NFM expects
     its input to be integers.
-  */
- long integer_format = (long) (op->value);
+    */
+    long integer_format = (long) (op->value);
 
- switch (op->type.bits()) {
+    switch (op->type.bits()) {
     case 64:
-	if (use_NFM() && (op->value == integer_format))
-		stream << integer_format;
-	else
-	        stream << op->value;
+        if (use_NFM() && (op->value == integer_format)) {
+        	stream << integer_format;
+        } else {
+            stream << op->value;
+        }
         break;
     case 32:
-	if (use_NFM() && (op->value == integer_format))
-		stream << integer_format;
-	else
-		stream << op->value << 'f';
+        if (use_NFM() && (op->value == integer_format)) {
+        	stream << integer_format;
+        } else {
+        	stream << op->value << 'f';
+        }
         break;
     case 16:
-	if (use_NFM() && (op->value == integer_format))
-		stream << integer_format;
-	else
-	        stream << op->value << 'h';
+        if (use_NFM() && (op->value == integer_format)) {
+        	stream << integer_format;
+        } else {
+            stream << op->value << 'h';
+        }
         break;
     default:
         internal_error << "Bad bit-width for float: " << op->type << "\n";
