@@ -1335,6 +1335,8 @@ public:
                 newmin = oldmin + Var(loop_var + ".SliceSize") * Var("Rank");
             }
             newmax = newmin + Var(loop_var + ".SliceSize") - 1;
+            // Always cap the min at the old maximum.
+            newmin = min(newmin, oldmax);
 
             // We by default don't cap the new extent to make sure it
             // doesn't run over. That is because allocation bounds
