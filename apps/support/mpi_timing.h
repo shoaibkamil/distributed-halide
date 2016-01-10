@@ -115,6 +115,12 @@ public:
         return _gathered;
     }
 
+    // Gather reduced values from all ranks to rank 0, and reduce the
+    // gathered values by the given statistic.
+    timing_t gather(Stat stat) {
+        return gather(_reduced, stat);
+    }
+
     // Return the gathered result.
     timing_t gathered() const {
         assert(_usempi);
