@@ -1623,6 +1623,112 @@ int main(int argc, char **argv) {
         }
     }
 #endif
+    {
+        const int w = 100;
+        DistributedImage<int> in(w+2, w+2);
+
+        // Test without clamp boundary condition
+        Func accessor;
+        accessor(x, y) = in(x+1, y+1);
+
+        Func f;
+        f(x, y) = accessor(x, y);
+        f.compute_root().distribute(y);
+
+        DistributedImage<int> out(w, w);
+        out.set_domain(x, y);
+        out.placement().distribute(y);
+        out.allocate();
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate(f, out);
+
+        // Fill in ghost zone.
+        for (int y = 0; y < in.global_height(); y++) {
+            for (int x = 0; x < in.global_width(); x++) {
+                int vx = x - 1, vy = y - 1;
+                if (x == 0) vx = 0;
+                if (x == in.global_width() - 1) vx = w-1;
+                if (y == 0) vy = 0;
+                if (y == in.global_height() - 1) vy = w-1;
+
+                if (in.mine(x, y)) {
+                    in(in.local(0, x), in.local(1, y)) = vx + vy;
+                }
+            }
+        }
+
+        f.realize(out);
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                const int correct = out.global(0, x) + out.global(1, y);
+                if (out(x, y) != correct) {
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
+                    MPI_Finalize();
+                    return -1;
+                }
+            }
+        }
+    }
+
+    {
+        const int w = 100;
+        DistributedImage<int> in(w+2, w+2);
+
+        Func accessor;
+        accessor(x, y) = in(x+1, y+1);
+
+        Func f, g;
+        f(x, y) = (accessor(x-1, y) + accessor(x, y) + accessor(x+1, y)) / 3;
+        g(x, y) = (f(x, y-1) + f(x, y) + f(x, y+1)) / 3;
+
+        f.compute_root().distribute(y);
+        g.compute_root().distribute(y);
+
+        DistributedImage<int> out(w, w);
+        out.set_domain(x, y);
+        out.placement().distribute(y);
+        out.allocate();
+        in.set_domain(x, y);
+        in.placement().distribute(y);
+        in.allocate(g, out);
+
+        for (int y = 0; y < in.global_height(); y++) {
+            for (int x = 0; x < in.global_width(); x++) {
+                int vx = x - 1, vy = y - 1;
+                if (x == 0) vx = 0;
+                if (x == in.global_width() - 1) vx = w-1;
+                if (y == 0) vy = 0;
+                if (y == in.global_height() - 1) vy = w-1;
+
+                if (in.mine(x, y)) {
+                    in(in.local(0, x), in.local(1, y)) = vx + vy;
+                }
+            }
+        }
+
+        g.realize(out);
+
+        for (int y = 0; y < out.height(); y++) {
+            for (int x = 0; x < out.width(); x++) {
+                const int xmax = out.global_width() - 1, ymax = out.global_height() - 1;
+                const int gxp1 = out.global(0, x+1) >= xmax ? xmax : out.global(0, x+1),
+                    gxm1 = out.global(0, x) == 0 ? 0 : out.global(0, x-1);
+                const int gyp1 = out.global(1, y+1) >= ymax ? ymax : out.global(1, y+1),
+                    gym1 = out.global(1, y) == 0 ? 0 : out.global(1, y-1);
+                const int gx = out.global(0, x), gy = out.global(1, y);
+                const int correct = (((gxm1 + gym1 + gx + gym1 + gxp1 + gym1)/3) +
+                                     ((gxm1 + gy + gx + gy + gxp1 + gy)/3) +
+                                     ((gxm1 + gyp1 + gx + gyp1 + gxp1 + gyp1)/3)) / 3;
+                if (out(x, y) != correct) {
+                    printf("[rank %d] out(%d,%d) = %d instead of %d\n", rank, x, y, out(x, y), correct);
+                    MPI_Finalize();
+                    return -1;
+                }
+            }
+        }
+    }
+
     printf("Rank %d Success!\n", rank);
 
     MPI_Finalize();
