@@ -7,10 +7,12 @@ namespace Nfm {
 namespace Internal {
 
 enum NfmSign {
-    NFM_NEGATIVE = -1,
-    NFM_ZERO = 0,
-    NFM_POSITIVE = 1,
-    NFM_UNKNOWN = 2
+    NFM_NEGATIVE = -1,      // < 0
+    NFM_ZERO = 0,           // == 0
+    NFM_POSITIVE = 1,       // > 0
+    NFM_UNKNOWN = 2,        // ? 0
+    NFM_NON_POSITIVE = 3,   // >= 0
+    NFM_NON_NEGATIVE = 4    // <= 0
 };
 
 inline std::string nfm_sign_print_str(NfmSign sign) {
@@ -20,6 +22,10 @@ inline std::string nfm_sign_print_str(NfmSign sign) {
         return "NFM_POSITIVE";
     } else if (sign == NFM_NEGATIVE) {
         return "NFM_NEGATIVE";
+    } else if (sign == NFM_NON_POSITIVE) {
+        return "NFM_NON_POSITIVE";
+    } else if (sign == NFM_NON_NEGATIVE) {
+        return "NFM_NON_NEGATIVE";
     } else {
         return "NFM_UNKNOWN";
     }
@@ -32,6 +38,10 @@ inline std::string nfm_sign_print_op(NfmSign sign) {
         return "> 0";
     } else if (sign == NFM_NEGATIVE) {
         return "< 0";
+    } else if (sign == NFM_NON_POSITIVE) {
+        return ">= 0";
+    } else if (sign == NFM_NON_NEGATIVE) {
+        return "<= 0";
     } else {
         return "? 0";
     }
@@ -51,13 +61,20 @@ inline NfmSign nfm_sign_int(int val) {
 }
 
 inline NfmSign nfm_sign_neg(NfmSign sign) {
-    NfmSign neg_sign = sign;
-    if (sign == NFM_POSITIVE) {
-        neg_sign = NFM_NEGATIVE;
-    } else if (sign == NFM_NEGATIVE) {
-        neg_sign = NFM_POSITIVE;
+    switch(sign) {
+        case NFM_NEGATIVE:
+            return NFM_POSITIVE;
+        case NFM_ZERO:
+            return NFM_ZERO;
+        case NFM_POSITIVE:
+            return NFM_NEGATIVE;
+        case NFM_NON_POSITIVE:
+            return NFM_NON_NEGATIVE;
+        case NFM_NON_NEGATIVE:
+            return NFM_NON_POSITIVE;
+        default:
+            return NFM_UNKNOWN;
     }
-    return neg_sign;
 }
 
 inline NfmSign nfm_sign_add(NfmSign sign1, NfmSign sign2) {
@@ -71,6 +88,18 @@ inline NfmSign nfm_sign_add(NfmSign sign1, NfmSign sign2) {
     } else if ((sign1 == NFM_NEGATIVE && sign2 == NFM_ZERO) ||
                (sign1 == NFM_ZERO && sign2 == NFM_NEGATIVE)) {
         return NFM_NEGATIVE;
+    } else if ((sign1 == NFM_NON_NEGATIVE && sign2 == NFM_ZERO) ||
+               (sign1 == NFM_ZERO && sign2 == NFM_NON_NEGATIVE)) {
+        return NFM_NON_NEGATIVE;
+    } else if ((sign1 == NFM_NON_POSITIVE && sign2 == NFM_ZERO) ||
+               (sign1 == NFM_ZERO && sign2 == NFM_NON_POSITIVE)) {
+        return NFM_NON_POSITIVE;
+    } else if ((sign1 == NFM_NON_NEGATIVE && sign2 == NFM_POSITIVE) ||
+               (sign1 == NFM_POSITIVE && sign2 == NFM_NON_NEGATIVE)) {
+        return NFM_NON_NEGATIVE;
+    } else if ((sign1 == NFM_NON_POSITIVE && sign2 == NFM_NEGATIVE) ||
+               (sign1 == NFM_NEGATIVE && sign2 == NFM_NON_POSITIVE)) {
+        return NFM_NON_POSITIVE;
     }
     return NFM_UNKNOWN;
 }
@@ -87,6 +116,16 @@ inline NfmSign nfm_sign_mul(NfmSign sign1, NfmSign sign2) {
     } else if (((sign1 == NFM_POSITIVE) && (sign2 == NFM_NEGATIVE)) ||
                ((sign1 == NFM_NEGATIVE) && (sign2 == NFM_POSITIVE))) {
         new_sign = NFM_NEGATIVE;
+    } else if (((sign1 == NFM_POSITIVE) && (sign2 == NFM_NON_NEGATIVE)) ||
+               ((sign1 == NFM_NON_NEGATIVE) && (sign2 == NFM_POSITIVE)) ||
+               ((sign1 == NFM_NON_POSITIVE) && (sign2 == NFM_NEGATIVE)) ||
+               ((sign1 == NFM_NEGATIVE) && (sign2 == NFM_NON_POSITIVE))) {
+        new_sign = NFM_NON_NEGATIVE;
+    } else if (((sign1 == NFM_POSITIVE) && (sign2 == NFM_NON_POSITIVE)) ||
+               ((sign1 == NFM_NON_POSITIVE) && (sign2 == NFM_POSITIVE)) ||
+               ((sign1 == NFM_NON_NEGATIVE) && (sign2 == NFM_NEGATIVE)) ||
+               ((sign1 == NFM_NEGATIVE) && (sign2 == NFM_NON_NEGATIVE))) {
+        new_sign = NFM_NON_POSITIVE;
     }
     return new_sign;
 }

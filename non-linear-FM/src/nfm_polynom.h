@@ -45,6 +45,15 @@ public:
                  NfmSign p_sign)
         : NfmPolyCoeff(p_space, {{p_exp, coeff}}, p_sign) {}
 
+    static NfmPolyCoeff make_zero(const NfmSpace& p_space) {
+        return NfmPolyCoeff(p_space);
+    }
+
+    static NfmPolyCoeff make_one(const NfmSpace& p_space) {
+        std::vector<int> p_exp(p_space.size(), 0);
+        return NfmPolyCoeff(p_space, 1, p_exp, NFM_POSITIVE);
+    }
+
     std::string to_string() const;
     std::string to_string_with_sign() const;
     std::string print_sign() const;
@@ -74,13 +83,25 @@ public:
 
     bool is_pos() const { return (sign_ == NFM_POSITIVE); }
     bool is_neg() const { return (sign_ == NFM_NEGATIVE); }
-    bool is_unknown() const { return (sign_ == NFM_UNKNOWN); }
-    bool is_constant() const;
     bool is_zero() const {
         return ((sign_ == NFM_ZERO) || terms_.empty());
     }
+    bool is_unknown() const {
+        if (is_pos()) {
+            return false;
+        }
+        if (is_neg()) {
+            return false;
+        }
+        if (is_zero()) {
+            return false;
+        }
+        return true;
+    }
+
     bool is_one() const;
     bool is_neg_one() const;
+    bool is_constant() const;
     // Return true if it has exactly 1 non-zero term
     bool is_single_term() const { return terms_.size() == 1; }
     bool is_univariate() const { return space_.size() <= 1; };
@@ -171,6 +192,15 @@ public:
             const NfmSpace& p_space,
             const std::map<std::vector<int>, NfmPolyCoeff>& p_terms);
 
+    NfmPoly(const NfmSpace& p_coeff_space,
+            const NfmSpace& p_space,
+            const std::vector<int>& p_exp,
+            const NfmPolyCoeff& coeff);
+
+    NfmPoly(const NfmSpace& p_coeff_space,
+            const NfmSpace& p_space,
+            const NfmPolyCoeff& coeff);
+
     NfmPoly(const NfmSpace& p_coeff_space, const NfmSpace& p_space)
         : NfmPoly(p_coeff_space, p_space, std::map<std::vector<int>, NfmPolyCoeff>()) {}
 
@@ -183,8 +213,20 @@ public:
             const std::vector<std::string>& names)
         : NfmPoly(std::map<std::vector<int>, NfmPolyCoeff>(), coeff_names, names) {}
 
+    static NfmPoly make_zero(const NfmSpace& p_coeff_space,
+                             const NfmSpace& p_space) {
+        return NfmPoly(p_coeff_space, p_space);
+    }
+
+    static NfmPoly make_one(const NfmSpace& p_coeff_space,
+                            const NfmSpace& p_space) {
+        return make_zero(p_coeff_space, p_space) + 1;
+    }
+
     std::string to_string() const;
     std::string to_string_with_sign() const;
+    NfmSign get_sign() const;
+    std::string print_sign() const;
     friend std::ostream& operator<<(std::ostream& out, const NfmPoly& poly);
 
     NfmPoly set_coeff_sign(size_t idx, NfmSign sign) const;
@@ -213,6 +255,11 @@ public:
     std::map<std::vector<int>, NfmPolyCoeff>& get_terms() { return terms_; }
 
     bool is_zero() const;
+    bool is_pos() const;
+    bool is_neg() const;
+    bool is_unknown() const;
+    bool is_one() const;
+    bool is_neg_one() const;
     bool is_constant() const;
     bool is_linear() const; // Linear polynomial: (M^2)x + (M-N)y
 

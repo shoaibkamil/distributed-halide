@@ -223,7 +223,7 @@ void example_interval() {
     vector<string> sym_consts = {"P", "N", "M"};
     vector<string> dims = {"x", "y", "z", "w"};
     //Interval interval("w", min((2*x+3)/2, z), max(2*y/2, 4*z/2));
-    Interval interval("w", min(x+y, x+z), max(y, z));
+    //Interval interval("w", min(x+y, x+z), max(y, z));
     //Interval interval("w", select(x>=0, x, select(y>=0, y, z)), Expr());
     //Interval interval("w", x, cast(Int(32), 10.0f*x));
     //Interval interval("w", x, min(y, z));
@@ -241,7 +241,7 @@ void example_interval() {
     //Interval interval("w", select(x>=0, x, y) + select(z>=0, z, x), Expr());
     //Interval interval("w", min(select((((M + 1) <= N) && (M <= 3)), M, select((min(M, 4) < N), 3, (N + -1))), P), Expr());
     //Interval interval("w", select(min(M, N) >= 0, x, y), Expr());
-    //Interval interval("w", max(x, y), Expr());
+    Interval interval("w", max(x, y), Expr());
 
     //Interval interval("w", Expr(), min((max(M, (N + -1)) + 0), 3));
     //Interval interval("w", Expr(), select(x < y, min(y, 3), x));
@@ -383,10 +383,30 @@ void test() {
     Expr t2 = Variable::make(Int(32), "t2");
     Expr t3 = Variable::make(Int(32), "t3");
     Expr t4 = Variable::make(Int(32), "t4");
+    Expr p = Variable::make(Float(32), "p");
     //vector<string> loop_dims = {"x", "y", "z", "s", "t", "u", "w"};
     vector<string> loop_dims = {"w"};
 
     //Expr expr = EQ::make(w, (((y - x) + 2)/2) - 1);
+    //Expr expr = GE::make(w, max(max(x, y), z)+1);
+    //Expr expr = w <= cast(Int(32), floor(x/2));
+    //Expr expr = (2*w == x*6 + y + 15);
+    //Expr expr = w <= max(((min(((((y - x) + 2)/2)*2), -1) + y) + 1), y);
+    //Expr expr = Let::make("z", y/2, w <= z-1);
+    //Expr expr = w <= max(((0 + select((x < 22), (x + 1), x)) - 1), y);
+    //Expr expr = w >= min(min(y, min(x, min(z, (y + -2)))), min(x, min(z, s)));
+    //Expr expr = w >= min(y, min(x, min(z, min(s, (y + -2)))));
+    //Expr expr = w >= min(cast(Int(32), ceil(cast(Float(32), (x/2)))), (x/2));
+    //Expr expr = w >= min(((min(x, (y + -3)) + 0) + 1), ((min(x, (y + -4)) + 1) - 1));
+    //Expr expr = w >= max(x/2, x/2+1);
+    //Expr expr = select(!(z > 0), min((x + -1), y-1), y) <= w;
+    //Expr expr = w <= max((min(((((x - y)/4)*4) + y+1), (x + -3)) + 3), ((min(((((x - y)/4)*4) + y), (x + -3)) + 3) + 1));
+    //Expr expr = w >= min(x, min(y, min((x + -1), min((x + -2), 0))));
+    //Expr expr = w <= max(max((((10 - 1) - 0) + 0), max(min((min((((((y - x)/8)*8) + x) + 7), y) - 1), ((0 + 10) - 1)), 0)), max((((10 - 1) - 0) + 0), max(min((min((((((y - x)/8)*8) + x) + 7), y) + 1), ((0 + 10) - 1)), 0)));
+    //Expr expr = w <= max((((10 - 1) - 0) + 0), max(min((min((((((y - x)/8)*8) + x) + 7), y) + 1), ((0 + 10) - 1)), 0));
+    //Expr expr = EQ::make(w, (((((((((y - x) + 16)/16)*(((z - s) + 16)/16)) + -1)/(((y - x) + 16)/16))*16) + s) + 15));
+    //Expr expr = min(select((y < x), (y + -2), (x + -3)), (min(y, (x + -1)) + -2)) <= w;
+
     /*Expr expr = EQ::make(w,
         max(max(max(s, u), u), max(max(max(min((((y - x)/2)*2) + x, y - 1) + 1, 3), x), u)) + 1
         - min(min(min(z, t), t), min(min(min(min(x, y-1) + 0, 3), z), t)));*/
@@ -395,31 +415,39 @@ void test() {
         - min(min(min(z, t), t), t));*/
     /*Expr expr = EQ::make(w,
         max(max(max(s, u), u), max(max(max(min((((y - x)/2)*2) + x, y - 1) + 1, 3), x), u)));*/
+
     //Expr expr = EQ::make(w, max(min(x, y), z) + 1 - min(min(z, y-1), 3));
-    //Expr expr = GE::make(w, max(max(x, y), z)+1);
+
+
+    /*TODO:
+    a_copy[i].min: min(min(x, min(y, min(z, min((x + -1), min((x + -2), 0))))), min(y, min(z, s)))
+    a[i].min: min(x, min(y, min(z, min(s, min((x + -1), min((x + -2), 0))))))
+
+    a_copy[i].min: min(min(x, min(y, min((x + -2), 0))), (x - 1))
+    a[i].min: min(x, min(y, min((x + -1), min((x + -2), 0))))
+
+    Expr expr = w >= min(((min(x, (y + -3)) + 0) + 1), ((min(x, (y + -4)) + 1) - 1));
+
+    a_copy[i].max: max(max(x, max(y, max(z, max(s, max(t, max((y + -1), max((z + -1), max((s + -1), max((t + -1), max(min((y + 1), 99), max(min((z + 1), 99), max(min((s + 1), 99), max(min((t + 1), 99), 0))))))))))))), x)
+    a[i].max: max(x, max(y, max(z, max(s, max(t, max((y + -1), max((z + -1), max((s + -1), max((t + -1), max(min((y + 1), 99), max(min((z + 1), 99), max(min((s + 1), 99), max(min((t + 1), 99), 0)))))))))))))
+    */
+
+    //Expr expr = w >= min(x, min(y, min(z, min(s, min((x + -1), min((x + -2), 0))))));
+    //Expr expr = w >= min(x, min(y, min((x + -1), min((x + -2), 0))));
+    //Expr expr = w <= max(x, max(y, max(z, max(s, max(t, max((y + -1), max((z + -1), max((s + -1), max((t + -1), max(min((y + 1), 99), max(min((z + 1), 99), max(min((s + 1), 99), max(min((t + 1), 99), 0)))))))))))));
     //Expr expr = w >= min(select((s < ((y + (z*4)) + 3)), ((s + x) + -2), ((((z*4) + y) + x) + 1)), ((min(((z*4) + y), (s + -3)) + x) + 1));
     //Expr expr = w >= min(min(((x + y) + (z*4)), ((x + s) + -3)), ((min(((z*4) + y), (s + -3)) + x) + 1));
-    //Expr expr = min(select((y < x), (y + -2), (x + -3)), (min(y, (x + -1)) + -2)) <= w;
-    Expr expr = w <= max(((min(((((y - x) + 2)/2)*2), -1) + y) + 1), y);
-    //Expr expr = select(!z, min((x + -1), y), y) <= w;
-    //Expr expr = Let::make("z", y/2, w <= z-1);
-    //Expr expr = EQ::make(w, (((((((((y - x) + 16)/16)*(((z - s) + 16)/16)) + -1)/(((y - x) + 16)/16))*16) + s) + 15));
-    //Expr expr = w <= cast(Int(32), floor(x/2));
+    Expr expr = w >= min(((min(x, (y + -3)) + 0) + 1), ((min(x, (y + -4)) + 1) - 1));
 
-    /*Expr expr = (w == t4*6 + s + 15);
-    std::map<string, Expr> expr_substitutions;
-    expr_substitutions.emplace("t4",  ((((((y - x) + 16)/16)*(((z - s) + 16)/16)) + -1)/(((y - x) + 16)/16)));
     std::cout << "simplify: " << simplify(expr) << "\n";
-    std::cout << "\tsubstituted: " << simplify(substitute(expr_substitutions, expr)) << "\n";*/
-
     Expr simplified_expr = simplify_expr(expr, loop_dims);
 }
 
 int main(int argc, const char **argv) {
     //example_expr();
-    //example_interval();
+    example_interval();
     //simplify_interval_test();
-    test();
+    //test();
     //boxes_merge_test();
     //boxes_overlap_test();
     //box_encloses_test();

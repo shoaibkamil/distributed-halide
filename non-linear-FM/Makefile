@@ -29,6 +29,7 @@ SOURCE_FILES = \
 	nfm_domain.cpp \
 	nfm_isl_interface.cpp \
 	nfm_polynom.cpp \
+	nfm_polynom_frac.cpp \
 	nfm_solver.cpp \
 	nfm_space.cpp
 
@@ -40,6 +41,7 @@ HEADER_FILES = \
 	nfm_domain.h \
 	nfm_isl_interface.h \
 	nfm_polynom.h \
+	nfm_polynom_frac.h \
 	nfm_solver.h \
 	nfm_space.h
 

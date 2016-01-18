@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     int error = evaluate<int>(sum(f[0](r_check.x, r_check.y) - f[1](r_check.x, r_check.y)));
 
     if (error != 0) {
-        printf("Serial version did not match parallel version\n");
+        printf("Serial version did not match parallel version: %d\n", error);
         return -1;
     }
 

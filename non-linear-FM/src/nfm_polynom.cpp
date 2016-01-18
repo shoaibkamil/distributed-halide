@@ -7,9 +7,7 @@
 
 #include "nfm_polynom.h"
 
-#include "nfm.h"
 #include "nfm_debug.h"
-#include "nfm_space.h"
 
 namespace Nfm {
 namespace Internal {
@@ -489,12 +487,49 @@ NfmPoly::NfmPoly(const NfmSpace& p_coeff_space,
                  const map<vector<int>, NfmPolyCoeff>& p_terms)
         : coeff_space_(p_coeff_space)
         , space_(p_space)
-        , zero_coeff_(NfmPolyCoeff(coeff_space_)){
+        , zero_coeff_(NfmPolyCoeff(coeff_space_)) {
     for (auto iter : p_terms) {
         if (!iter.second.is_zero()) {
             terms_.emplace(iter.first, iter.second);
         }
     }
+}
+
+NfmPoly::NfmPoly(const NfmSpace& p_coeff_space,
+                 const NfmSpace& p_space,
+                 const std::vector<int>& p_exp,
+                 const NfmPolyCoeff& coeff)
+        : coeff_space_(p_coeff_space)
+        , space_(p_space)
+        , zero_coeff_(NfmPolyCoeff(coeff_space_)) {
+    assert(p_space.size() == p_exp.size());
+    terms_.emplace(p_exp, coeff);
+}
+
+NfmPoly::NfmPoly(const NfmSpace& p_coeff_space,
+                 const NfmSpace& p_space,
+                 const NfmPolyCoeff& coeff)
+        : coeff_space_(p_coeff_space)
+        , space_(p_space)
+        , zero_coeff_(NfmPolyCoeff(coeff_space_)) {
+    vector<int> p_exp(p_space.size(), 0);
+    terms_.emplace(p_exp, coeff);
+}
+
+NfmSign NfmPoly::get_sign() const {
+    if (is_zero()) {
+        return NFM_ZERO;
+    } else if (is_pos()) {
+        return NFM_POSITIVE;
+    } else if (is_neg()) {
+        return NFM_NEGATIVE;
+    } else {
+        return NFM_UNKNOWN;
+    }
+}
+
+string NfmPoly::print_sign() const {
+    return nfm_sign_print_str(get_sign());
 }
 
 bool NfmPoly::is_zero() const {
@@ -507,6 +542,76 @@ bool NfmPoly::is_zero() const {
         }
     }
     return true;
+}
+
+// We can determined if NfmPoly is positive if it is a constant and the constant
+// term is positive or if all coefficients are positive and all exponent terms
+// are even, e.g. 2*x^2 or M*y^2+2 where M is positive
+bool NfmPoly::is_pos() const {
+    if (is_zero()) {
+        return false;
+    }
+    for (const auto& iter : terms_) {
+        bool all_even = std::all_of(iter.first.begin(),
+                                    iter.first.end(),
+                                    [](int i) { return (i%2)==0; });
+        if (!all_even) {
+            return false;
+        }
+        if (iter.second.is_neg() || iter.second.is_unknown()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// We can determined if NfmPoly is negative if it is a constant and the constant
+// term is negative or if all coefficients are negative and all exponent terms
+// are even, e.g. 2*x^2 or M*y^2-2 where M is negative
+bool NfmPoly::is_neg() const {
+    if (is_zero()) {
+        return false;
+    }
+    for (const auto& iter : terms_) {
+        bool all_even = std::all_of(iter.first.begin(),
+                                    iter.first.end(),
+                                    [](int i) { return (i%2)==0; });
+        if (!all_even) {
+            return false;
+        }
+        if (iter.second.is_pos() || iter.second.is_unknown()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// NfmPoly is unknown if it can be determined as either zero/pos/neg
+bool NfmPoly::is_unknown() const {
+    if (is_zero()) {
+        return false;
+    }
+    if (is_pos()) {
+        return false;
+    }
+    if (is_neg()) {
+        return false;
+    }
+    return true;
+}
+
+bool NfmPoly::is_one() const {
+    if (!is_constant()) {
+        return false;
+    }
+    return terms_.begin()->second.is_one();
+}
+
+bool NfmPoly::is_neg_one() const {
+    if (!is_constant()) {
+        return false;
+    }
+    return terms_.begin()->second.is_neg_one();
 }
 
 bool NfmPoly::is_constant() const {

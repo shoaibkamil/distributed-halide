@@ -1,32 +1,10 @@
 Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness_fuse.cpp:33:
-Condition failed: a.defined()
-Add of undefined
-convert_constraint_to_nfm_helper: ((((((((((out.s0.x.max - out.s0.x.min) + 16)/16)*(((out.s0.y.max - out.s0.y.min) + 16)/16)) + -1)/(((out.s0.x.max - out.s0.x.min) + 16)/16))*16) + out.s0.y.min) + 15) - _interval$233)
 Symbol not found: t11
 
 
-Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness_fused_where_inner_extent_is_zero.cpp:25:
-Condition failed: a.defined()
-Add of undefined
-bash: line 1: 14115 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_fused_where_inner_extent_is_zero
-convert_constraint_to_nfm_helper: (((((((f.s0.x.max - f.s0.x.min) + 1)*((f.s0.y.max - f.s0.y.min) + 1)) + -1)/((f.s0.x.max - f.s0.x.min) + 1)) + f.s0.y.min) - _interval$112)
-Out of memory (halide_malloc returned NULL)
-
-
-Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness_interleave.cpp:145:
-convert_constraint_to_nfm_helper: ((((((((((interleaved.s0.y.max - interleaved.s0.y.min) + 1)*((interleaved.s0.x.max - interleaved.s0.x.min) + 1)) + -1)/12)*12) + 11)/((interleaved.s0.y.max - interleaved.s0.y.min) + 1)) + interleaved.s0.x.min) - _interval$5020)
-bash: line 1: 27818 Segmentation fault
-
-
 Internal error at /home/psuriana/distributed-halide/src/IR.cpp:50 triggered by user code at /home/psuriana/distributed-halide/test/correctness_parallel_rvar.cpp:36:
-Condition failed: a.defined()
-Add of undefined
-convert_constraint_to_nfm_helper: (((((((((f[0].s1.r.x$r.max - f[0].s1.r.x$r.min) + 4)/4)*(((f[0].s1.r.y$r.max - f[0].s1.r.y$r.min) + 2)/2)) + -1)/(((f[0].s1.r.x$r.max - f[0].s1.r.x$r.min) + 4)/4))*2) + f[0].s1.r.y$r.min) - (_interval$178 + -1))
 Serial version did not match parallel version
 
 
 Internal error at /home/psuriana/distributed-halide/src/HalideNfmConverter.cpp:130 triggered by user code at /home/psuriana/distributed-halide/test/correctness_specialize.cpp:187:
-HalideNfmConverter can't handle Not
-bash: line 1: 22785 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_specialize
-CONVERTING (select(!param$2, min((out$2.s0.x$2.min + -1), f2.s0.x$2.min), f2.s0.x$2.min) <= _interval$339)
 Condition failed: !verifyFunction(*function)

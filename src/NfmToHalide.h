@@ -15,11 +15,11 @@
 namespace Halide {
 namespace Internal {
 
-Box convert_nfm_union_domain_to_halide_box(
+/*Box convert_nfm_union_domain_to_halide_box(
     Type type, const Nfm::Internal::NfmUnionDomain& p_union_dom,
     const std::vector<std::string>& box_dims,
     const std::vector<std::string> *let_assignments=NULL,
-    const std::map<std::string, Expr> *expr_substitutions=NULL);
+    const std::map<std::string, Expr> *expr_substitutions=NULL);*/
 
 Interval convert_nfm_union_domain_to_halide_interval(
     Type type, const Nfm::Internal::NfmUnionDomain& p_union_dom,

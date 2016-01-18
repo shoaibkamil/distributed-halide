@@ -11,6 +11,8 @@
 #include "nfm_constraint.h"
 #include "nfm_domain.h"
 #include "nfm_isl_interface.h"
+#include "nfm_polynom.h"
+#include "nfm_polynom_frac.h"
 #include "nfm_solver.h"
 #include "nfm_space.h"
 
@@ -89,35 +91,47 @@ int test_parse(struct isl_ctx *ctx) {
     printf("%s; sign: %s; is_linear? %d\n", coeff1.to_string().c_str(),
         coeff1.print_sign().c_str(), coeff1.is_linear());
 
+    printf("\nPOLY\n");
+
     NfmPoly poly1(coeff_space, space);
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
     poly1 = poly1.add(10);
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
     poly1 = poly1.add(3, {2, 1, 0}, NFM_POSITIVE);
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
-    poly1 = poly1.add(1, {1, 0, 0}, NFM_POSITIVE, {0, 1, 0});
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    poly1 = poly1.add(1, {1, 0, 0}, NFM_POSITIVE, {0, 2, 0});
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
     poly1 = poly1.add(1, {0, 1, 0}, NFM_POSITIVE, {0, 1, 0});
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
     poly1 = poly1.add(1, {0, 1, 0}, NFM_POSITIVE, {0, 1, 0});
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
     poly1 = poly1.add(-3, {0, 1, 0}, NFM_POSITIVE, {1, 0, 0});
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
     poly1 = poly1.add(-1, {0, 1, 0}, NFM_POSITIVE, {1, 0, 1});
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
     poly1 = poly1.sub(1, {0, 1, 0}, NFM_POSITIVE, {0, 1, 0});
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
     poly1 = poly1.mul(4, {0, 1, 0}, NFM_POSITIVE, {0, 1, 0});
-    printf("%s; is_linear? %d\n", poly1.to_string().c_str(), poly1.is_linear());
+    printf("%s; sign: %s; is_linear? %d\n", poly1.to_string().c_str(),
+        poly1.print_sign().c_str(), poly1.is_linear());
 
     gcd_val = poly1.content();
     printf("gcd: %d\n", gcd_val);
@@ -843,7 +857,7 @@ int main(int argc, char **argv) {
         "max(max(max(s, u), u), max(max(max(min((((y - x)/2)*2) + x, y - 1) + 1, 3), x), u)) + 1"
         "- min(min(min(z, t), t), min(min(min(min(x, y-1) + 0, 3), z), t))}";*/
 
-    std::string str = "{[x, y, w] : w <= max(min(2*y - x + 3, y), y)}";
+    /*std::string str = "{[x, y, w] : w <= max(min(2*y - x + 3, y), y)}";
     isl_set *set = isl_set_read_from_str(ctx, str.c_str());
     //printf("set size: %d\n", isl_set_n_basic_set(set));
     //printf("is universe? %d\n", isl_set_plain_is_universe(set));
@@ -857,11 +871,11 @@ int main(int argc, char **argv) {
     bset_list = isl_set_get_bsets_list(disjoint);
     isl_bset_list_dump(bset_list);
     isl_bset_list_free(bset_list);
-    isl_set_free(disjoint);
+    isl_set_free(disjoint);*/
 
     //isl_set_free(set);
 
-    //test_parse(ctx);
+    test_parse(ctx);
     //test_classify_unknown(ctx);
     //test_dom1(ctx);
     //test_dom2(ctx);

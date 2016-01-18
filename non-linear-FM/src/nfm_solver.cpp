@@ -103,10 +103,90 @@ bool NfmSolver::nfm_poly_coeff_is_zero(const NfmContextDomain& ctx_dom,
     return (nfm_poly_coeff_get_sign(ctx_dom, coeff) == NFM_ZERO);
 }
 
+bool NfmSolver::nfm_poly_coeff_is_non_neg(const NfmContextDomain& ctx_dom,
+                                       NfmPolyCoeff& coeff) {
+    return (nfm_poly_coeff_get_sign(ctx_dom, coeff) == NFM_NON_NEGATIVE);
+}
+
+bool NfmSolver::nfm_poly_coeff_is_non_pos(const NfmContextDomain& ctx_dom,
+                                       NfmPolyCoeff& coeff) {
+    return (nfm_poly_coeff_get_sign(ctx_dom, coeff) == NFM_NON_POSITIVE);
+}
+
 bool NfmSolver::nfm_poly_coeff_is_unknown(const NfmContextDomain& ctx_dom,
                                           NfmPolyCoeff& coeff) {
-    return (nfm_poly_coeff_get_sign(ctx_dom, coeff) == NFM_UNKNOWN);
+    NfmSign sign = nfm_poly_coeff_get_sign(ctx_dom, coeff);
+    if (sign == NFM_POSITIVE) {
+        return false;
+    }
+    if (sign == NFM_NEGATIVE) {
+        return false;
+    }
+    if (sign == NFM_ZERO) {
+        return false;
+    }
+    return true;
 }
+
+NfmSign NfmSolver::nfm_poly_frac_get_sign(const NfmContextDomain& ctx_dom,
+                                          NfmPolyFrac& frac) {
+    // Can't determine the sign if it's not constant (not consist of symbolic
+    // constant)
+    if (!frac.is_constant()) {
+        return NFM_UNKNOWN;
+    }
+    NfmPolyCoeff& num_coeff = frac.get_num().get_constant();
+    NfmPolyCoeff& denom_coeff = frac.get_denom();
+    NfmSign num_sign = nfm_poly_coeff_get_sign(ctx_dom, num_coeff);
+    NfmSign denom_sign = nfm_poly_coeff_get_sign(ctx_dom, denom_coeff);
+    assert(denom_sign != NFM_ZERO);
+    NfmSign sign = nfm_sign_div(num_sign, denom_sign);
+    /*printf("Frac: %s, num_sign: %s, denom_sign: %s, sign: %s\n",
+        frac.to_string().c_str(), nfm_sign_print_str(num_sign).c_str(),
+        nfm_sign_print_str(denom_sign).c_str(), nfm_sign_print_str(sign).c_str());*/
+    return sign;
+}
+
+bool NfmSolver::nfm_poly_frac_is_pos(const NfmContextDomain& ctx_dom,
+                                     NfmPolyFrac& frac) {
+    return (nfm_poly_frac_get_sign(ctx_dom, frac) == NFM_POSITIVE);
+}
+
+bool NfmSolver::nfm_poly_frac_is_neg(const NfmContextDomain& ctx_dom,
+                                     NfmPolyFrac& frac) {
+    return (nfm_poly_frac_get_sign(ctx_dom, frac) == NFM_NEGATIVE);
+}
+
+bool NfmSolver::nfm_poly_frac_is_zero(const NfmContextDomain& ctx_dom,
+                                      NfmPolyFrac& frac) {
+    return (nfm_poly_frac_get_sign(ctx_dom, frac) == NFM_ZERO);
+}
+
+bool NfmSolver::nfm_poly_frac_is_non_neg(const NfmContextDomain& ctx_dom,
+                                     NfmPolyFrac& frac) {
+    return (nfm_poly_frac_get_sign(ctx_dom, frac) == NFM_NON_NEGATIVE);
+}
+
+bool NfmSolver::nfm_poly_frac_is_non_pos(const NfmContextDomain& ctx_dom,
+                                     NfmPolyFrac& frac) {
+    return (nfm_poly_frac_get_sign(ctx_dom, frac) == NFM_NON_POSITIVE);
+}
+
+bool NfmSolver::nfm_poly_frac_is_unknown(const NfmContextDomain& ctx_dom,
+                                         NfmPolyFrac& frac) {
+    NfmSign sign = nfm_poly_frac_get_sign(ctx_dom, frac);
+    if (sign == NFM_POSITIVE) {
+        return false;
+    }
+    if (sign == NFM_NEGATIVE) {
+        return false;
+    }
+    if (sign == NFM_ZERO) {
+        return false;
+    }
+    return true;
+}
+
 
 // Coeff has to be linear otherwise no guarantee on the result
 NfmSign NfmSolver::nfm_poly_coeff_linear_get_sign(
@@ -131,7 +211,30 @@ NfmSign NfmSolver::nfm_poly_coeff_linear_get_sign(
         // Since coeff <= 0 isn't possible, it must have been positive
         return NFM_POSITIVE;
     }
-    return NFM_UNKNOWN;
+
+    NfmSign sign = NFM_UNKNOWN;
+    // Assume that coeff > 0
+    NfmContextDomain context_dom3(ctx_dom);
+    context_dom3.add_context(NfmContext(coeff-1, false)); // Add coeff > 0
+    context_dom3.simplify();
+    if (context_dom3.is_empty()) {
+        // Since coeff > 0 isn't possible, it must have been <= 0
+        sign = NFM_NON_POSITIVE;
+    }
+
+    // Assume that coeff < 0
+    NfmContextDomain context_dom4(ctx_dom);
+    context_dom4.add_context(NfmContext(-coeff-1, false)); // Add coeff < 0
+    context_dom4.simplify();
+    if (context_dom4.is_empty()) {
+        // Since coeff < 0 isn't possible, it must have been >= 0
+        if (sign == NFM_NON_POSITIVE) {
+            // Since it is both <= 0 and >= 0, it must be zero
+            return NFM_ZERO;
+        }
+        sign = NFM_NON_NEGATIVE;
+    }
+    return sign;
 }
 
 // Coeff has to be non-linear otherwise no guarantee on the result

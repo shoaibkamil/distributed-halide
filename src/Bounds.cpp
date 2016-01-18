@@ -1066,7 +1066,9 @@ void merge_boxes(Box &a, const Box &b) {
         std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
     }*/
 
+    //std::cout << "MERGE RESULT start NFM\n";
     merge_boxes_nfm(a, b);
+    //std::cout << "MERGE RESULT start halide\n";
     merge_boxes_halide(a_copy, b_copy);
 
     //merge_boxes_nfm(a_copy, b_copy);
@@ -1086,10 +1088,10 @@ void merge_boxes(Box &a, const Box &b) {
 
     for (size_t i = 0; i < a_copy.size(); ++i) {
         if (!equal(a_copy[i].min, a[i].min)) {
-            std::cout << "\n  a_copy[i].min: " << a_copy[i].min << "\n  a[i].min: " << a[i].min << "\n";
+            std::cout << "\n  a_copy[i].min: " << a_copy[i].min << "\n  a[i].min     : " << a[i].min << "\n";
         }
         if (!equal(a_copy[i].max, a[i].max)) {
-            std::cout << "\n  a_copy[i].max: " << a_copy[i].max << "\n  a[i].max: " << a[i].max << "\n";
+            std::cout << "\n  a_copy[i].max: " << a_copy[i].max << "\n  a[i].max     : " << a[i].max << "\n";
         }
     }
 }
@@ -1166,6 +1168,12 @@ void merge_boxes_halide(Box &a, const Box &b) {
         }
     } else {
         a.used = Expr();
+    }
+
+    //TODO: compare to if we don't do simplify
+    for (size_t i = 0; i < a.size(); ++i) {
+        a[i].min = simplify(a[i].min);
+        a[i].max = simplify(a[i].max);
     }
 }
 
@@ -1432,7 +1440,8 @@ bool boxes_overlap_nfm(const Box &a, const Box &b) {
 }
 
 Box boxes_intersection(const Box &a, const Box &b) {
-    std::cout << "\nINTERSECT BOXES\n";
+    return boxes_intersection_halide(a, b);
+    /*std::cout << "\nINTERSECT BOXES\n";
     std::cout << "  Box A:\n";
     for (size_t i = 0; i < a.size(); ++i) {
         std::cout << "Dim (" << a[i].var << ") min: " << a[i].min << "; max: " << a[i].max << "\n";
@@ -1468,7 +1477,7 @@ Box boxes_intersection(const Box &a, const Box &b) {
         }
     }
 
-    return nfm_intersect;
+    return nfm_intersect;*/
 }
 
 Box boxes_intersection_halide(const Box &a, const Box &b) {
@@ -1534,13 +1543,14 @@ Box boxes_intersection_nfm(const Box &a, const Box &b) {
     assert(expr.defined());
     CollectVars collect(dim_names);
     collect.mutate(expr);
-    const auto& let_assignments = collect.get_let_assignments();
+    //const auto& let_assignments = collect.get_let_assignments();
 
     NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
         expr, collect.get_sym_consts(), collect.get_dims());
-    Box result = convert_nfm_union_domain_to_halide_box(
+    /*Box result = convert_nfm_union_domain_to_halide_box(
         type, union_dom, dim_names, &let_assignments);
-    return result;
+    return result;*/
+    return a;
 }
 
 Expr box_encloses(const Box &a, const Box &b) {

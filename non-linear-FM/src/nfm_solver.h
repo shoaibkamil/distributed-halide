@@ -9,6 +9,8 @@
 #include "nfm_context.h"
 #include "nfm_context_domain.h"
 #include "nfm_domain.h"
+#include "nfm_polynom.h"
+#include "nfm_polynom_frac.h"
 #include "nfm_space.h"
 
 namespace Nfm {
@@ -59,8 +61,30 @@ public:
         NfmPolyCoeff& coeff);
     static bool nfm_poly_coeff_is_zero(const NfmContextDomain& ctx_dom,
         NfmPolyCoeff& coeff);
+    static bool nfm_poly_coeff_is_non_neg(const NfmContextDomain& ctx_dom,
+        NfmPolyCoeff& coeff);
+    static bool nfm_poly_coeff_is_non_pos(const NfmContextDomain& ctx_dom,
+        NfmPolyCoeff& coeff);
     static bool nfm_poly_coeff_is_unknown(const NfmContextDomain& ctx_dom,
         NfmPolyCoeff& coeff);
+
+    // Return the sign of a NfmPolyCoeff based on the context domain. This
+    // function may modify the sign if it's originally unknown.
+    static NfmSign nfm_poly_frac_get_sign(const NfmContextDomain& ctx_dom,
+        NfmPolyFrac& frac);
+
+    static bool nfm_poly_frac_is_pos(const NfmContextDomain& ctx_dom,
+        NfmPolyFrac& frac);
+    static bool nfm_poly_frac_is_neg(const NfmContextDomain& ctx_dom,
+        NfmPolyFrac& frac);
+    static bool nfm_poly_frac_is_zero(const NfmContextDomain& ctx_dom,
+        NfmPolyFrac& frac);
+    static bool nfm_poly_frac_is_non_neg(const NfmContextDomain& ctx_dom,
+        NfmPolyFrac& frac);
+    static bool nfm_poly_frac_is_non_pos(const NfmContextDomain& ctx_dom,
+        NfmPolyFrac& frac);
+    static bool nfm_poly_frac_is_unknown(const NfmContextDomain& ctx_dom,
+        NfmPolyFrac& frac);
 
     static bool nfm_constraint_involves(const NfmContextDomain& ctx_dom,
         NfmConstraint& cst, const std::string& var);
