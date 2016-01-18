@@ -56,8 +56,9 @@ Expr simplify_expr(Expr expr, vector<string>& loop_dims) {
     std::cout << "\n";
 
     std::map<std::string, Expr> expr_substitutions;
+    std::vector<std::pair<std::string, Expr>> let_substitutions;
     NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
-        expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions);
+        expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions, &let_substitutions);
     //std::cout << "\nNfmUnionDomain: " << union_dom << "\n\n";
 
     std::cout << "\nSubstitutions: ";
@@ -67,12 +68,12 @@ Expr simplify_expr(Expr expr, vector<string>& loop_dims) {
     std::cout << "\n";
 
     Expr simplified_expr = convert_nfm_union_domain_to_halide_expr(
-        Int(32), union_dom, &let_assignments, &expr_substitutions);
+        Int(32), union_dom, &let_assignments, &expr_substitutions, &let_substitutions);
     std::cout << "\n\nSimplified expr: " << simplified_expr << "\n\n";
 
     Interval result =
         convert_nfm_union_domain_to_halide_interval(Int(32), union_dom, "w",
-            &let_assignments, &expr_substitutions);
+            &let_assignments, &expr_substitutions, &let_substitutions);
     std::cout << "\n\nSimplified interval:\n"
               << "  Min: " << result.min << "\n"
               << "  Max: " << result.max << "\n\n";
@@ -140,25 +141,27 @@ Interval simplify_interval(Interval interval, vector<string>& sym_consts,
     std::cout << "\n";
 
     std::map<std::string, Expr> expr_substitutions;
+    std::vector<std::pair<std::string, Expr>> let_substitutions;
     NfmUnionDomain union_dom = convert_halide_interval_to_nfm_union_domain(
-        interval, sym_consts, dims, &expr_substitutions);
+        interval, sym_consts, dims, &expr_substitutions, &let_substitutions);
     //std::cout << "\nNfmUnionDomain: " << union_dom << "\n\n";
 
-    std::cout << "\nSubstitutions: ";
+    std::cout << "\nSubstitutions: \n";
     for (auto& iter : expr_substitutions) {
         std::cout << "FROM " << iter.first << " TO: " << iter.second << "\n";
     }
     std::cout << "\n";
 
     Interval result = convert_nfm_union_domain_to_halide_interval(
-        Int(32), union_dom, interval.var, &let_assignments, &expr_substitutions);
+        Int(32), union_dom, interval.var, &let_assignments, &expr_substitutions, &let_substitutions);
     std::cout << "Simplified interval:\n"
               << "  Min: " << result.min << "\n"
               << "  Max: " << result.max << "\n\n";
 
     std::map<std::string, Expr> expr_substitutions2;
+    std::vector<std::pair<std::string, Expr>> let_substitutions2;
     NfmUnionDomain union_dom2 = convert_halide_interval_to_nfm_union_domain(
-        result, sym_consts, dims, &expr_substitutions2);
+        result, sym_consts, dims, &expr_substitutions2, &let_substitutions2);
     //std::cout << "\nNfmUnionDomain: " << union_dom << "\n\n";
 
     std::cout << "\nSubstitutions 2: ";
@@ -168,7 +171,7 @@ Interval simplify_interval(Interval interval, vector<string>& sym_consts,
     std::cout << "\n";
 
     Interval result2 = convert_nfm_union_domain_to_halide_interval(
-        Int(32), union_dom2, result.var, &let_assignments, &expr_substitutions2);
+        Int(32), union_dom2, result.var, &let_assignments, &expr_substitutions2, &let_substitutions2);
     std::cout << "Simplified interval:\n"
               << "  Min: " << result2.min << "\n"
               << "  Max: " << result2.max << "\n\n";
@@ -372,6 +375,8 @@ void simplify_interval_test() {
 }
 
 void test() {
+    Expr a = Variable::make(Int(32), "a");
+    Expr b = Variable::make(Int(32), "b");
     Expr x = Variable::make(Int(32), "x");
     Expr y = Variable::make(Int(32), "y");
     Expr z = Variable::make(Int(32), "z");
@@ -383,7 +388,9 @@ void test() {
     Expr t2 = Variable::make(Int(32), "t2");
     Expr t3 = Variable::make(Int(32), "t3");
     Expr t4 = Variable::make(Int(32), "t4");
+    Expr t10 = Variable::make(Int(32), "t10");
     Expr p = Variable::make(Float(32), "p");
+    Expr v = Variable::make(Bool(), "v");
     //vector<string> loop_dims = {"x", "y", "z", "s", "t", "u", "w"};
     vector<string> loop_dims = {"w"};
 
@@ -421,33 +428,89 @@ void test() {
 
     /*TODO:
     a_copy[i].min: min(min(x, min(y, min(z, min((x + -1), min((x + -2), 0))))), min(y, min(z, s)))
-    a[i].min: min(x, min(y, min(z, min(s, min((x + -1), min((x + -2), 0))))))
+    a[i].min: min(z, min(y, min((x + -2), min(s, 0))))
 
     a_copy[i].min: min(min(x, min(y, min((x + -2), 0))), (x - 1))
-    a[i].min: min(x, min(y, min((x + -1), min((x + -2), 0))))
+    a[i].min: min(y, min((x + -2), 0))
 
-    Expr expr = w >= min(((min(x, (y + -3)) + 0) + 1), ((min(x, (y + -4)) + 1) - 1));
+    a_copy[i].min: (min((min(x, (y + -3)) + 1), min(x, (y + -4)));
+    a[i].min: min((y + -4), x);
 
     a_copy[i].max: max(max(x, max(y, max(z, max(s, max(t, max((y + -1), max((z + -1), max((s + -1), max((t + -1), max(min((y + 1), 99), max(min((z + 1), 99), max(min((s + 1), 99), max(min((t + 1), 99), 0))))))))))))), x)
-    a[i].max: max(x, max(y, max(z, max(s, max(t, max((y + -1), max((z + -1), max((s + -1), max((t + -1), max(min((y + 1), 99), max(min((z + 1), 99), max(min((s + 1), 99), max(min((t + 1), 99), 0)))))))))))))
+    a[i].max: max(min((t + 1), 99), max(min((s + 1), 99), max(min((z + 1), 99), max(min((y + 1), 99), max(t, max(s, max(z, max(y, max(x, 0)))))))))
+
+    INTERESTING
+    a_copy[i].min: min(x, ((min((max((((y - z) + 2)/2), 1) + 1), 0)*2) + z))
+    a[i].min     : min(x, z)
+
+    a_copy[i].min: min(min(((x + y) + (z*4)), ((x + s) + -3)), ((min(((z*4) + y), (s + -3)) + x) + 1))
+    a[i].min     : min(((s + x) + -3), (((z*4) + y) + x))
+
+
+    a_copy[i].max: max((min(((((((x - y) + 1)/8)*8) + x) + 1), (x + -6)) + 7), (x + 1))
+    a[i].max     : max(min((x + 1), ((((((x - y) + 1)/8)*8) + x) + 8)), (x + 1))
+
+    a_copy[i].max: max((((((x - y)/6)*6) + y) + 6), (min(((((((((x - y)/6)*6) + 6)/5)*5) + ((((x - y)/6)*6) + y)) + 1), (((((x - y)/6)*6) + y) + 2)) + 4))
+    a[i].max     : max((((((((((x - y)/6)*6) + 6)/5)*5) + (((x - y)/6)*6)) + y) + 5), (((((x - y)/6)*6) + y) + 6))
+    a_copy[i].max: max(((a + y) + 6), (min(((b + (a + y)) + 1), ((a + y) + 2)) + 4))
+    a[i].max     : max(min(((y + a) + 6), (((b + y) + a) + 5)), ((y + a) + 6))
+
+    a_copy[i].min: min(x, (min((max(((y - z) + 1), 1) + 1), 0) + z))
+    a[i].min     : min((max(y, z) + 2), min(z, x))
+
+    INTERESTING
+    a_copy[i].max: max(min((((max((max(a, 1) + -1), 0)*16) + y) + 15), x), z)
+    a[i].max     : max(min((y + 15), x), max(min(((y + (a*16)) + -1), x), z))
+
+    a_copy[i].min: min(x, (let t11 = min(((min(((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -4), 0)/3)*6), (((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -6)) in min((((t11/max((((y - z) + 3)/3), 1))*5) + t), (s + -4))))
+    a[i].min     : min(x, select((((t11 <= 0) && (((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6)*6) + 6) <= ((((y - z) + 3)/3)*(((s - t) + 5)/5)))) || (((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6) <= 0) && ((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -5) <= (((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6)*6))) || ((((t11 + 6) <= (((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6)*6)) && (6 <= ((((y - z) + 3)/3)*(((s - t) + 5)/5)))) || ((1 <= ((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6)) && (((((y - z) + 3)/3)*(((s - t) + 5)/5)) <= 5))))), (((t11/max((((y - z) + 3)/3), 1))*5) + t), (s + -4)))
+
+    a_copy[i].max: max(x, (let t10 = min((((min(((((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -1)/4)*4), ((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -4)) + 3)/3)*6), (((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -6)) in min((((((t10 + 5)/max((((y - z) + 3)/3), 1))*5) + t) + 4), s)))
+    a[i].max     : max(x, min((((((t10 + 5)/max((((y - z) + 3)/3), 1))*5) + t) + 4), s))
+
+    a_copy[i].max: select(!a, max(x, y), y)
+    a[i].max     : select(((2 <= a) || ((0 <= (a*-1)) || (a == 1))), y, x)
+
+    a_copy[i].min: select(b, (x + 10), (x + -10))
+    a[i].min     : select(((2 <= b) || (0 <= (b*-1))), (x + -10), (x + 10))
     */
 
-    //Expr expr = w >= min(x, min(y, min(z, min(s, min((x + -1), min((x + -2), 0))))));
-    //Expr expr = w >= min(x, min(y, min((x + -1), min((x + -2), 0))));
+    //Expr expr = w >= min(min(x, min(y, min(z, min((x + -1), min((x + -2), 0))))), min(y, min(z, s)));
+    //Expr expr = w >= min(min(x, min(y, min((x + -2), 0))), (x - 1));
+    //Expr expr = w >= min(((min(x, (y + -3)) + 0) + 1), ((min(x, (y + -4)) + 1) - 1));
     //Expr expr = w <= max(x, max(y, max(z, max(s, max(t, max((y + -1), max((z + -1), max((s + -1), max((t + -1), max(min((y + 1), 99), max(min((z + 1), 99), max(min((s + 1), 99), max(min((t + 1), 99), 0)))))))))))));
-    //Expr expr = w >= min(select((s < ((y + (z*4)) + 3)), ((s + x) + -2), ((((z*4) + y) + x) + 1)), ((min(((z*4) + y), (s + -3)) + x) + 1));
+    //Expr expr = w >= min(x, ((min((max((((y - z) + 2)/2), 1) + 1), 0)*2) + z));
     //Expr expr = w >= min(min(((x + y) + (z*4)), ((x + s) + -3)), ((min(((z*4) + y), (s + -3)) + x) + 1));
-    Expr expr = w >= min(((min(x, (y + -3)) + 0) + 1), ((min(x, (y + -4)) + 1) - 1));
 
+    //Expr expr = w <= max((min(((((((x - y) + 1)/8)*8) + x) + 1), (x + -6)) + 7), (x + 1));
+    //Expr expr = w <= max(((a + y) + 6), (min(((b + (a + y)) + 1), ((a + y) + 2)) + 4));
+    //Expr expr = w >= min(x, (min((max(((y - z) + 1), 1) + 1), 0) + z));
+    //Expr expr = w <= max(min((((max((max(a, 1) + -1), 0)*16) + y) + 15), x), z);
+
+    //Expr expr = w >= min(x, (let t11 = min(((min(((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -4), 0)/3)*6), (((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -6)) in min((((t11/max((((y - z) + 3)/3), 1))*5) + t), (s + -4))))
+
+    //Expr expr = w <= max(x, Let::make("t10", min((((min(((((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -1)/4)*4), ((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -4)) + 3)/3)*6), (((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -6)), min((((((t10 + 5)/max((((y - z) + 3)/3), 1))*5) + t) + 4), s)));
+    //Expr expr = w <= max(x, Let::make("t", min(x/2, y*6), min(t*3, z+y)));
+
+    Expr expr = w >= select(!v, max(x, y), y);
     std::cout << "simplify: " << simplify(expr) << "\n";
+
+    /*std::map<std::string, Expr> expr_substitutions;
+    expr_substitutions.emplace("x", y + 2);
+    expr_substitutions.emplace("t", x + 2);
+    Expr expr = t + 1;
+    std::cout << "SUBSTITUTE: " << substitute(expr_substitutions, expr) << "\n";
+    std::cout << "LET: " << Let::make("x", y+2, Let::make("t", x+2, t+1)) << "\n";
+    std::cout << "SIMPLIFY LET: " << simplify(Let::make("x", y+2, Let::make("t", x+2, t+1))) << "\n";*/
+
     Expr simplified_expr = simplify_expr(expr, loop_dims);
 }
 
 int main(int argc, const char **argv) {
     //example_expr();
-    example_interval();
+    //example_interval();
     //simplify_interval_test();
-    //test();
+    test();
     //boxes_merge_test();
     //boxes_overlap_test();
     //box_encloses_test();

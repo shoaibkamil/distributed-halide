@@ -477,6 +477,7 @@ bool do_subsume(const NfmBound& lhs, NfmBound& rhs, bool is_min) {
     assert(lhs.type == rhs.type);
     NfmPolyFrac diff = lhs.rhs - rhs.rhs;
     if (diff.is_unknown()) {
+        //debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
         return false;
     }
     if (is_min) {
@@ -488,6 +489,7 @@ bool do_subsume(const NfmBound& lhs, NfmBound& rhs, bool is_min) {
             rhs = lhs;
         }
     }
+    //debug(0) << "  TRUE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
     return true;
 }
 
@@ -515,8 +517,8 @@ bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
     assert(lhs.idx == rhs.idx);
     assert(lhs.type == rhs.type);
     NfmPolyFrac diff = lhs.rhs - rhs.rhs;
-    debug(0) << "do_subsume context: " << ctx_dom.to_string() << "\n";
-    debug(0) << "   lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+    //debug(0) << "do_subsume context: " << ctx_dom.to_string() << "\n";
+    //debug(0) << "   lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
     NfmSign sign = NfmSolver::nfm_poly_frac_get_sign(ctx_dom, diff);
     if (is_min) {
         if ((sign == NFM_NEGATIVE) || (sign == NFM_NON_POSITIVE)) {
@@ -524,7 +526,7 @@ bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
             rhs = lhs;
         } else if (!((sign == NFM_ZERO) || (sign == NFM_POSITIVE) || (sign == NFM_NON_NEGATIVE))) {
             // NOT(== 0 or >= 0 or > 0)
-            debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+            //debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
             return false;
         }
     } else {
@@ -533,11 +535,11 @@ bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
             rhs = lhs;
         } else if (!((sign == NFM_ZERO) || (sign == NFM_NEGATIVE) || (sign == NFM_NON_POSITIVE))) {
             // NOT(== 0 or <= 0 or < 0)
-            debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+            //debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
             return false;
         }
     }
-    debug(0) << "  TRUE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+    //debug(0) << "  TRUE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
     return true;
 }
 
@@ -944,7 +946,7 @@ void convert_to_value_helper(
             sym_const_vars, dim_vars);
     }
     //std::cout << "    temp2: " << temp2 << "\n";
-    temp2 = simplify(temp2);
+    temp2 = simplify(temp2, false);
     //std::cout << "    simplify temp2: " << temp2 << "\n";
 
     const auto& iter = val_cond.find(temp2);
@@ -970,12 +972,12 @@ Expr convert_to_value(Type type, const vector<Expr>& sym_const_vars, const vecto
     if (val_cond.size() == 1) {
         if(!val_cond.begin()->first.defined()) { // All conditions only (ineqs)
             assert(val_cond.begin()->second.defined());
-            Expr value = simplify(val_cond.begin()->second);
+            Expr value = simplify(val_cond.begin()->second, false);
             //std::cout << "  value1: " << value << "\n";
             expr = value;
         } else {
             assert(val_cond.begin()->first.defined());
-            Expr value = simplify(val_cond.begin()->first);
+            Expr value = simplify(val_cond.begin()->first, false);
             //std::cout << "  value2: " << value << "\n";
             expr = value;
         }
@@ -983,6 +985,7 @@ Expr convert_to_value(Type type, const vector<Expr>& sym_const_vars, const vecto
         //std::cout << "\nCONVERT TO LET\n";
         Expr condition, value;
         auto iter = val_cond.rbegin();
+        //std::cout << "   cond: " << iter->first << "; value: " << iter->second << "\n";
         // First element
         assert(iter->first.defined());
         assert(iter->second.defined());
@@ -990,7 +993,6 @@ Expr convert_to_value(Type type, const vector<Expr>& sym_const_vars, const vecto
         value = simplify(iter->first);*/
         condition = iter->second;
         value = iter->first;
-        //std::cout << "   cond: " << condition << "; value: " << value << "\n";
         assert(!expr.defined());
         /*if (is_lower_bound) {
             expr = value.type().min();
@@ -1002,25 +1004,25 @@ Expr convert_to_value(Type type, const vector<Expr>& sym_const_vars, const vecto
         ++iter;
 
         // Second element
+        //std::cout << "   cond: " << iter->first << "; value: " << iter->second << "\n";
         assert(iter->first.defined());
         assert(iter->second.defined());
         /*condition = simplify(iter->second);
         value = simplify(iter->first);*/
         condition = iter->second;
         value = iter->first;
-        //std::cout << "   cond: " << condition << "; value: " << value << "\n";
         assert(expr.defined());
         expr = select(condition, value, expr);
         ++iter;
 
         for (; iter != val_cond.rend(); ++iter) {
+            //std::cout << "   cond: " << iter->first << "; value: " << iter->second << "\n";
             assert(iter->first.defined());
             assert(iter->second.defined());
             /*condition = simplify(iter->second);
             value = simplify(iter->first);*/
             condition = iter->second;
             value = iter->first;
-            //std::cout << "   cond: " << condition << "; value: " << value << "\n";
             assert(expr.defined());
             expr = select(condition, value, expr);
         }
@@ -1336,7 +1338,8 @@ VarDomainBound convert_nfm_domain_to_bound(
 
 Expr convert_nfm_union_domain_to_halide_expr(Type type, NfmUnionDomain& union_dom,
                                              const vector<string> *let_assignments,
-                                             const map<string, Expr> *expr_substitutions) {
+                                             const map<string, Expr> *expr_substitutions,
+                                             const vector<pair<string, Expr>> *let_substitutions) {
     if (union_dom.is_empty()) {
         return 1 < 0; // Empty union dom: infeasible constraint
     }
@@ -1375,6 +1378,16 @@ Expr convert_nfm_union_domain_to_halide_expr(Type type, NfmUnionDomain& union_do
     } else {
         or_expr = simplify(or_expr);
     }
+    if (!or_expr.defined()) {
+        return or_expr;
+    }
+    if ((let_substitutions != NULL) && !let_substitutions->empty()) {
+        or_expr = Let::make((*let_substitutions)[let_substitutions->size()-1].first,
+            (*let_substitutions)[let_substitutions->size()-1].second, or_expr);
+        for (int i = let_substitutions->size()-2; i >= 0; --i) {
+            or_expr = Let::make((*let_substitutions)[i].first, (*let_substitutions)[i].second, or_expr);
+        }
+    }
     return or_expr;
 }
 
@@ -1382,7 +1395,8 @@ Expr convert_nfm_union_domain_to_halide_expr(Type type, NfmUnionDomain& union_do
 Interval convert_nfm_union_domain_to_halide_interval(
         Type type, const Nfm::Internal::NfmUnionDomain& p_union_dom,
         const string& dim_name, const vector<string> *let_assignments,
-        const map<string, Expr> *expr_substitutions) {
+        const map<string, Expr> *expr_substitutions,
+        const vector<pair<string, Expr>> *let_substitutions) {
     // TODO: Not really clear what should be returned if the union dom is empty.
     // Technically, we could return something like -4 >= x >= 0, but it seems
     // that it's a valid interval in Halide (???)
@@ -1444,17 +1458,24 @@ Interval convert_nfm_union_domain_to_halide_interval(
         // Lower bound
         if (bound.has_lower_bound()) {
             if (bound.conditions.is_always_true()) {
-                AndNfmBounds temp;
-                for (const NfmBound& lhs : bound.lower_bounds) {
-                    if (!do_subsume(lhs, lower_bounds_no_cond, true)) {
+                if (bound.lower_bounds.size() > 1) {
+                    lower_bounds_no_cond.push_back(std::move(bound.lower_bounds));
+                } else {
+                    const auto& lhs = bound.lower_bounds[0];
+                    bool is_subsumed = false;
+                    for (auto& rhs : lower_bounds_no_cond) {
+                        if (rhs.size() > 1) {
+                            continue;
+                        }
+                        is_subsumed |= do_subsume(lhs, rhs, true);
+                    }
+                    if (!is_subsumed) {
                         //std::cout << "  Lower bound adding " << lhs.to_string() << " to temp\n";
-                        temp.push_back(lhs);
+                        AndNfmBounds temp = {lhs};
+                        lower_bounds_no_cond.push_back(std::move(temp));
                     } /*else {
                         std::cout << "  Lower bound adding " << lhs.to_string() << " is SUBSUMED\n";
                     }*/
-                }
-                if (temp.size() > 0) {
-                    lower_bounds_no_cond.push_back(std::move(temp));
                 }
             } else {
                 // Should only appear once (bound with same conditions should have
@@ -1469,17 +1490,24 @@ Interval convert_nfm_union_domain_to_halide_interval(
         // Upper bound
         if (bound.has_upper_bound()) {
             if (bound.conditions.is_always_true()) {
-                AndNfmBounds temp;
-                for (const NfmBound& lhs : bound.upper_bounds) {
-                    if (!do_subsume(lhs, upper_bounds_no_cond, false)) {
+                if (bound.upper_bounds.size() > 1) {
+                    upper_bounds_no_cond.push_back(std::move(bound.upper_bounds));
+                } else {
+                    const auto& lhs = bound.upper_bounds[0];
+                    bool is_subsumed = false;
+                    for (auto& rhs : upper_bounds_no_cond) {
+                        if (rhs.size() > 1) {
+                            continue;
+                        }
+                        is_subsumed |= do_subsume(lhs, rhs, false);
+                    }
+                    if (!is_subsumed) {
                         //std::cout << "  Upper bound adding " << lhs.to_string() << " to temp\n";
-                        temp.push_back(lhs);
+                        AndNfmBounds temp = {lhs};
+                        upper_bounds_no_cond.push_back(std::move(temp));
                     } /*else {
                         std::cout << "  Upper bound adding " << lhs.to_string() << " is SUBSUMED\n";
                     }*/
-                }
-                if (temp.size() > 0) {
-                    upper_bounds_no_cond.push_back(std::move(temp));
                 }
             } else {
                 assert(upper_bounds.find(bound.conditions) == upper_bounds.end());
@@ -1508,7 +1536,11 @@ Interval convert_nfm_union_domain_to_halide_interval(
             }*/
         }
         if (temp_no_cond.size() > 0) {
-            lower_bounds_no_cond_temp.push_back(std::move(temp_no_cond));
+            if (bounds.size() > 1) { // Can't drop the AND bound if one of them is not dropped
+                lower_bounds_no_cond_temp.push_back(bounds);
+            } else {
+                lower_bounds_no_cond_temp.push_back(std::move(temp_no_cond));
+            }
         }
     }
     lower_bounds_no_cond = lower_bounds_no_cond_temp;
@@ -1532,7 +1564,11 @@ Interval convert_nfm_union_domain_to_halide_interval(
             }*/
         }
         if (temp_no_cond.size() > 0) {
-            upper_bounds_no_cond_temp.push_back(std::move(temp_no_cond));
+            if (bounds.size() > 1) { // Can't drop the AND bound if one of them is not dropped
+                upper_bounds_no_cond_temp.push_back(bounds);
+            } else {
+                upper_bounds_no_cond_temp.push_back(std::move(temp_no_cond));
+            }
         }
     }
     upper_bounds_no_cond = upper_bounds_no_cond_temp;
@@ -1596,10 +1632,214 @@ Interval convert_nfm_union_domain_to_halide_interval(
         result.min = simplify(result.min); // NOTE: Simplify sometimes give odd-looking results
         result.max = simplify(result.max);
     }
+    if ((let_substitutions != NULL) && !let_substitutions->empty()) {
+        if (result.min.defined()) {
+            result.min = Let::make((*let_substitutions)[let_substitutions->size()-1].first,
+                (*let_substitutions)[let_substitutions->size()-1].second, result.min);
+            for (int i = let_substitutions->size()-2; i >= 0; --i) {
+                result.min = Let::make((*let_substitutions)[i].first, (*let_substitutions)[i].second, result.min);
+            }
+        }
+        if (result.max.defined()) {
+            result.max = Let::make((*let_substitutions)[let_substitutions->size()-1].first,
+                (*let_substitutions)[let_substitutions->size()-1].second, result.max);
+            for (int i = let_substitutions->size()-2; i >= 0; --i) {
+                result.max = Let::make((*let_substitutions)[i].first, (*let_substitutions)[i].second, result.max);
+            }
+        }
+    }
     //debug(0) << "\nAFTER SUBSTITUTION result.min: " << result.min << "\n";
     //debug(0) << "result.max: " << result.max << "\n";
     return result;
 }
+
+// Convert the union_domain into box.
+/*Box convert_nfm_union_domain_to_halide_box(
+        Type type, const Nfm::Internal::NfmUnionDomain& p_union_dom,
+        const std::vector<std::string>& box_dims,
+        const vector<string> *let_assignments,
+        const map<string, Expr> *expr_substitutions,
+        const vector<pair<string, Expr>> *let_substitutions) {
+    assert(box_dims.size() > 0);
+    if (p_union_dom.is_empty()) {
+        return Box();
+    }
+    if (p_union_dom.is_universe()) {
+        Box result;
+        result.push_back(Interval(box_dims[0]));
+        return result;
+    }
+    const NfmSpace& coeff_space = p_union_dom.get_coeff_space();
+    const NfmSpace& space = p_union_dom.get_space();
+    int end_dim_idx = space.get_index(box_dims[box_dims.size()-1]);
+    if (end_dim_idx == -1) { // The dimension doesn't exist
+        return Box();
+    }
+    int start_dim_idx = space.get_index(box_dims[0]);
+    assert(start_dim_idx != -1);
+    assert(end_dim_idx - start_dim_idx + 1 == (int)box_dims.size());
+
+    vector<Expr> sym_const_vars;
+    for (size_t i = 0; i < coeff_space.size(); ++i) {
+        Expr var = Variable::make(type, coeff_space.get_name(i));
+        sym_const_vars.push_back(std::move(var));
+    }
+
+    vector<Expr> dim_vars;
+    for (size_t i = 0; i < space.size(); ++i) {
+        Expr var = Variable::make(type, space.get_name(i));
+        dim_vars.push_back(std::move(var));
+    }
+
+    // Project out everything after this dim so that it doesn't depend on
+    // inner loop vars
+    NfmUnionDomain union_dom =
+        NfmSolver::nfm_union_domain_eliminate_dims(p_union_dom, (size_t)end_dim_idx+1);
+    //std::cout << "Union domain after projection: \n" << union_dom << "\n";
+
+    union_dom = NfmSolver::nfm_union_domain_classify_unknown_coefficient(union_dom, (size_t)end_dim_idx);
+
+    Box result(box_dims.size());
+    // Map from lower bound (max of) to condition
+    vector<map<Expr, Expr, IRDeepCompare>> lower_bounds_temps(box_dims.size());
+    // Map from upper bound (min of) to condition
+    vector<map<Expr, Expr, IRDeepCompare>> upper_bounds_temps(box_dims.size());
+    auto& domains = union_dom.get_domains();
+    for (size_t i = 0; i < domains.size(); ++i) { // OR of lower/upper bound (IF-ELSE IF-....-ELSE)
+        vector<LowerUpperBound> bounds = convert_nfm_domain_to_lower_upper_bound_box_helper(
+            type, domains[i], box_dims, start_dim_idx, end_dim_idx, sym_const_vars, dim_vars, let_assignments);
+        assert(bounds.size() == box_dims.size());
+
+        for (int j = box_dims.size()-1; j >= 0; --j) {
+            map<Expr, Expr, IRDeepCompare>& lower_bounds_temp = lower_bounds_temps[j];
+            map<Expr, Expr, IRDeepCompare>& upper_bounds_temp = upper_bounds_temps[j];
+            LowerUpperBound& bound = bounds[j];
+            if (!bound.is_defined()) {
+                continue;
+            }
+            if (bound.is_always_false()) {
+                // The condition is never true
+                continue;
+            }
+            // Lower bound
+            if (bound.has_lower_bound()) {
+                const auto& iter = lower_bounds_temp.find(bound.lb);
+                if (iter != lower_bounds_temp.end()) {
+                    //std::cout << "  lb: " << bound.lb << "; cond: " <<  lower_bounds_temp[bound.lb] << "\n";
+                    //TODO: might want to revisit this later, to make sure we always get the correct result
+                    // If condition is undefined, it means universe. Everything
+                    // OR with universe is a universe
+                    if (!iter->second.defined() || !bound.condition.defined()) {
+                        iter->second = Expr();
+                    } else {
+                        assert(iter->second.defined() && bound.condition.defined());
+                        iter->second = Or::make(bound.condition, iter->second);
+                    }
+                } else {
+                    lower_bounds_temp.emplace(bound.lb, bound.condition);
+                }
+            }
+            // Upper bound
+            if (bound.has_upper_bound()) {
+                auto iter = upper_bounds_temp.find(bound.ub);
+                if (iter != upper_bounds_temp.end()) {
+                    //std::cout << "  ub: " << bound.ub << "; cond: " <<  upper_bounds_temp[bound.ub] << "\n";
+                    //TODO: might want to revisit this later, to make sure we always get the correct result
+                    // If condition is undefined, it means universe. Everything
+                    // OR with universe is a universe
+                    if (!iter->second.defined() || !bound.condition.defined()) {
+                        iter->second = Expr();
+                    } else {
+                        assert(iter->second.defined() && bound.condition.defined());
+                        iter->second = Or::make(bound.condition, iter->second);
+                    }
+                } else {
+                    upper_bounds_temp.emplace(bound.ub, bound.condition);
+                }
+            }
+        }
+    }
+
+    //TODO: how to handle if the domain is not disjoint
+    for (int j = box_dims.size()-1; j >= 0; --j) {
+        //std::cout << "Compressing values with same condition\n";
+        map<Expr, Expr, IRDeepCompare>& lower_bounds_temp = lower_bounds_temps[j];
+        map<Expr, Expr, IRDeepCompare>& upper_bounds_temp = upper_bounds_temps[j];
+        // Map from condition to lower bound
+        map<Expr, Expr, IRDeepCompare> lower_bounds;
+        // Map from condition to upper bound
+        map<Expr, Expr, IRDeepCompare> upper_bounds;
+        //std::cout << "\nDimension (" << j << ")\n";
+        for (auto& it : lower_bounds_temp) { // it (value, condition)
+            //std::cout << "  lb: " << it.first << "; cond: " << it.second << "\n";
+            auto iter = lower_bounds.find(it.second);
+            if (iter != lower_bounds.end()) {
+                // Halide can only represent box bound; need to take the bounding box
+                // (that's why Min of ...)
+                iter->second = Min::make(it.first, iter->second);
+            } else {
+                lower_bounds.emplace(it.second, it.first);
+            }
+        }
+        for (auto& it : upper_bounds_temp) { // it (value, condition)
+            //std::cout << "  ub: " << it.first << "; cond: " << it.second << "\n";
+            auto iter = upper_bounds.find(it.second);
+            if (iter != upper_bounds.end()) {
+                // Halide can only represent box bound; need to take the bounding box
+                // (that's why Max of ...)
+                iter->second = Max::make(it.first, iter->second);
+            } else {
+                upper_bounds.emplace(it.second, it.first);
+            }
+        }
+
+        // TODO: Assume that they'are disjoint, i.e you can't have universe (undefined)
+        // condition and (M > 2 for example) appear together. Assume that OR of
+        // all conditions are the universe (which is always true for Halide interval)
+        //std::cout << "\nSTART INTERVAL COMPUTATION\n";
+        //std::cout << "Computing interval lower bound\n";
+        if (lower_bounds.size() == 1) {
+            if(!lower_bounds.begin()->first.defined()) { // Undefined condition is universe (always true)
+                Expr lb = simplify(lower_bounds.begin()->second);
+                //std::cout << "  lb: " << lb << "\n";
+                result[j].min = lb;
+            } else {
+                result[j].min = convert_to_value(coeff_space.get_names(), space.get_names(),
+                                                 lower_bounds.begin()->first, lower_bounds.begin()->second,
+                                                 true, let_assignments);
+            }
+        } else if (lower_bounds.size() > 1) {
+            result[j].min = convert_to_value(coeff_space.get_names(), space.get_names(),
+                                             lower_bounds, true, let_assignments);
+        }
+        //std::cout << "\nComputing interval upper bound\n";
+        if (upper_bounds.size() == 1) {
+            // Undefined condition is universe (always true)
+            if(!upper_bounds.begin()->first.defined()) {
+                Expr ub = simplify(upper_bounds.begin()->second);
+                //std::cout << "  ub: " << ub << "\n";
+                result[j].max = ub;
+            } else {
+                result[j].max = convert_to_value(coeff_space.get_names(), space.get_names(),
+                                                 upper_bounds.begin()->first, upper_bounds.begin()->second,
+                                                 false, let_assignments);
+            }
+        } else if (upper_bounds.size() > 1) {
+            result[j].max = convert_to_value(coeff_space.get_names(), space.get_names(),
+                                             upper_bounds, false, let_assignments);
+        }
+        //debug(0) << "\nresult[" << j << "].min: " << result[j].min << "\n";
+        //debug(0) << "result[" << j << "].max: " << result[j].max << "\n";
+        if (expr_substitutions != NULL) {
+            result[j].min = simplify(substitute(*expr_substitutions, result[j].min));
+            result[j].max = simplify(substitute(*expr_substitutions, result[j].max));
+        } else {
+            result[j].min = simplify(result[j].min); // NOTE: Simplify sometimes give odd-looking results
+            result[j].max = simplify(result[j].max);
+        }
+    }
+    return result;
+}*/
 
 //TODO: Add information on loop dimension. Currently, we treat everything as symbolic constants
 Interval nfm_simplify_interval(const Interval& interval) {
@@ -1614,10 +1854,11 @@ Interval nfm_simplify_interval(const Interval& interval) {
         collect.mutate(expr);
         const auto& let_assignments = collect.get_let_assignments();
         map<string, Expr> expr_substitutions;
+        vector<pair<string, Expr>> let_substitutions;
         NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
-            expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions);
+            expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions, &let_substitutions);
         Interval temp = convert_nfm_union_domain_to_halide_interval(
-            Int(32), union_dom, interval.var, &let_assignments, &expr_substitutions);
+            Int(32), union_dom, interval.var, &let_assignments, &expr_substitutions, &let_substitutions);
         //std::cout << "    After simplifying lower bound: " << temp.min << "\n";
         result.min = temp.min;
     }
@@ -1630,10 +1871,11 @@ Interval nfm_simplify_interval(const Interval& interval) {
         collect.mutate(expr);
         const auto& let_assignments = collect.get_let_assignments();
         map<string, Expr> expr_substitutions;
+        vector<pair<string, Expr>> let_substitutions;
         NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
-            expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions);
+            expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions, &let_substitutions);
         Interval temp = convert_nfm_union_domain_to_halide_interval(
-            Int(32), union_dom, interval.var, &let_assignments, &expr_substitutions);
+            Int(32), union_dom, interval.var, &let_assignments, &expr_substitutions, &let_substitutions);
         //std::cout << "    After simplifying upper bound: " << temp.max << "\n";
         result.max = temp.max;
     }
@@ -1652,8 +1894,9 @@ Expr nfm_simplify_expr(const Expr& expr) {
     collect.mutate(expr);
     const auto& let_assignments = collect.get_let_assignments();
     map<string, Expr> expr_substitutions;
+    vector<pair<string, Expr>> let_substitutions;
     NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
-        expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions);
+        expr, collect.get_sym_consts(), collect.get_dims(), &expr_substitutions, &let_substitutions);
 
     /*debug(0) << "  Union Domain (AFTER SIMPLIFY using NFM) (" << union_dom.get_domains().size() << "): \n";
     union_dom.sort();
@@ -1665,7 +1908,7 @@ Expr nfm_simplify_expr(const Expr& expr) {
     std::cout << "is empty? " << union_dom.is_empty() << "\n";*/
 
     result = convert_nfm_union_domain_to_halide_expr(
-        Int(32), union_dom, &let_assignments, &expr_substitutions);
+        Int(32), union_dom, &let_assignments, &expr_substitutions, &let_substitutions);
     //std::cout << "Result nfm_simplify_expr: " << result << "\n";
     return result;
 }

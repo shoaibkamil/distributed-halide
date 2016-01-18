@@ -167,25 +167,29 @@ Expr convert_interval_to_expr_upper_bound(const Interval& interval);
 Nfm::Internal::NfmUnionDomain convert_halide_interval_to_nfm_union_domain(
     const Interval& interval,
     const std::vector<Dim>& loop_dims,
-    std::map<std::string, Expr> *expr_substitutions=NULL);
+    std::map<std::string, Expr> *expr_substitutions=NULL,
+    std::vector<std::pair<std::string, Expr>> *let_substitutions=NULL);
 
 Nfm::Internal::NfmUnionDomain convert_halide_interval_to_nfm_union_domain(
     const Interval& interval,
     const std::vector<std::string>& sym_const,
     const std::vector<std::string>& dim,
-    std::map<std::string, Expr> *expr_substitutions=NULL);
+    std::map<std::string, Expr> *expr_substitutions=NULL,
+    std::vector<std::pair<std::string, Expr>> *let_substitutions=NULL);
 
 
 Nfm::Internal::NfmUnionDomain convert_halide_expr_to_nfm_union_domain(
     const Expr& expr,
     const std::vector<Dim>& loop_dims,
-    std::map<std::string, Expr> *expr_substitutions=NULL);
+    std::map<std::string, Expr> *expr_substitutions=NULL,
+    std::vector<std::pair<std::string, Expr>> *let_substitutions=NULL);
 
 Nfm::Internal::NfmUnionDomain convert_halide_expr_to_nfm_union_domain(
     const Expr& expr,
     const std::vector<std::string>& sym_const,
     const std::vector<std::string>& dim,
-    std::map<std::string, Expr> *expr_substitutions=NULL);
+    std::map<std::string, Expr> *expr_substitutions=NULL,
+    std::vector<std::pair<std::string, Expr>> *let_substitutions=NULL);
 
 }
 }

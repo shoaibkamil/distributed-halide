@@ -1,0 +1,51 @@
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_fuse
+
+  a_copy[i].min: min(maximum.s1.r.x$r.min, f.s0.x.min)
+  a[i].min     : min(f.s0.x.min, maximum.s1.r.x$r.min)
+
+  a_copy[i].max: max(maximum.s1.r.x$r.max, f.s0.x.max)
+  a[i].max     : max(f.s0.x.max, maximum.s1.r.x$r.max)
+
+  a_copy[i].min: min(maximum.s1.r.y$r.min, f.s0.y.min)
+  a[i].min     : min(f.s0.y.min, maximum.s1.r.y$r.min)
+
+  a_copy[i].max: max(maximum.s1.r.y$r.max, f.s0.y.max)
+  a[i].max     : max(f.s0.y.max, maximum.s1.r.y$r.max)
+
+  a_copy[i].min: min(maximum.s1.r.x$r.min, min(((min((max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1) + 1), 0)*3) + g.s0.x.min), (g.s0.x.max + -2)))
+  a[i].min     : min((g.s0.x.max + -2), min(g.s0.x.min, min(max(((((((g.s0.x.max - g.s0.x.min) + 3)/3)*3) + g.s0.x.min) + 3), (g.s0.x.min + 6)), maximum.s1.r.x$r.min)))
+
+  a_copy[i].max: max(maximum.s1.r.x$r.max, min((((max((max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1) + -1), 0)*3) + g.s0.x.min) + 2), g.s0.x.max))
+  a[i].max     : max(min((g.s0.x.min + 2), g.s0.x.max), max(min(((((((g.s0.x.max - g.s0.x.min) + 3)/3)*3) + g.s0.x.min) + -1), g.s0.x.max), maximum.s1.r.x$r.max))
+
+  a_copy[i].min: min(maximum.s1.r.y$r.min, (let t3 = min(((min(((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -4), 0)/3)*6), (((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + -6)) in min((((t3/max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1))*5) + g.s0.y.min), (g.s0.y.max + -4))))
+  a[i].min     : (let t3 = min(min(((((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -4)/3)*6), ((0/3)*6)), (((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + -6)) in min((g.s0.y.max + -4), min((((t3/max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1))*5) + g.s0.y.min), maximum.s1.r.y$r.min)))
+
+  a_copy[i].max: max(maximum.s1.r.y$r.max, (let t2 = min((((min(((((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -1)/4)*4), ((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -4)) + 3)/3)*6), (((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + -6)) in min((((((t2 + 5)/max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1))*5) + g.s0.y.min) + 4), g.s0.y.max)))
+  a[i].max     : (let t2 = min(min((((((((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -1)/4)*4) + 3)/3)*6), (((((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -4) + 3)/3)*6)), (((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + -6)) in max(min((((((t2 + 5)/max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1))*5) + g.s0.y.min) + 4), g.s0.y.max), maximum.s1.r.y$r.max))
+
+  a_copy[i].min: min(maximum.s1.r.x$r.min, f.s0.x.min)
+  a[i].min     : min(f.s0.x.min, maximum.s1.r.x$r.min)
+
+  a_copy[i].max: max(maximum.s1.r.x$r.max, f.s0.x.max)
+  a[i].max     : max(f.s0.x.max, maximum.s1.r.x$r.max)
+
+  a_copy[i].min: min(maximum.s1.r.y$r.min, f.s0.y.min)
+  a[i].min     : min(f.s0.y.min, maximum.s1.r.y$r.min)
+
+  a_copy[i].max: max(maximum.s1.r.y$r.max, f.s0.y.max)
+  a[i].max     : max(f.s0.y.max, maximum.s1.r.y$r.max)
+
+  a_copy[i].min: min(maximum.s1.r.x$r.min, min(((min((max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1) + 1), 0)*3) + g.s0.x.min), (g.s0.x.max + -2)))
+  a[i].min     : min((g.s0.x.max + -2), min(g.s0.x.min, min(max(((((((g.s0.x.max - g.s0.x.min) + 3)/3)*3) + g.s0.x.min) + 3), (g.s0.x.min + 6)), maximum.s1.r.x$r.min)))
+
+  a_copy[i].max: max(maximum.s1.r.x$r.max, min((((max((max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1) + -1), 0)*3) + g.s0.x.min) + 2), g.s0.x.max))
+  a[i].max     : max(min((g.s0.x.min + 2), g.s0.x.max), max(min(((((((g.s0.x.max - g.s0.x.min) + 3)/3)*3) + g.s0.x.min) + -1), g.s0.x.max), maximum.s1.r.x$r.max))
+
+  a_copy[i].min: min(maximum.s1.r.y$r.min, (let t11 = min(((min(((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -4), 0)/3)*6), (((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + -6)) in min((((t11/max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1))*5) + g.s0.y.min), (g.s0.y.max + -4))))
+  a[i].min     : (let t11 = min(min(((((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -4)/3)*6), ((0/3)*6)), (((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + -6)) in min((g.s0.y.max + -4), min((((t11/max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1))*5) + g.s0.y.min), maximum.s1.r.y$r.min)))
+
+  a_copy[i].max: max(maximum.s1.r.y$r.max, (let t10 = min((((min(((((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -1)/4)*4), ((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -4)) + 3)/3)*6), (((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + -6)) in min((((((t10 + 5)/max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1))*5) + g.s0.y.min) + 4), g.s0.y.max)))
+  a[i].max     : (let t10 = min(min((((((((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -1)/4)*4) + 3)/3)*6), (((((((((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + 5)/6)*3) + -4) + 3)/3)*6)), (((((g.s0.x.max - g.s0.x.min) + 3)/3)*(((g.s0.y.max - g.s0.y.min) + 5)/5)) + -6)) in max(min((((((t10 + 5)/max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1))*5) + g.s0.y.min) + 4), g.s0.y.max), maximum.s1.r.y$r.max))
+Success!
+

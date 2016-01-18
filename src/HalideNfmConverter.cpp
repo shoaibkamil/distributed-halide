@@ -178,10 +178,12 @@ protected:
     bool is_simple_arithmetic(Expr expr) {
         SimpleExpr simple;
         simple.mutate(expr);
+        //std::cout << "     Expr: " << expr << "; is_simple_arithmetic? " << simple.is_simple << "\n";
         return simple.is_simple;
     }
 
     void visit(const Add *op) {
+        //std::cout << "Add: (" << op->a << ") + (" << op->b << ")\n";
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         const Min *min_a = a.as<Min>();
@@ -193,19 +195,21 @@ protected:
         bool b_simple = is_simple_arithmetic(b);
 
         if (min_a && b_simple) {
-            expr = Min::make(min_a->a + b, min_a->b + b);
+            expr = Min::make(mutate(min_a->a + b), mutate(min_a->b + b));
         } else if (max_a && b_simple) {
-            expr = Max::make(max_a->a + b, max_a->b + b);
+            expr = Max::make(mutate(max_a->a + b), mutate(max_a->b + b));
         } else if (a_simple && min_b) {
-            expr = Min::make(a + min_b->a, a + min_b->b);
+            expr = Min::make(mutate(a + min_b->a), mutate(a + min_b->b));
         } else if (a_simple && min_b) {
-            expr = Max::make(a + max_b->a, a + max_b->b);
+            expr = Max::make(mutate(a + max_b->a), mutate(a + max_b->b));
         } else {
             IRMutator::visit(op);
         }
+        //std::cout << "  Add: (" << op->a << ") + (" << op->b << "); expr: " << expr << "\n";
     }
 
     void visit(const Sub *op) {
+        //std::cout << "Sub: (" << op->a << ") - (" << op->b << ")\n";
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         const Min *min_a = a.as<Min>();
@@ -217,19 +221,21 @@ protected:
         bool b_simple = is_simple_arithmetic(b);
 
         if (min_a && b_simple) {
-            expr = Min::make(min_a->a - b, min_a->b - b);
+            expr = Min::make(mutate(min_a->a - b), mutate(min_a->b - b));
         } else if (max_a && b_simple) {
-            expr = Max::make(max_a->a - b, max_a->b - b);
+            expr = Max::make(mutate(max_a->a - b), mutate(max_a->b - b));
         } else if (a_simple && min_b) {
-            expr = Min::make(a - min_b->a, a - min_b->b);
+            expr = Min::make(mutate(a - min_b->a), mutate(a - min_b->b));
         } else if (a_simple && min_b) {
-            expr = Max::make(a - max_b->a, a - max_b->b);
+            expr = Max::make(mutate(a - max_b->a), mutate(a - max_b->b));
         } else {
             IRMutator::visit(op);
         }
+        //std::cout << "  Sub: (" << op->a << ") - (" << op->b << "); expr: " << expr << "\n";
     }
 
     void visit(const Mul *op) {
+        //std::cout << "Mul: (" << op->a << ") * (" << op->b << ")\n";
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         const Min *min_a = a.as<Min>();
@@ -239,42 +245,44 @@ protected:
 
         if (min_a) {
             if (is_positive_const(b)) {
-                expr = Min::make(min_a->a*b, min_a->b*b);
+                expr = Min::make(mutate(min_a->a*b), mutate(min_a->b*b));
             } else if (is_negative_const(op->b)) {
-                expr = Max::make(min_a->a*b, min_a->b*b);
+                expr = Max::make(mutate(min_a->a*b), mutate(min_a->b*b));
             } else {
                 IRMutator::visit(op);
             }
         } else if (max_a) {
             if (is_positive_const(b)) {
-                expr = Max::make(max_a->a*b, max_a->b*b);
+                expr = Max::make(mutate(max_a->a*b), mutate(max_a->b*b));
             } else if (is_negative_const(b)) {
-                expr = Min::make(max_a->a*b, max_a->b*b);
+                expr = Min::make(mutate(max_a->a*b), mutate(max_a->b*b));
             } else {
                 IRMutator::visit(op);
             }
         } else if (min_b) {
             if (is_positive_const(a)) {
-                expr = Min::make(a*min_b->a, a*min_b->b);
+                expr = Min::make(mutate(a*min_b->a), mutate(a*min_b->b));
             } else if (is_negative_const(op->b)) {
-                expr = Max::make(a*min_b->a, a*min_b->b);
+                expr = Max::make(mutate(a*min_b->a), mutate(a*min_b->b));
             } else {
                 IRMutator::visit(op);
             }
         } else if (max_b) {
             if (is_positive_const(a)) {
-                expr = Max::make(a*max_b->a, a*max_b->b);
+                expr = Max::make(mutate(a*max_b->a), mutate(a*max_b->b));
             } else if (is_negative_const(b)) {
-                expr = Min::make(a*max_b->a, a*max_b->b);
+                expr = Min::make(mutate(a*max_b->a), mutate(a*max_b->b));
             } else {
                 IRMutator::visit(op);
             }
         } else {
             IRMutator::visit(op);
         }
+        //std::cout << "  Mul: (" << op->a << ") * (" << op->b << "); expr: " << expr << "\n";
     }
 
     void visit(const Div *op) {
+        //std::cout << "Div: (" << op->a << ") - (" << op->b << ")\n";
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         const Min *min_a = a.as<Min>();
@@ -284,39 +292,40 @@ protected:
 
         if (min_a) {
             if (is_positive_const(b)) {
-                expr = Min::make(min_a->a/b, min_a->b/b);
+                expr = Min::make(mutate(min_a->a/b), mutate(min_a->b/b));
             } else if (is_negative_const(op->b)) {
-                expr = Max::make(min_a->a/b, min_a->b/b);
+                expr = Max::make(mutate(min_a->a/b), mutate(min_a->b/b));
             } else {
                 IRMutator::visit(op);
             }
         } else if (max_a) {
             if (is_positive_const(b)) {
-                expr = Max::make(max_a->a/b, max_a->b/b);
+                expr = Max::make(mutate(max_a->a/b), mutate(max_a->b/b));
             } else if (is_negative_const(b)) {
-                expr = Min::make(max_a->a/b, max_a->b/b);
+                expr = Min::make(mutate(max_a->a/b), mutate(max_a->b/b));
             } else {
                 IRMutator::visit(op);
             }
         } else if (min_b) {
             if (is_positive_const(a)) {
-                expr = Min::make(a/min_b->a, a/min_b->b);
+                expr = Min::make(mutate(a/min_b->a), mutate(a/min_b->b));
             } else if (is_negative_const(op->b)) {
-                expr = Max::make(a/min_b->a, a/min_b->b);
+                expr = Max::make(mutate(a/min_b->a), mutate(a/min_b->b));
             } else {
                 IRMutator::visit(op);
             }
         } else if (max_b) {
             if (is_positive_const(a)) {
-                expr = Max::make(a/max_b->a, a/max_b->b);
+                expr = Max::make(mutate(a/max_b->a), mutate(a/max_b->b));
             } else if (is_negative_const(b)) {
-                expr = Min::make(a/max_b->a, a/max_b->b);
+                expr = Min::make(mutate(a/max_b->a), mutate(a/max_b->b));
             } else {
                 IRMutator::visit(op);
             }
         } else {
             IRMutator::visit(op);
         }
+        //std::cout << "  Div: (" << op->a << ") / (" << op->b << "); expr: " << expr << "\n";
     }
 };
 
@@ -347,8 +356,12 @@ public:
         return additional_sym_consts;
     }
 
-    const map<string, Expr>& get_substitutions() const {
+    const map<string, Expr>& get_expr_substitutions() const {
         return expr_substitutions;
+    }
+
+    const vector<pair<string, Expr>>& get_let_substitutions() const {
+        return let_substitutions;
     }
 
 private:
@@ -356,6 +369,7 @@ private:
     vector<Expr> additional_constraints;
     vector<string> additional_sym_consts;
     map<string, Expr> expr_substitutions;
+    vector<pair<string, Expr>> let_substitutions;
     map<Expr, string, IRDeepCompare> subs_expr;
 
     Expr result;
@@ -1129,10 +1143,27 @@ private:
     void visit(const Let *op) {
         // Convert op->name = op->value into op->name - op->value = 0
         //debug(0) << "Let: let(" << op->name << " = " << op->value << "); " << op->body << "\n";
-        Expr var = Variable::make(op->value.type(), op->name);
-        Expr eq = mutate(EQ::make(var, op->value));
+        // TODO: need to simplify this as well. Might need to convert the 'let'
+        // into nfm and simplify it separately.
+        /*const Expr& val = op->value;
+        const auto& iter = subs_expr.find(val);
+        string var_name;
+        if (iter != subs_expr.end()) {
+            var_name = iter->second;
+        } else {
+            //var_name = unique_name("_let");
+            var_name = op->name;
+            additional_sym_consts.push_back(var_name);
+            subs_expr.emplace(val, var_name);
+            expr_substitutions.emplace(var_name, val);
+        }
+        Expr eq = EQ::make(Variable::make(op->value.type(), op->name),
+                           Variable::make(Int(32), var_name));
         Expr body = mutate(op->body);
-        expr = mutate(And::make(eq, body));
+        expr = mutate(And::make(eq, body));*/
+
+        let_substitutions.push_back(std::make_pair(op->name, op->value));
+        expr = mutate(op->body);
     }
 };
 
@@ -1587,6 +1618,7 @@ public:
 
     NfmUnionDomain convert_to_nfm() {
         //debug(0) << "CONVERTING " << in_expr << "\n\n";
+        //debug(0) << "CONVERTING " << simplify(in_expr) << "\n\n";
         NfmUnionDomain union_dom(sym_const_names, dim_names);
         if (!in_expr.defined() || is_one(in_expr)) { // Undefined expression -> no constraint (universe)
             NfmDomain domain(sym_const_names, dim_names);
@@ -1600,7 +1632,8 @@ public:
         // Convert into (in-)equalities
         ConvertToIneqs convert;
         convert.mutate(in_expr);
-        expr_substitutions = std::move(convert.get_substitutions());
+        expr_substitutions = std::move(convert.get_expr_substitutions());
+        let_substitutions = std::move(convert.get_let_substitutions());
         for (auto& str : convert.get_additional_sym_consts()) {
             insert_sym_const(str);
         }
@@ -1701,6 +1734,10 @@ public:
         return expr_substitutions;
     }
 
+    const vector<pair<string, Expr>>& get_let_substitutions() const {
+        return let_substitutions;
+    }
+
 private:
     MulTerm mul_term;
     bool is_div = false;
@@ -1714,6 +1751,7 @@ private:
     map<string, int> sym_const_to_idx;  // Mapping of sym const to idx in sym_const_names
 
     map<string, Expr> expr_substitutions;
+    vector<pair<string, Expr>> let_substitutions;
 
     string to_string(const MulTerm& term) {
         ostringstream stream;
@@ -1955,11 +1993,12 @@ void ir_nfm_test() {
     convert.mutate(expr);
     std::cout << convert.get_result() << "\n\n";*/
 
-    Expr expr = min(x, y) + 1 - z;
+    Expr expr = max(min((((max((max(s, 1) + -1), 0)*16) + y) + 15), x), z);
     std::cout << "Before mutating: " << expr << "\n\n";
     PreProcessor process;
     expr = process.mutate(expr);
     std::cout << "After mutating: " << expr << "\n\n";
+    std::cout << "After mutating (SIMPLIFY): " << simplify(expr) << "\n\n";
 
     /*std::cout << convert.mutate(x) << "\n\n";
     std::cout << convert.mutate(eq_expr) << "\n\n";
@@ -2097,37 +2136,44 @@ Expr convert_interval_to_expr_upper_bound(const Interval& interval) {
 NfmUnionDomain convert_halide_interval_to_nfm_union_domain(
         const Interval& interval,
         const vector<Dim>& loop_dims,
-        map<string, Expr> *expr_substitutions) {
+        map<string, Expr> *expr_substitutions,
+        vector<pair<string, Expr>> *let_substitutions) {
     Expr expr = convert_interval_to_expr(interval);
-    return convert_halide_expr_to_nfm_union_domain(expr, loop_dims, expr_substitutions);
+    return convert_halide_expr_to_nfm_union_domain(
+        expr, loop_dims, expr_substitutions, let_substitutions);
 }
 
 NfmUnionDomain convert_halide_interval_to_nfm_union_domain(
         const Interval& interval,
         const vector<string>& sym_const,
         const vector<string>& dim,
-        map<string, Expr> *expr_substitutions) {
+        map<string, Expr> *expr_substitutions,
+        vector<pair<string, Expr>> *let_substitutions) {
     Expr expr = convert_interval_to_expr(interval);
-    return convert_halide_expr_to_nfm_union_domain(expr, sym_const, dim, expr_substitutions);
+    return convert_halide_expr_to_nfm_union_domain(
+        expr, sym_const, dim, expr_substitutions, let_substitutions);
 }
 
 
 NfmUnionDomain convert_halide_expr_to_nfm_union_domain(
         const Expr& expr,
-        const vector<Dim>& loop_dims,
-        map<string, Expr> *expr_substitutions) { // Loop var from innermost to outermost
+        const vector<Dim>& loop_dims, // Loop var from innermost to outermost
+        map<string, Expr> *expr_substitutions,
+        vector<pair<string, Expr>> *let_substitutions) {
     CollectVars collect(loop_dims);
     collect.mutate(expr);
     vector<string> dim = collect.get_dims();
     vector<string> sym_const = collect.get_sym_consts();
-    return convert_halide_expr_to_nfm_union_domain(expr, sym_const, dim, expr_substitutions);
+    return convert_halide_expr_to_nfm_union_domain(
+        expr, sym_const, dim, expr_substitutions, let_substitutions);
 }
 
 NfmUnionDomain convert_halide_expr_to_nfm_union_domain(
         const Expr& expr,
         const vector<string>& sym_const,
-        const vector<string>& dim,
-        map<string, Expr> *expr_substitutions) {  // Loop var from outermost to innermost
+        const vector<string>& dim, // Loop var from outermost to innermost
+        map<string, Expr> *expr_substitutions,
+        vector<pair<string, Expr>> *let_substitutions) {
     Expr simplified_expr = simplify(expr);
     //Expr simplified_expr = expr;
     ConvertToNfmStructs convert(simplified_expr, sym_const, dim);
@@ -2135,6 +2181,11 @@ NfmUnionDomain convert_halide_expr_to_nfm_union_domain(
     if (expr_substitutions != NULL) {
         for (auto& iter : convert.get_expr_substitutions()) {
             (*expr_substitutions).emplace(iter.first, iter.second);
+        }
+    }
+    if (let_substitutions != NULL) {
+        for (auto& iter : convert.get_let_substitutions()) {
+            (*let_substitutions).push_back(std::make_pair(iter.first, iter.second));
         }
     }
     return union_dom;

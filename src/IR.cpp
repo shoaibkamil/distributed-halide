@@ -59,7 +59,8 @@ Expr Add::make(Expr a, Expr b) {
 }
 
 Expr Sub::make(Expr a, Expr b) {
-    internal_assert(a.defined()) << "Sub of undefined\n";
+    internal_assert(a.defined()) << "Sub of undefined\n"
+        << "a: " << a << "; b: " << b << "\n";
     internal_assert(b.defined()) << "Sub of undefined\n";
     internal_assert(a.type() == b.type()) << "Sub of mismatched types\n";
 

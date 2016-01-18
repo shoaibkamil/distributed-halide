@@ -1,0 +1,694 @@
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/reduction_subregion.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_reduction_subregion -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_reduction_subregion
+
+  a_copy[i].min: min(f.s0.x.min, f.s1.r.x$r.min)
+  a[i].min     : min(f.s1.r.x$r.min, f.s0.x.min)
+
+  a_copy[i].max: max(f.s0.x.max, f.s1.r.x$r.max)
+  a[i].max     : max(f.s1.r.x$r.max, f.s0.x.max)
+
+  a_copy[i].min: min((f.s1.r.x$r.min + -1), min(f.s1.r.x$r.min, f.s0.x.min))
+  a[i].min     : min(f.s0.x.min, (f.s1.r.x$r.min + -1))
+
+  a_copy[i].max: max((f.s1.r.x$r.max + 1), max(f.s1.r.x$r.max, f.s0.x.max))
+  a[i].max     : max(f.s0.x.max, (f.s1.r.x$r.max + 1))
+
+  a_copy[i].min: min(f.min.0, (f.s1.r.x$r.min + -1))
+  a[i].min     : min((f.s1.r.x$r.min + -1), f.min.0)
+
+  a_copy[i].max: max(((f.min.0 + f.extent.0) + -1), (f.s1.r.x$r.max + 1))
+  a[i].max     : max((f.s1.r.x$r.max + 1), ((f.extent.0 + f.min.0) + -1))
+Output buffer f is accessed at -1, which is before the min (0) in dimension 0
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/reorder_rvars.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_reorder_rvars -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_reorder_rvars
+
+  a_copy[i].min: min(f.s1.x.min, f.s2.x.min)
+  a[i].min     : min(f.s2.x.min, f.s1.x.min)
+
+  a_copy[i].max: max(f.s1.x.max, f.s2.x.max)
+  a[i].max     : max(f.s2.x.max, f.s1.x.max)
+
+  a_copy[i].min: min(f.s1.y.min, f.s2.r2.x$r.min)
+  a[i].min     : min(f.s2.r2.x$r.min, f.s1.y.min)
+
+  a_copy[i].max: max(f.s1.y.max, f.s2.r2.x$r.max)
+  a[i].max     : max(f.s2.r2.x$r.max, f.s1.y.max)
+
+  a_copy[i].min: min(f.s2.x.min, f.s1.x.min)
+  a[i].min     : min(f.s1.x.min, f.s2.x.min)
+
+  a_copy[i].max: max(f.s2.x.max, f.s1.x.max)
+  a[i].max     : max(f.s1.x.max, f.s2.x.max)
+
+  a_copy[i].min: min(min(f.s2.r2.x$r.min, f.s1.y.min), (f.s2.r2.x$r.min + f.s2.r2.y$r.min))
+  a[i].min     : min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), min(f.s1.y.min, f.s2.r2.x$r.min))
+
+  a_copy[i].max: max(max(f.s2.r2.x$r.max, f.s1.y.max), (f.s2.r2.x$r.max + f.s2.r2.y$r.max))
+  a[i].max     : max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), max(f.s1.y.max, f.s2.r2.x$r.max))
+
+  a_copy[i].min: min(g.s1.x.min, g.s2.x.min)
+  a[i].min     : min(g.s2.x.min, g.s1.x.min)
+
+  a_copy[i].max: max(g.s1.x.max, g.s2.x.max)
+  a[i].max     : max(g.s2.x.max, g.s1.x.max)
+
+  a_copy[i].min: min(g.s1.y.min, g.s2.r2.x$r.min)
+  a[i].min     : min(g.s2.r2.x$r.min, g.s1.y.min)
+
+  a_copy[i].max: max(g.s1.y.max, g.s2.r2.x$r.max)
+  a[i].max     : max(g.s2.r2.x$r.max, g.s1.y.max)
+
+  a_copy[i].min: min(g.s2.x.min, g.s1.x.min)
+  a[i].min     : min(g.s1.x.min, g.s2.x.min)
+
+  a_copy[i].max: max(g.s2.x.max, g.s1.x.max)
+  a[i].max     : max(g.s1.x.max, g.s2.x.max)
+
+  a_copy[i].min: min(min(g.s2.r2.x$r.min, g.s1.y.min), (g.s2.r2.x$r.min + g.s2.r2.y$r.min))
+  a[i].min     : min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), min(g.s1.y.min, g.s2.r2.x$r.min))
+
+  a_copy[i].max: max(max(g.s2.r2.x$r.max, g.s1.y.max), (g.s2.r2.x$r.max + g.s2.r2.y$r.max))
+  a[i].max     : max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), max(g.s1.y.max, g.s2.r2.x$r.max))
+
+  a_copy[i].min: min(min(f.s1.x.min, f.s2.x.min), sum.s1.r3.x$r.min)
+  a[i].min     : min(sum.s1.r3.x$r.min, min(f.s2.x.min, f.s1.x.min))
+
+  a_copy[i].max: max(max(f.s1.x.max, f.s2.x.max), sum.s1.r3.x$r.max)
+  a[i].max     : max(sum.s1.r3.x$r.max, max(f.s2.x.max, f.s1.x.max))
+
+  a_copy[i].min: min(min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), min(f.s1.y.min, f.s2.r2.x$r.min)), sum.s1.r3.y$r.min)
+  a[i].min     : min(sum.s1.r3.y$r.min, min(f.s2.r2.x$r.min, min(f.s1.y.min, (f.s2.r2.x$r.min + f.s2.r2.y$r.min))))
+
+  a_copy[i].max: max(max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), max(f.s1.y.max, f.s2.r2.x$r.max)), sum.s1.r3.y$r.max)
+  a[i].max     : max(sum.s1.r3.y$r.max, max(f.s2.r2.x$r.max, max(f.s1.y.max, (f.s2.r2.x$r.max + f.s2.r2.y$r.max))))
+
+  a_copy[i].min: min(min(g.s1.x.min, g.s2.x.min), sum.s1.r3.x$r.min)
+  a[i].min     : min(sum.s1.r3.x$r.min, min(g.s2.x.min, g.s1.x.min))
+
+  a_copy[i].max: max(max(g.s1.x.max, g.s2.x.max), sum.s1.r3.x$r.max)
+  a[i].max     : max(sum.s1.r3.x$r.max, max(g.s2.x.max, g.s1.x.max))
+
+  a_copy[i].min: min(min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), min(g.s1.y.min, g.s2.r2.x$r.min)), sum.s1.r3.y$r.min)
+  a[i].min     : min(sum.s1.r3.y$r.min, min(g.s2.r2.x$r.min, min(g.s1.y.min, (g.s2.r2.x$r.min + g.s2.r2.y$r.min))))
+
+  a_copy[i].max: max(max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), max(g.s1.y.max, g.s2.r2.x$r.max)), sum.s1.r3.y$r.max)
+  a[i].max     : max(sum.s1.r3.y$r.max, max(g.s2.r2.x$r.max, max(g.s1.y.max, (g.s2.r2.x$r.max + g.s2.r2.y$r.max))))
+
+  a_copy[i].min: min(f.s0.x.min, f.s1.x.min)
+  a[i].min     : min(f.s1.x.min, f.s0.x.min)
+
+  a_copy[i].max: max(f.s0.x.max, f.s1.x.max)
+  a[i].max     : max(f.s1.x.max, f.s0.x.max)
+
+  a_copy[i].min: min(f.s0.y.min, f.s1.y.min)
+  a[i].min     : min(f.s1.y.min, f.s0.y.min)
+
+  a_copy[i].max: max(f.s0.y.max, f.s1.y.max)
+  a[i].max     : max(f.s1.y.max, f.s0.y.max)
+
+  a_copy[i].min: min(min(f.s1.x.min, f.s0.x.min), f.s2.x.min)
+  a[i].min     : min(f.s2.x.min, min(f.s0.x.min, f.s1.x.min))
+
+  a_copy[i].max: max(max(f.s1.x.max, f.s0.x.max), f.s2.x.max)
+  a[i].max     : max(f.s2.x.max, max(f.s0.x.max, f.s1.x.max))
+
+  a_copy[i].min: min(min(f.s1.y.min, f.s0.y.min), f.s2.r2.x$r.min)
+  a[i].min     : min(f.s2.r2.x$r.min, min(f.s0.y.min, f.s1.y.min))
+
+  a_copy[i].max: max(max(f.s1.y.max, f.s0.y.max), f.s2.r2.x$r.max)
+  a[i].max     : max(f.s2.r2.x$r.max, max(f.s0.y.max, f.s1.y.max))
+
+  a_copy[i].min: min(g.s0.x.min, g.s1.x.min)
+  a[i].min     : min(g.s1.x.min, g.s0.x.min)
+
+  a_copy[i].max: max(g.s0.x.max, g.s1.x.max)
+  a[i].max     : max(g.s1.x.max, g.s0.x.max)
+
+  a_copy[i].min: min(g.s0.y.min, g.s1.y.min)
+  a[i].min     : min(g.s1.y.min, g.s0.y.min)
+
+  a_copy[i].max: max(g.s0.y.max, g.s1.y.max)
+  a[i].max     : max(g.s1.y.max, g.s0.y.max)
+
+  a_copy[i].min: min(min(g.s1.x.min, g.s0.x.min), g.s2.x.min)
+  a[i].min     : min(g.s2.x.min, min(g.s0.x.min, g.s1.x.min))
+
+  a_copy[i].max: max(max(g.s1.x.max, g.s0.x.max), g.s2.x.max)
+  a[i].max     : max(g.s2.x.max, max(g.s0.x.max, g.s1.x.max))
+
+  a_copy[i].min: min(min(g.s1.y.min, g.s0.y.min), g.s2.r2.x$r.min)
+  a[i].min     : min(g.s2.r2.x$r.min, min(g.s0.y.min, g.s1.y.min))
+
+  a_copy[i].max: max(max(g.s1.y.max, g.s0.y.max), g.s2.r2.x$r.max)
+  a[i].max     : max(g.s2.r2.x$r.max, max(g.s0.y.max, g.s1.y.max))
+
+  a_copy[i].min: min(min(sum.s1.r3.x$r.min, min(f.s2.x.min, f.s1.x.min)), min(f.s2.x.min, min(f.s0.x.min, f.s1.x.min)))
+  a[i].min     : min(f.s0.x.min, min(f.s1.x.min, min(f.s2.x.min, sum.s1.r3.x$r.min)))
+
+  a_copy[i].max: max(max(sum.s1.r3.x$r.max, max(f.s2.x.max, f.s1.x.max)), max(f.s2.x.max, max(f.s0.x.max, f.s1.x.max)))
+  a[i].max     : max(f.s0.x.max, max(f.s1.x.max, max(f.s2.x.max, sum.s1.r3.x$r.max)))
+
+  a_copy[i].min: min(min(sum.s1.r3.y$r.min, min(f.s2.r2.x$r.min, min(f.s1.y.min, (f.s2.r2.x$r.min + f.s2.r2.y$r.min)))), min(f.s2.r2.x$r.min, min(f.s0.y.min, f.s1.y.min)))
+  a[i].min     : min(f.s0.y.min, min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), min(f.s1.y.min, min(f.s2.r2.x$r.min, sum.s1.r3.y$r.min))))
+
+  a_copy[i].max: max(max(sum.s1.r3.y$r.max, max(f.s2.r2.x$r.max, max(f.s1.y.max, (f.s2.r2.x$r.max + f.s2.r2.y$r.max)))), max(f.s2.r2.x$r.max, max(f.s0.y.max, f.s1.y.max)))
+  a[i].max     : max(f.s0.y.max, max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), max(f.s1.y.max, max(f.s2.r2.x$r.max, sum.s1.r3.y$r.max))))
+
+  a_copy[i].min: min(min(sum.s1.r3.x$r.min, min(g.s2.x.min, g.s1.x.min)), min(g.s2.x.min, min(g.s0.x.min, g.s1.x.min)))
+  a[i].min     : min(g.s0.x.min, min(g.s1.x.min, min(g.s2.x.min, sum.s1.r3.x$r.min)))
+
+  a_copy[i].max: max(max(sum.s1.r3.x$r.max, max(g.s2.x.max, g.s1.x.max)), max(g.s2.x.max, max(g.s0.x.max, g.s1.x.max)))
+  a[i].max     : max(g.s0.x.max, max(g.s1.x.max, max(g.s2.x.max, sum.s1.r3.x$r.max)))
+
+  a_copy[i].min: min(min(sum.s1.r3.y$r.min, min(g.s2.r2.x$r.min, min(g.s1.y.min, (g.s2.r2.x$r.min + g.s2.r2.y$r.min)))), min(g.s2.r2.x$r.min, min(g.s0.y.min, g.s1.y.min)))
+  a[i].min     : min(g.s0.y.min, min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), min(g.s1.y.min, min(g.s2.r2.x$r.min, sum.s1.r3.y$r.min))))
+
+  a_copy[i].max: max(max(sum.s1.r3.y$r.max, max(g.s2.r2.x$r.max, max(g.s1.y.max, (g.s2.r2.x$r.max + g.s2.r2.y$r.max)))), max(g.s2.r2.x$r.max, max(g.s0.y.max, g.s1.y.max)))
+  a[i].max     : max(g.s0.y.max, max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), max(g.s1.y.max, max(g.s2.r2.x$r.max, sum.s1.r3.y$r.max))))
+
+  a_copy[i].min: min(f.s2.r2.x$r.min, (f.s2.r2.x$r.min + f.s2.r2.y$r.min))
+  a[i].min     : min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), f.s2.r2.x$r.min)
+
+  a_copy[i].max: max(f.s2.r2.x$r.max, (f.s2.r2.x$r.max + f.s2.r2.y$r.max))
+  a[i].max     : max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), f.s2.r2.x$r.max)
+
+  a_copy[i].min: min(g.s2.r2.x$r.min, (g.s2.r2.x$r.min + g.s2.r2.y$r.min))
+  a[i].min     : min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), g.s2.r2.x$r.min)
+
+  a_copy[i].max: max(g.s2.r2.x$r.max, (g.s2.r2.x$r.max + g.s2.r2.y$r.max))
+  a[i].max     : max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), g.s2.r2.x$r.max)
+
+  a_copy[i].min: min(f.s1.x.min, f.s2.x.min)
+  a[i].min     : min(f.s2.x.min, f.s1.x.min)
+
+  a_copy[i].max: max(f.s1.x.max, f.s2.x.max)
+  a[i].max     : max(f.s2.x.max, f.s1.x.max)
+
+  a_copy[i].min: min(f.s1.y.min, min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), f.s2.r2.x$r.min))
+  a[i].min     : min(f.s2.r2.x$r.min, min((f.s2.r2.x$r.min + f.s2.r2.y$r.min), f.s1.y.min))
+
+  a_copy[i].max: max(f.s1.y.max, max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), f.s2.r2.x$r.max))
+  a[i].max     : max(f.s2.r2.x$r.max, max((f.s2.r2.x$r.max + f.s2.r2.y$r.max), f.s1.y.max))
+
+  a_copy[i].min: min(min(f.s2.x.min, f.s1.x.min), sum.s1.r3.x$r.min)
+  a[i].min     : min(sum.s1.r3.x$r.min, min(f.s1.x.min, f.s2.x.min))
+
+  a_copy[i].max: max(max(f.s2.x.max, f.s1.x.max), sum.s1.r3.x$r.max)
+  a[i].max     : max(sum.s1.r3.x$r.max, max(f.s1.x.max, f.s2.x.max))
+
+  a_copy[i].min: min(min(f.s2.r2.x$r.min, min((f.s2.r2.x$r.min + f.s2.r2.y$r.min), f.s1.y.min)), sum.s1.r3.y$r.min)
+  a[i].min     : min(sum.s1.r3.y$r.min, min(f.s1.y.min, min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), f.s2.r2.x$r.min)))
+
+  a_copy[i].max: max(max(f.s2.r2.x$r.max, max((f.s2.r2.x$r.max + f.s2.r2.y$r.max), f.s1.y.max)), sum.s1.r3.y$r.max)
+  a[i].max     : max(sum.s1.r3.y$r.max, max(f.s1.y.max, max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), f.s2.r2.x$r.max)))
+
+  a_copy[i].min: min(f.s2.x.min, sum.s1.r3.x$r.min)
+  a[i].min     : min(sum.s1.r3.x$r.min, f.s2.x.min)
+
+  a_copy[i].max: max(f.s2.x.max, sum.s1.r3.x$r.max)
+  a[i].max     : max(sum.s1.r3.x$r.max, f.s2.x.max)
+
+  a_copy[i].min: min(min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), f.s2.r2.x$r.min), sum.s1.r3.y$r.min)
+  a[i].min     : min(sum.s1.r3.y$r.min, min(f.s2.r2.x$r.min, (f.s2.r2.x$r.min + f.s2.r2.y$r.min)))
+
+  a_copy[i].max: max(max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), f.s2.r2.x$r.max), sum.s1.r3.y$r.max)
+  a[i].max     : max(sum.s1.r3.y$r.max, max(f.s2.r2.x$r.max, (f.s2.r2.x$r.max + f.s2.r2.y$r.max)))
+
+  a_copy[i].min: min(g.s1.x.min, g.s2.x.min)
+  a[i].min     : min(g.s2.x.min, g.s1.x.min)
+
+  a_copy[i].max: max(g.s1.x.max, g.s2.x.max)
+  a[i].max     : max(g.s2.x.max, g.s1.x.max)
+
+  a_copy[i].min: min(g.s1.y.min, min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), g.s2.r2.x$r.min))
+  a[i].min     : min(g.s2.r2.x$r.min, min((g.s2.r2.x$r.min + g.s2.r2.y$r.min), g.s1.y.min))
+
+  a_copy[i].max: max(g.s1.y.max, max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), g.s2.r2.x$r.max))
+  a[i].max     : max(g.s2.r2.x$r.max, max((g.s2.r2.x$r.max + g.s2.r2.y$r.max), g.s1.y.max))
+
+  a_copy[i].min: min(min(g.s2.x.min, g.s1.x.min), sum.s1.r3.x$r.min)
+  a[i].min     : min(sum.s1.r3.x$r.min, min(g.s1.x.min, g.s2.x.min))
+
+  a_copy[i].max: max(max(g.s2.x.max, g.s1.x.max), sum.s1.r3.x$r.max)
+  a[i].max     : max(sum.s1.r3.x$r.max, max(g.s1.x.max, g.s2.x.max))
+
+  a_copy[i].min: min(min(g.s2.r2.x$r.min, min((g.s2.r2.x$r.min + g.s2.r2.y$r.min), g.s1.y.min)), sum.s1.r3.y$r.min)
+  a[i].min     : min(sum.s1.r3.y$r.min, min(g.s1.y.min, min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), g.s2.r2.x$r.min)))
+
+  a_copy[i].max: max(max(g.s2.r2.x$r.max, max((g.s2.r2.x$r.max + g.s2.r2.y$r.max), g.s1.y.max)), sum.s1.r3.y$r.max)
+  a[i].max     : max(sum.s1.r3.y$r.max, max(g.s1.y.max, max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), g.s2.r2.x$r.max)))
+
+  a_copy[i].min: min(g.s2.x.min, sum.s1.r3.x$r.min)
+  a[i].min     : min(sum.s1.r3.x$r.min, g.s2.x.min)
+
+  a_copy[i].max: max(g.s2.x.max, sum.s1.r3.x$r.max)
+  a[i].max     : max(sum.s1.r3.x$r.max, g.s2.x.max)
+
+  a_copy[i].min: min(min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), g.s2.r2.x$r.min), sum.s1.r3.y$r.min)
+  a[i].min     : min(sum.s1.r3.y$r.min, min(g.s2.r2.x$r.min, (g.s2.r2.x$r.min + g.s2.r2.y$r.min)))
+
+  a_copy[i].max: max(max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), g.s2.r2.x$r.max), sum.s1.r3.y$r.max)
+  a[i].max     : max(sum.s1.r3.y$r.max, max(g.s2.r2.x$r.max, (g.s2.r2.x$r.max + g.s2.r2.y$r.max)))
+
+  a_copy[i].min: min(f.s1.x.min, f.s2.x.min)
+  a[i].min     : min(f.s2.x.min, f.s1.x.min)
+
+  a_copy[i].max: max(f.s1.x.max, f.s2.x.max)
+  a[i].max     : max(f.s2.x.max, f.s1.x.max)
+
+  a_copy[i].min: min(f.s1.y.min, f.s2.r2.x$r.min)
+  a[i].min     : min(f.s2.r2.x$r.min, f.s1.y.min)
+
+  a_copy[i].max: max(f.s1.y.max, f.s2.r2.x$r.max)
+  a[i].max     : max(f.s2.r2.x$r.max, f.s1.y.max)
+
+  a_copy[i].min: min(f.s2.x.min, f.s1.x.min)
+  a[i].min     : min(f.s1.x.min, f.s2.x.min)
+
+  a_copy[i].max: max(f.s2.x.max, f.s1.x.max)
+  a[i].max     : max(f.s1.x.max, f.s2.x.max)
+
+  a_copy[i].min: min(min(f.s2.r2.x$r.min, f.s1.y.min), (f.s2.r2.x$r.min + f.s2.r2.y$r.min))
+  a[i].min     : min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), min(f.s1.y.min, f.s2.r2.x$r.min))
+
+  a_copy[i].max: max(max(f.s2.r2.x$r.max, f.s1.y.max), (f.s2.r2.x$r.max + f.s2.r2.y$r.max))
+  a[i].max     : max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), max(f.s1.y.max, f.s2.r2.x$r.max))
+
+  a_copy[i].min: min(g.s1.x.min, g.s2.x.min)
+  a[i].min     : min(g.s2.x.min, g.s1.x.min)
+
+  a_copy[i].max: max(g.s1.x.max, g.s2.x.max)
+  a[i].max     : max(g.s2.x.max, g.s1.x.max)
+
+  a_copy[i].min: min(g.s1.y.min, g.s2.r2.x$r.min)
+  a[i].min     : min(g.s2.r2.x$r.min, g.s1.y.min)
+
+  a_copy[i].max: max(g.s1.y.max, g.s2.r2.x$r.max)
+  a[i].max     : max(g.s2.r2.x$r.max, g.s1.y.max)
+
+  a_copy[i].min: min(g.s2.x.min, g.s1.x.min)
+  a[i].min     : min(g.s1.x.min, g.s2.x.min)
+
+  a_copy[i].max: max(g.s2.x.max, g.s1.x.max)
+  a[i].max     : max(g.s1.x.max, g.s2.x.max)
+
+  a_copy[i].min: min(min(g.s2.r2.x$r.min, g.s1.y.min), (g.s2.r2.x$r.min + g.s2.r2.y$r.min))
+  a[i].min     : min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), min(g.s1.y.min, g.s2.r2.x$r.min))
+
+  a_copy[i].max: max(max(g.s2.r2.x$r.max, g.s1.y.max), (g.s2.r2.x$r.max + g.s2.r2.y$r.max))
+  a[i].max     : max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), max(g.s1.y.max, g.s2.r2.x$r.max))
+
+  a_copy[i].min: min(min(f.s1.x.min, f.s2.x.min), sum.s1.r3.x$r.min)
+  a[i].min     : min(sum.s1.r3.x$r.min, min(f.s2.x.min, f.s1.x.min))
+
+  a_copy[i].max: max(max(f.s1.x.max, f.s2.x.max), sum.s1.r3.x$r.max)
+  a[i].max     : max(sum.s1.r3.x$r.max, max(f.s2.x.max, f.s1.x.max))
+
+  a_copy[i].min: min(min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), min(f.s1.y.min, f.s2.r2.x$r.min)), sum.s1.r3.y$r.min)
+  a[i].min     : min(sum.s1.r3.y$r.min, min(f.s2.r2.x$r.min, min(f.s1.y.min, (f.s2.r2.x$r.min + f.s2.r2.y$r.min))))
+
+  a_copy[i].max: max(max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), max(f.s1.y.max, f.s2.r2.x$r.max)), sum.s1.r3.y$r.max)
+  a[i].max     : max(sum.s1.r3.y$r.max, max(f.s2.r2.x$r.max, max(f.s1.y.max, (f.s2.r2.x$r.max + f.s2.r2.y$r.max))))
+
+  a_copy[i].min: min(min(g.s1.x.min, g.s2.x.min), sum.s1.r3.x$r.min)
+  a[i].min     : min(sum.s1.r3.x$r.min, min(g.s2.x.min, g.s1.x.min))
+
+  a_copy[i].max: max(max(g.s1.x.max, g.s2.x.max), sum.s1.r3.x$r.max)
+  a[i].max     : max(sum.s1.r3.x$r.max, max(g.s2.x.max, g.s1.x.max))
+
+  a_copy[i].min: min(min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), min(g.s1.y.min, g.s2.r2.x$r.min)), sum.s1.r3.y$r.min)
+  a[i].min     : min(sum.s1.r3.y$r.min, min(g.s2.r2.x$r.min, min(g.s1.y.min, (g.s2.r2.x$r.min + g.s2.r2.y$r.min))))
+
+  a_copy[i].max: max(max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), max(g.s1.y.max, g.s2.r2.x$r.max)), sum.s1.r3.y$r.max)
+  a[i].max     : max(sum.s1.r3.y$r.max, max(g.s2.r2.x$r.max, max(g.s1.y.max, (g.s2.r2.x$r.max + g.s2.r2.y$r.max))))
+
+  a_copy[i].min: min(f.s0.x.min, f.s1.x.min)
+  a[i].min     : min(f.s1.x.min, f.s0.x.min)
+
+  a_copy[i].max: max(f.s0.x.max, f.s1.x.max)
+  a[i].max     : max(f.s1.x.max, f.s0.x.max)
+
+  a_copy[i].min: min(f.s0.y.min, f.s1.y.min)
+  a[i].min     : min(f.s1.y.min, f.s0.y.min)
+
+  a_copy[i].max: max(f.s0.y.max, f.s1.y.max)
+  a[i].max     : max(f.s1.y.max, f.s0.y.max)
+
+  a_copy[i].min: min(min(f.s1.x.min, f.s0.x.min), f.s2.x.min)
+  a[i].min     : min(f.s2.x.min, min(f.s0.x.min, f.s1.x.min))
+
+  a_copy[i].max: max(max(f.s1.x.max, f.s0.x.max), f.s2.x.max)
+  a[i].max     : max(f.s2.x.max, max(f.s0.x.max, f.s1.x.max))
+
+  a_copy[i].min: min(min(f.s1.y.min, f.s0.y.min), f.s2.r2.x$r.min)
+  a[i].min     : min(f.s2.r2.x$r.min, min(f.s0.y.min, f.s1.y.min))
+
+  a_copy[i].max: max(max(f.s1.y.max, f.s0.y.max), f.s2.r2.x$r.max)
+  a[i].max     : max(f.s2.r2.x$r.max, max(f.s0.y.max, f.s1.y.max))
+
+  a_copy[i].min: min(min(sum.s1.r3.x$r.min, min(f.s2.x.min, f.s1.x.min)), min(f.s2.x.min, min(f.s0.x.min, f.s1.x.min)))
+  a[i].min     : min(f.s0.x.min, min(f.s1.x.min, min(f.s2.x.min, sum.s1.r3.x$r.min)))
+
+  a_copy[i].max: max(max(sum.s1.r3.x$r.max, max(f.s2.x.max, f.s1.x.max)), max(f.s2.x.max, max(f.s0.x.max, f.s1.x.max)))
+  a[i].max     : max(f.s0.x.max, max(f.s1.x.max, max(f.s2.x.max, sum.s1.r3.x$r.max)))
+
+  a_copy[i].min: min(min(sum.s1.r3.y$r.min, min(f.s2.r2.x$r.min, min(f.s1.y.min, (f.s2.r2.x$r.min + f.s2.r2.y$r.min)))), min(f.s2.r2.x$r.min, min(f.s0.y.min, f.s1.y.min)))
+  a[i].min     : min(f.s0.y.min, min((f.s2.r2.y$r.min + f.s2.r2.x$r.min), min(f.s1.y.min, min(f.s2.r2.x$r.min, sum.s1.r3.y$r.min))))
+
+  a_copy[i].max: max(max(sum.s1.r3.y$r.max, max(f.s2.r2.x$r.max, max(f.s1.y.max, (f.s2.r2.x$r.max + f.s2.r2.y$r.max)))), max(f.s2.r2.x$r.max, max(f.s0.y.max, f.s1.y.max)))
+  a[i].max     : max(f.s0.y.max, max((f.s2.r2.y$r.max + f.s2.r2.x$r.max), max(f.s1.y.max, max(f.s2.r2.x$r.max, sum.s1.r3.y$r.max))))
+
+  a_copy[i].min: min(g.s1.x.min, g.s2.x.min)
+  a[i].min     : min(g.s2.x.min, g.s1.x.min)
+
+  a_copy[i].max: max(g.s1.x.max, g.s2.x.max)
+  a[i].max     : max(g.s2.x.max, g.s1.x.max)
+
+  a_copy[i].min: min(g.s1.y.min, g.s2.r2.x$r.min)
+  a[i].min     : min(g.s2.r2.x$r.min, g.s1.y.min)
+
+  a_copy[i].max: max(g.s1.y.max, g.s2.r2.x$r.max)
+  a[i].max     : max(g.s2.r2.x$r.max, g.s1.y.max)
+
+  a_copy[i].min: min(g.s2.x.min, g.s1.x.min)
+  a[i].min     : min(g.s1.x.min, g.s2.x.min)
+
+  a_copy[i].max: max(g.s2.x.max, g.s1.x.max)
+  a[i].max     : max(g.s1.x.max, g.s2.x.max)
+
+  a_copy[i].min: min(min(g.s2.r2.x$r.min, g.s1.y.min), (g.s2.r2.x$r.min + g.s2.r2.y$r.min))
+  a[i].min     : min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), min(g.s1.y.min, g.s2.r2.x$r.min))
+
+  a_copy[i].max: max(max(g.s2.r2.x$r.max, g.s1.y.max), (g.s2.r2.x$r.max + g.s2.r2.y$r.max))
+  a[i].max     : max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), max(g.s1.y.max, g.s2.r2.x$r.max))
+
+  a_copy[i].min: min(min(g.s1.x.min, g.s2.x.min), sum.s1.r3.x$r.min)
+  a[i].min     : min(sum.s1.r3.x$r.min, min(g.s2.x.min, g.s1.x.min))
+
+  a_copy[i].max: max(max(g.s1.x.max, g.s2.x.max), sum.s1.r3.x$r.max)
+  a[i].max     : max(sum.s1.r3.x$r.max, max(g.s2.x.max, g.s1.x.max))
+
+  a_copy[i].min: min(min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), min(g.s1.y.min, g.s2.r2.x$r.min)), sum.s1.r3.y$r.min)
+  a[i].min     : min(sum.s1.r3.y$r.min, min(g.s2.r2.x$r.min, min(g.s1.y.min, (g.s2.r2.x$r.min + g.s2.r2.y$r.min))))
+
+  a_copy[i].max: max(max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), max(g.s1.y.max, g.s2.r2.x$r.max)), sum.s1.r3.y$r.max)
+  a[i].max     : max(sum.s1.r3.y$r.max, max(g.s2.r2.x$r.max, max(g.s1.y.max, (g.s2.r2.x$r.max + g.s2.r2.y$r.max))))
+
+  a_copy[i].min: min(g.s0.x.min, g.s1.x.min)
+  a[i].min     : min(g.s1.x.min, g.s0.x.min)
+
+  a_copy[i].max: max(g.s0.x.max, g.s1.x.max)
+  a[i].max     : max(g.s1.x.max, g.s0.x.max)
+
+  a_copy[i].min: min(g.s0.y.min, g.s1.y.min)
+  a[i].min     : min(g.s1.y.min, g.s0.y.min)
+
+  a_copy[i].max: max(g.s0.y.max, g.s1.y.max)
+  a[i].max     : max(g.s1.y.max, g.s0.y.max)
+
+  a_copy[i].min: min(min(g.s1.x.min, g.s0.x.min), g.s2.x.min)
+  a[i].min     : min(g.s2.x.min, min(g.s0.x.min, g.s1.x.min))
+
+  a_copy[i].max: max(max(g.s1.x.max, g.s0.x.max), g.s2.x.max)
+  a[i].max     : max(g.s2.x.max, max(g.s0.x.max, g.s1.x.max))
+
+  a_copy[i].min: min(min(g.s1.y.min, g.s0.y.min), g.s2.r2.x$r.min)
+  a[i].min     : min(g.s2.r2.x$r.min, min(g.s0.y.min, g.s1.y.min))
+
+  a_copy[i].max: max(max(g.s1.y.max, g.s0.y.max), g.s2.r2.x$r.max)
+  a[i].max     : max(g.s2.r2.x$r.max, max(g.s0.y.max, g.s1.y.max))
+
+  a_copy[i].min: min(min(sum.s1.r3.x$r.min, min(g.s2.x.min, g.s1.x.min)), min(g.s2.x.min, min(g.s0.x.min, g.s1.x.min)))
+  a[i].min     : min(g.s0.x.min, min(g.s1.x.min, min(g.s2.x.min, sum.s1.r3.x$r.min)))
+
+  a_copy[i].max: max(max(sum.s1.r3.x$r.max, max(g.s2.x.max, g.s1.x.max)), max(g.s2.x.max, max(g.s0.x.max, g.s1.x.max)))
+  a[i].max     : max(g.s0.x.max, max(g.s1.x.max, max(g.s2.x.max, sum.s1.r3.x$r.max)))
+
+  a_copy[i].min: min(min(sum.s1.r3.y$r.min, min(g.s2.r2.x$r.min, min(g.s1.y.min, (g.s2.r2.x$r.min + g.s2.r2.y$r.min)))), min(g.s2.r2.x$r.min, min(g.s0.y.min, g.s1.y.min)))
+  a[i].min     : min(g.s0.y.min, min((g.s2.r2.y$r.min + g.s2.r2.x$r.min), min(g.s1.y.min, min(g.s2.r2.x$r.min, sum.s1.r3.y$r.min))))
+
+  a_copy[i].max: max(max(sum.s1.r3.y$r.max, max(g.s2.r2.x$r.max, max(g.s1.y.max, (g.s2.r2.x$r.max + g.s2.r2.y$r.max)))), max(g.s2.r2.x$r.max, max(g.s0.y.max, g.s1.y.max)))
+  a[i].max     : max(g.s0.y.max, max((g.s2.r2.y$r.max + g.s2.r2.x$r.max), max(g.s1.y.max, max(g.s2.r2.x$r.max, sum.s1.r3.y$r.max))))
+
+  a_copy[i].min: min(sat.s1.x.min, sat.s2.r.x$r.min)
+  a[i].min     : min(sat.s2.r.x$r.min, sat.s1.x.min)
+
+  a_copy[i].max: max((((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3), sat.s2.r.x$r.max)
+  a[i].max     : max(sat.s2.r.x$r.max, (((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3))
+
+  a_copy[i].min: min((sat.s1.r.x$r.min + -1), sat.s2.y.min)
+  a[i].min     : min(sat.s2.y.min, (sat.s1.r.x$r.min + -1))
+
+  a_copy[i].max: max(sat.s1.r.x$r.max, sat.s2.y.max)
+  a[i].max     : max(sat.s2.y.max, sat.s1.r.x$r.max)
+
+  a_copy[i].min: min(min(sat.s2.r.x$r.min, sat.s1.x.min), (sat.s2.r.x$r.min + -1))
+  a[i].min     : min(sat.s1.x.min, (sat.s2.r.x$r.min + -1))
+
+  a_copy[i].max: max(max(sat.s2.r.x$r.max, (((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3)), (sat.s2.r.x$r.max + -1))
+  a[i].max     : max((((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3), sat.s2.r.x$r.max)
+
+  a_copy[i].min: min(sat.s2.y.min, (sat.s1.r.x$r.min + -1))
+  a[i].min     : min((sat.s1.r.x$r.min + -1), sat.s2.y.min)
+
+  a_copy[i].max: max(sat.s2.y.max, sat.s1.r.x$r.max)
+  a[i].max     : max(sat.s1.r.x$r.max, sat.s2.y.max)
+
+  a_copy[i].min: min(sat.s0.x.min, sat.s1.x.min)
+  a[i].min     : min(sat.s1.x.min, sat.s0.x.min)
+
+  a_copy[i].max: max(sat.s0.x.max, (((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3))
+  a[i].max     : max((((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3), sat.s0.x.max)
+
+  a_copy[i].min: min(sat.s0.y.min, sat.s1.r.x$r.min)
+  a[i].min     : min(sat.s1.r.x$r.min, sat.s0.y.min)
+
+  a_copy[i].max: max(sat.s0.y.max, sat.s1.r.x$r.max)
+  a[i].max     : max(sat.s1.r.x$r.max, sat.s0.y.max)
+
+  a_copy[i].min: min(min(sat.s1.x.min, sat.s0.x.min), sat.s2.r.x$r.min)
+  a[i].min     : min(sat.s2.r.x$r.min, min(sat.s0.x.min, sat.s1.x.min))
+
+  a_copy[i].max: max(max((((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3), sat.s0.x.max), sat.s2.r.x$r.max)
+  a[i].max     : max(sat.s2.r.x$r.max, max(sat.s0.x.max, (((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3)))
+
+  a_copy[i].min: min(min(sat.s1.r.x$r.min, sat.s0.y.min), sat.s2.y.min)
+  a[i].min     : min(sat.s2.y.min, min(sat.s0.y.min, sat.s1.r.x$r.min))
+
+  a_copy[i].max: max(max(sat.s1.r.x$r.max, sat.s0.y.max), sat.s2.y.max)
+  a[i].max     : max(sat.s2.y.max, max(sat.s0.y.max, sat.s1.r.x$r.max))
+
+  a_copy[i].min: min(min(sat.s1.x.min, (sat.s2.r.x$r.min + -1)), min(sat.s2.r.x$r.min, min(sat.s0.x.min, sat.s1.x.min)))
+  a[i].min     : min(sat.s0.x.min, min((sat.s2.r.x$r.min + -1), sat.s1.x.min))
+
+  a_copy[i].max: max(max(sat.s0.x.max, (((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3)), sat.s2.r.x$r.max)
+  a[i].max     : max(sat.s2.r.x$r.max, max((((((sat.s1.x.max - sat.s1.x.min)/4)*4) + sat.s1.x.min) + 3), sat.s0.x.max))
+
+  a_copy[i].min: min(min((sat.s1.r.x$r.min + -1), min(sat.s0.y.min, sat.s1.r.x$r.min)), sat.s2.y.min)
+  a[i].min     : min(sat.s2.y.min, min(sat.s0.y.min, (sat.s1.r.x$r.min + -1)))
+
+  a_copy[i].max: max(max(sat.s0.y.max, sat.s1.r.x$r.max), sat.s2.y.max)
+  a[i].max     : max(sat.s2.y.max, max(sat.s1.r.x$r.max, sat.s0.y.max))
+
+  a_copy[i].min: min(sat.min.0, sat.s1.x.min)
+  a[i].min     : min(sat.s1.x.min, sat.min.0)
+
+  a_copy[i].max: max(((sat.min.0 + sat.extent.0) + -1), sat.s1.x.max)
+  a[i].max     : max(sat.s1.x.max, ((sat.extent.0 + sat.min.0) + -1))
+
+  a_copy[i].min: min(sat.min.1, (sat.s1.r.x$r.min + -1))
+  a[i].min     : min((sat.s1.r.x$r.min + -1), sat.min.1)
+
+  a_copy[i].max: max(((sat.min.1 + sat.extent.1) + -1), sat.s1.r.x$r.max)
+  a[i].max     : max(sat.s1.r.x$r.max, ((sat.extent.1 + sat.min.1) + -1))
+
+  a_copy[i].min: min(min(sat.s1.x.min, sat.min.0), (sat.s2.r.x$r.min + -1))
+  a[i].min     : min((sat.s2.r.x$r.min + -1), min(sat.min.0, sat.s1.x.min))
+
+  a_copy[i].max: max(max(sat.s1.x.max, ((sat.extent.0 + sat.min.0) + -1)), sat.s2.r.x$r.max)
+  a[i].max     : max(sat.s2.r.x$r.max, max(((sat.min.0 + sat.extent.0) + -1), sat.s1.x.max))
+
+  a_copy[i].min: min(min((sat.s1.r.x$r.min + -1), sat.min.1), sat.s2.y.min)
+  a[i].min     : min(sat.s2.y.min, min(sat.min.1, (sat.s1.r.x$r.min + -1)))
+
+  a_copy[i].max: max(max(sat.s1.r.x$r.max, ((sat.extent.1 + sat.min.1) + -1)), sat.s2.y.max)
+  a[i].max     : max(sat.s2.y.max, max(((sat.min.1 + sat.extent.1) + -1), sat.s1.r.x$r.max))
+
+  a_copy[i].min: min(sat.min.0, (sat.s2.r.x$r.min + -1))
+  a[i].min     : min((sat.s2.r.x$r.min + -1), sat.min.0)
+
+  a_copy[i].max: max(((sat.min.0 + sat.extent.0) + -1), sat.s2.r.x$r.max)
+  a[i].max     : max(sat.s2.r.x$r.max, ((sat.extent.0 + sat.min.0) + -1))
+
+  a_copy[i].min: min(sat.min.1, sat.s2.y.min)
+  a[i].min     : min(sat.s2.y.min, sat.min.1)
+
+  a_copy[i].max: max(((sat.min.1 + sat.extent.1) + -1), sat.s2.y.max)
+  a[i].max     : max(sat.s2.y.max, ((sat.extent.1 + sat.min.1) + -1))
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/reorder_storage.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_reorder_storage -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_reorder_storage
+
+  a_copy[i].min: min(g.s0.x.min, f.s0.x.min)
+  a[i].min     : min(f.s0.x.min, g.s0.x.min)
+
+  a_copy[i].max: max(g.s0.x.max, f.s0.x.max)
+  a[i].max     : max(f.s0.x.max, g.s0.x.max)
+
+  a_copy[i].min: min(g.s0.y.min, f.s0.y.min)
+  a[i].min     : min(f.s0.y.min, g.s0.y.min)
+
+  a_copy[i].max: max(g.s0.y.max, f.s0.y.max)
+  a[i].max     : max(f.s0.y.max, g.s0.y.max)
+
+  a_copy[i].min: min(g.s0.c.min, f.s0.c.min)
+  a[i].min     : min(f.s0.c.min, g.s0.c.min)
+
+  a_copy[i].max: max(g.s0.c.max, f.s0.c.max)
+  a[i].max     : max(f.s0.c.max, g.s0.c.max)
+
+  a_copy[i].min: min(g.s0.x.min, f.s0.x.min)
+  a[i].min     : min(f.s0.x.min, g.s0.x.min)
+
+  a_copy[i].max: max(g.s0.x.max, f.s0.x.max)
+  a[i].max     : max(f.s0.x.max, g.s0.x.max)
+
+  a_copy[i].min: min(g.s0.y.min, f.s0.y.min)
+  a[i].min     : min(f.s0.y.min, g.s0.y.min)
+
+  a_copy[i].max: max(g.s0.y.max, f.s0.y.max)
+  a[i].max     : max(f.s0.y.max, g.s0.y.max)
+
+  a_copy[i].min: min(g.s0.c.min, f.s0.c.min)
+  a[i].min     : min(f.s0.c.min, g.s0.c.min)
+
+  a_copy[i].max: max(g.s0.c.max, f.s0.c.max)
+  a[i].max     : max(f.s0.c.max, g.s0.c.max)
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/reschedule.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_reschedule -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_reschedule
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/reuse_stack_alloc.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_reuse_stack_alloc -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_reuse_stack_alloc
+
+  a_copy[i].min: min(h.s1.x.min, k.s0.x.min)
+  a[i].min     : min(k.s0.x.min, h.s1.x.min)
+
+  a_copy[i].max: max(h.s1.x.max, k.s0.x.max)
+  a[i].max     : max(k.s0.x.max, h.s1.x.max)
+
+  a_copy[i].min: min(h.s0.x.min, h.s1.x.min)
+  a[i].min     : min(h.s1.x.min, h.s0.x.min)
+
+  a_copy[i].max: max(h.s0.x.max, h.s1.x.max)
+  a[i].max     : max(h.s1.x.max, h.s0.x.max)
+
+  a_copy[i].min: min(g.s0.x.min, f.s0.x.min)
+  a[i].min     : min(f.s0.x.min, g.s0.x.min)
+
+  a_copy[i].max: max(g.s0.x.max, f.s0.x.max)
+  a[i].max     : max(f.s0.x.max, g.s0.x.max)
+
+  a_copy[i].min: min(h.s1.x.min, g.s0.x.min)
+  a[i].min     : min(g.s0.x.min, h.s1.x.min)
+
+  a_copy[i].max: max(h.s1.x.max, g.s0.x.max)
+  a[i].max     : max(g.s0.x.max, h.s1.x.max)
+
+  a_copy[i].min: min(min(k.s0.x.min, h.s0.x.min), h.s1.x.min)
+  a[i].min     : min(h.s1.x.min, min(h.s0.x.min, k.s0.x.min))
+
+  a_copy[i].max: max(max(k.s0.x.max, h.s0.x.max), h.s1.x.max)
+  a[i].max     : max(h.s1.x.max, max(h.s0.x.max, k.s0.x.max))
+
+  a_copy[i].min: min(h.s1.x.min, k.s0.x.min)
+  a[i].min     : min(k.s0.x.min, h.s1.x.min)
+
+  a_copy[i].max: max(h.s1.x.max, k.s0.x.max)
+  a[i].max     : max(k.s0.x.max, h.s1.x.max)
+
+  a_copy[i].min: min(h.s1.x.min, k.s0.x.min)
+  a[i].min     : min(k.s0.x.min, h.s1.x.min)
+
+  a_copy[i].max: max(h.s1.x.max, k.s0.x.max)
+  a[i].max     : max(k.s0.x.max, h.s1.x.max)
+
+  a_copy[i].min: min(g.s0.x.min, f.s0.x.min)
+  a[i].min     : min(f.s0.x.min, g.s0.x.min)
+
+  a_copy[i].max: max(g.s0.x.max, f.s0.x.max)
+  a[i].max     : max(f.s0.x.max, g.s0.x.max)
+
+  a_copy[i].min: min(h.s1.x.min, k.s0.x.min)
+  a[i].min     : min(k.s0.x.min, h.s1.x.min)
+
+  a_copy[i].max: max(h.s1.x.max, k.s0.x.max)
+  a[i].max     : max(k.s0.x.max, h.s1.x.max)
+
+  a_copy[i].min: min(h.s1.x.min, g.s0.x.min)
+  a[i].min     : min(g.s0.x.min, h.s1.x.min)
+
+  a_copy[i].max: max(h.s1.x.max, g.s0.x.max)
+  a[i].max     : max(g.s0.x.max, h.s1.x.max)
+
+  a_copy[i].min: min(h.s1.x.min, k.s0.x.min)
+  a[i].min     : min(k.s0.x.min, h.s1.x.min)
+
+  a_copy[i].max: max(h.s1.x.max, k.s0.x.max)
+  a[i].max     : max(k.s0.x.max, h.s1.x.max)
+
+  a_copy[i].min: min(h.s0.x.min, h.s1.x.min)
+  a[i].min     : min(h.s1.x.min, h.s0.x.min)
+
+  a_copy[i].max: max(h.s0.x.max, h.s1.x.max)
+  a[i].max     : max(h.s1.x.max, h.s0.x.max)
+
+  a_copy[i].min: min(min(k.s0.x.min, h.s0.x.min), h.s1.x.min)
+  a[i].min     : min(h.s1.x.min, min(h.s0.x.min, k.s0.x.min))
+
+  a_copy[i].max: max(max(k.s0.x.max, h.s0.x.max), h.s1.x.max)
+  a[i].max     : max(h.s1.x.max, max(h.s0.x.max, k.s0.x.max))
+Success!
+
+mpicxx -std=c++11  -g -fno-omit-frame-pointer -fno-rtti -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -rdynamic -O3 /home/psuriana/distributed-halide/test/correctness/round.cpp -Iinclude -I/home/psuriana/distributed-halide/non-linear-FM/src/ -Lbin -lHalide -L/usr/lib/llvm-3.5/lib  -lz -lpthread -lffi -ledit -ltinfo -ldl -lm  -lpthread -ldl -lz -o bin/correctness_round -L/home/psuriana/distributed-halide/non-linear-FM/bin/ -lnfm -L/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib -lisl -lgmp
+cd bin/build/tmp ; LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_round
+Testing round (float x 1)
+Testing round (float x 2)
+Testing round (float x 4)
+Testing round (float x 8)
+Testing floor (float x 1)
+Testing floor (float x 2)
+Testing floor (float x 4)
+Testing floor (float x 8)
+Testing ceil (float x 1)
+Testing ceil (float x 2)
+Testing ceil (float x 4)
+Testing ceil (float x 8)
+Testing trunc (float x 1)
+Testing trunc (float x 2)
+Testing trunc (float x 4)
+Testing trunc (float x 8)
+Testing round (double x 1)
+Testing round (double x 2)
+Testing round (double x 4)
+Testing round (double x 8)
+Testing floor (double x 1)
+Testing floor (double x 2)
+Testing floor (double x 4)
+Testing floor (double x 8)
+Testing ceil (double x 1)
+Testing ceil (double x 2)
+Testing ceil (double x 4)
+Testing ceil (double x 8)
+Testing trunc (double x 1)
+Testing trunc (double x 2)
+Testing trunc (double x 4)
+Testing trunc (double x 8)
+Success!
+
+mpicxx -Wall -Werror -Wno-unused-function -Wignored-qualifiers -Wno-comment -Wsign-compare -fno-rtti -Woverloaded-virtual -fPIC -O3 -fno-omit-frame-pointer -DCOMPILING_HALIDE  -std=c++11  -I/usr/lib/llvm-3.5/include -DNDEBUG -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -std=c++11 -fvisibility-inlines-hidden -fno-exceptions -fPIC -ffunction-sections -fdata-sections -DLLVM_VERSION=35    -DWITH_PTX=1  -DWITH_ARM=1  -DWITH_AARCH64=1  -DWITH_X86=1  -DWITH_OPENCL=1  -DWITH_METAL=1  -DWITH_OPENGL=1  -DWITH_MPI=1  -DWITH_RENDERSCRIPT=1  -DWITH_MIPS=1  -DWITH_INTROSPECTION   /home/psuriana/distributed-halide/tools/GenGen.cpp -Iinclude -Lbin -lHalide -lpthread -ldl -lz -o bin/runtime.generator
