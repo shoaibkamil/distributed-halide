@@ -132,11 +132,11 @@ private:
 };
 
 // Return true if it's arithmetic only
-class SimpleExpr : public IRMutator {
+class SimpleExpr : public IRVisitor {
 public:
     bool is_simple = true;
 protected:
-    using IRMutator::visit;
+    using IRVisitor::visit;
 
     void visit(const StringImm *) { is_simple = false; }
     void visit(const Cast *) { is_simple = false; }
@@ -171,13 +171,109 @@ protected:
     void visit(const Evaluate *) { is_simple = false; }
 };
 
+class AddNewVar : public IRMutator {
+public:
+    AddNewVar() {}
+
+    const vector<string>& get_additional_sym_consts() const {
+        return additional_sym_consts;
+    }
+
+    const map<string, Expr>& get_expr_substitutions() const {
+        return expr_substitutions;
+    }
+
+private:
+    vector<string> additional_sym_consts;
+    map<string, Expr> expr_substitutions;
+    map<Expr, string, IRDeepCompare> subs_expr;
+
+    Expr result;
+
+    using IRMutator::visit;
+
+    void visit(const Cast *op) {
+        //debug(0) << "Cast " << op->type << ": " << op->value << "\n";
+        if (op->type.is_int() && (op->value.as<IntImm>() != NULL)) {
+            expr = mutate(op->value);
+        } else {
+            assert(op->type.is_int());
+            Expr val = Cast::make(op->type, op->value);
+            const auto& iter = subs_expr.find(val);
+            string var_name;
+            if (iter != subs_expr.end()) {
+                var_name = iter->second;
+            } else {
+                var_name = unique_name("_cast");
+                additional_sym_consts.push_back(var_name);
+                subs_expr.emplace(val, var_name);
+                expr_substitutions.emplace(var_name, val);
+            }
+            Expr var = Variable::make(Int(32), var_name);
+            expr = var;
+        }
+    }
+
+    void visit(const Call *op) {
+        //debug(0) << "Call: " << op->name << "\n";
+        Expr val = Call::make(op->type, op->name, op->args, op->call_type, op->func,
+            op->value_index, op->image, op->param);
+        const auto& iter = subs_expr.find(val);
+        string var_name;
+        if (iter != subs_expr.end()) {
+            var_name = iter->second;
+        } else {
+            var_name = unique_name("_call");
+            additional_sym_consts.push_back(var_name);
+            subs_expr.emplace(val, var_name);
+            expr_substitutions.emplace(var_name, val);
+        }
+        Expr var = Variable::make(Int(32), var_name);
+        expr = var;
+    }
+
+    void visit(const Div *op) {
+        //debug(0) << "Div: (" << op->a << ")/(" << op->b << "\n";
+        Expr val = Div::make(op->a, op->b);
+        const auto& iter = subs_expr.find(val);
+        string var_name;
+        if (iter != subs_expr.end()) {
+            var_name = iter->second;
+        } else {
+            var_name = unique_name("_div");
+            additional_sym_consts.push_back(var_name);
+            subs_expr.emplace(val, var_name);
+            expr_substitutions.emplace(var_name, val);
+        }
+        Expr var = Variable::make(Int(32), var_name);
+        expr = var;
+    }
+
+    void visit(const Mod *op) {
+        //debug(0) << "Mod: (" << op->a << ")%(" << op->b << "\n";
+        Expr val = Mod::make(op->a, op->b);
+        const auto& iter = subs_expr.find(val);
+        string var_name;
+        if (iter != subs_expr.end()) {
+            var_name = iter->second;
+        } else {
+            var_name = unique_name("_mod");
+            additional_sym_consts.push_back(var_name);
+            subs_expr.emplace(val, var_name);
+            expr_substitutions.emplace(var_name, val);
+        }
+        Expr var = Variable::make(Int(32), var_name);
+        expr = var;
+    }
+};
+
 class PreProcessor : public IRMutator {
 protected:
     using IRMutator::visit;
 
     bool is_simple_arithmetic(Expr expr) {
         SimpleExpr simple;
-        simple.mutate(expr);
+        expr.accept(&simple);
         //std::cout << "     Expr: " << expr << "; is_simple_arithmetic? " << simple.is_simple << "\n";
         return simple.is_simple;
     }
@@ -282,7 +378,7 @@ protected:
     }
 
     void visit(const Div *op) {
-        //std::cout << "Div: (" << op->a << ") - (" << op->b << ")\n";
+        //std::cout << "Div: (" << op->a << ") / (" << op->b << ")\n";
         Expr a = mutate(op->a);
         Expr b = mutate(op->b);
         const Min *min_a = a.as<Min>();
@@ -352,25 +448,14 @@ public:
         return result;
     }
 
-    const vector<string>& get_additional_sym_consts() const {
-        return additional_sym_consts;
-    }
-
-    const map<string, Expr>& get_expr_substitutions() const {
-        return expr_substitutions;
-    }
-
     const vector<pair<string, Expr>>& get_let_substitutions() const {
         return let_substitutions;
     }
 
 private:
-    vector<ConditionVal> select_vals; // Disjuction of values (ORs)
     vector<Expr> additional_constraints;
-    vector<string> additional_sym_consts;
-    map<string, Expr> expr_substitutions;
+    vector<ConditionVal> select_vals; // Disjuction of values (ORs)
     vector<pair<string, Expr>> let_substitutions;
-    map<Expr, string, IRDeepCompare> subs_expr;
 
     Expr result;
 
@@ -616,24 +701,7 @@ private:
 
     void visit(const Cast *op) {
         //debug(0) << "Cast " << op->type << ": " << op->value << "\n";
-        if (op->type.is_int() && (op->value.as<IntImm>() != NULL)) {
-            expr = mutate(op->value);
-        } else {
-            assert(op->type.is_int());
-            Expr val = Cast::make(op->type, op->value);
-            const auto& iter = subs_expr.find(val);
-            string var_name;
-            if (iter != subs_expr.end()) {
-                var_name = iter->second;
-            } else {
-                var_name = unique_name("_cast");
-                additional_sym_consts.push_back(var_name);
-                subs_expr.emplace(val, var_name);
-                expr_substitutions.emplace(var_name, val);
-            }
-            Expr var = Variable::make(Int(32), var_name);
-            expr = var;
-        }
+        internal_error << "ConvertToNfmStructs can't handle Cast\n";
     }
 
     // Only handle call to ceil_f32 or floor_f32 (single argument). We do
@@ -646,20 +714,7 @@ private:
         expr = mutate(op->args[0]);*/
 
         //debug(0) << "Call: " << op->name << "\n";
-        Expr val = Call::make(op->type, op->name, op->args, op->call_type, op->func,
-            op->value_index, op->image, op->param);
-        const auto& iter = subs_expr.find(val);
-        string var_name;
-        if (iter != subs_expr.end()) {
-            var_name = iter->second;
-        } else {
-            var_name = unique_name("_call");
-            additional_sym_consts.push_back(var_name);
-            subs_expr.emplace(val, var_name);
-            expr_substitutions.emplace(var_name, val);
-        }
-        Expr var = Variable::make(Int(32), var_name);
-        expr = var;
+        internal_error << "ConvertToNfmStructs can't handle Call\n";
     }
 
     template <typename T>
@@ -717,49 +772,22 @@ private:
 
     void visit(const Div *op) {
         //debug(0) << "Div: (" << op->a << ")/(" << op->b << ")\n";
-        Expr new_expr = convert_select_helper(op, op->a.as<Select>(), op->b.as<Select>());
+        /*Expr new_expr = convert_select_helper(op, op->a.as<Select>(), op->b.as<Select>());
         if (new_expr.defined()) {
             expr = mutate(new_expr);
             return;
-        }
-        //visit_helper_arithmetic(op);
-
-        Expr val = Div::make(op->a, op->b);
-
+        }*/
         // Normalize division, e.g convert w >= y/c for example into the following:
         // (w >= t) and (c*t <= y <= c*t + c - 1). NOTE: c has to be symbolic constant
         // and positive. Division is equivalent to floor function
         // TODO: Expand this to handle the case when c is not symbolic constant and
         // is not positive
-        const auto& iter = subs_expr.find(val);
-        string var_name;
-        if (iter != subs_expr.end()) {
-            var_name = iter->second;
-        } else {
-            var_name = unique_name("_div");
-            additional_sym_consts.push_back(var_name);
-            subs_expr.emplace(val, var_name);
-            expr_substitutions.emplace(var_name, val);
-        }
-        Expr var = Variable::make(Int(32), var_name);
-        expr = var;
+        internal_error << "ConvertToNfmStructs can't handle Div\n";
     }
 
     void visit(const Mod *op) {
         //TODO: handle modulus (q = floor(op->a/op->b), result = op->a-q*op->b)
-        Expr val = Mod::make(op->a, op->b);
-        const auto& iter = subs_expr.find(val);
-        string var_name;
-        if (iter != subs_expr.end()) {
-            var_name = iter->second;
-        } else {
-            var_name = unique_name("_mod");
-            additional_sym_consts.push_back(var_name);
-            subs_expr.emplace(val, var_name);
-            expr_substitutions.emplace(var_name, val);
-        }
-        Expr var = Variable::make(Int(32), var_name);
-        expr = var;
+        internal_error << "ConvertToNfmStructs can't handle Mod\n";
     }
 
     void visit(const Min *op) {
@@ -1245,7 +1273,6 @@ private:
 
     void visit(const Or *op) {
         result.push_back(Or::make(op->a, op->b));
-        //internal_error << "SplitAnds can't handle Or (" << op->a << ", " << op->b << "\n";
     }
 };
 
@@ -1507,51 +1534,6 @@ private:
 
     void visit(const Div *op) {
         internal_error << "DistributeMul: can't handle Div\n";
-        //std::cout << "Div: (" << op->a << ")/(" << op->b << "\n";
-        /*first_entry = false;
-        result.clear();
-        vector<Expr> a_result;
-        vector<Expr> b_result;
-        Expr a = mutate(op->a);
-        a_result.swap(result);
-        Expr b = mutate(op->b);
-        b_result.swap(result);
-
-        assert(!is_zero(b));
-        if (is_zero(a)) {
-            expr = make_zero(a.type());
-            return;
-        }
-
-        bool select_a = a_result.size() > 1;
-        bool select_b = b_result.size() > 1;
-        if (select_a && !select_b) {
-            for (auto val_a : a_result) {
-                if (!is_zero(val_a)) {
-                    if (equal(val_a, b)) {
-                        result.push_back(make_one(a.type()));
-                    } else {
-                        result.push_back(val_a/b);
-                    }
-                }
-            }
-        } else {
-            if (equal(a, b)) {
-                result.push_back(make_one(a.type()));
-            } else {
-                result.push_back(a/b);
-            }
-        }
-        if (result.size() == 1) {
-            expr = result[0];
-        } else if (result.size() > 1) {
-            expr = Add::make(result[0], result[1]);
-            for (size_t i = 2; i < result.size(); ++i) {
-                expr = Add::make(expr, result[i]);
-            }
-        } else{
-            expr = make_zero(a.type());
-        }*/
     }
 };
 
@@ -1605,8 +1587,19 @@ public:
 
     ConvertToNfmStructs(Expr e, const vector<string>& sym_const, const vector<string>& dim)
                         : dim_names(dim), sym_const_names(sym_const) {
+        //debug(0) << "PreProcessor: " << e << "\n\n";
+        AddNewVar new_var_convert;
+        in_expr = new_var_convert.mutate(e);
+        expr_substitutions = std::move(new_var_convert.get_expr_substitutions());
+        for (auto& str : new_var_convert.get_additional_sym_consts()) {
+            insert_sym_const(str);
+        }
+
+        //debug(0) << "PreProcessor: " << in_expr << "\n\n";
+
         PreProcessor process;
-        in_expr = process.mutate(e);
+        in_expr = process.mutate(in_expr);
+        //debug(0) << "PreProcessor: " << in_expr << "\n\n";
 
         for (size_t i = 0; i < dim_names.size(); ++i) {
             dim_to_idx[dim_names[i]] = i;
@@ -1632,11 +1625,7 @@ public:
         // Convert into (in-)equalities
         ConvertToIneqs convert;
         convert.mutate(in_expr);
-        expr_substitutions = std::move(convert.get_expr_substitutions());
         let_substitutions = std::move(convert.get_let_substitutions());
-        for (auto& str : convert.get_additional_sym_consts()) {
-            insert_sym_const(str);
-        }
         Expr ineqs_expr = convert.get_result();
 
         /*{
@@ -1750,6 +1739,7 @@ private:
     map<string, int> dim_to_idx; // Mapping of dim to idx in dim_names
     map<string, int> sym_const_to_idx;  // Mapping of sym const to idx in sym_const_names
 
+    vector<string> additional_sym_consts;
     map<string, Expr> expr_substitutions;
     vector<pair<string, Expr>> let_substitutions;
 

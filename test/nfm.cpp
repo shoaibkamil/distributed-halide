@@ -442,6 +442,7 @@ void test() {
     INTERESTING
     a_copy[i].min: min(x, ((min((max((((y - z) + 2)/2), 1) + 1), 0)*2) + z))
     a[i].min     : min(x, z)
+    min(z, min(max(((((((y - z) + 2)/2)*2) + z) + 2), (z + 4)), x))
 
     a_copy[i].min: min(min(((x + y) + (z*4)), ((x + s) + -3)), ((min(((z*4) + y), (s + -3)) + x) + 1))
     a[i].min     : min(((s + x) + -3), (((z*4) + y) + x))
@@ -454,13 +455,15 @@ void test() {
     a[i].max     : max((((((((((x - y)/6)*6) + 6)/5)*5) + (((x - y)/6)*6)) + y) + 5), (((((x - y)/6)*6) + y) + 6))
     a_copy[i].max: max(((a + y) + 6), (min(((b + (a + y)) + 1), ((a + y) + 2)) + 4))
     a[i].max     : max(min(((y + a) + 6), (((b + y) + a) + 5)), ((y + a) + 6))
+    Max: ((y + a) + 6)
 
     a_copy[i].min: min(x, (min((max(((y - z) + 1), 1) + 1), 0) + z))
-    a[i].min     : min((max(y, z) + 2), min(z, x))
+    a[i].min     : min(z, min((max(y, z) + 2), x))
 
     INTERESTING
     a_copy[i].max: max(min((((max((max(a, 1) + -1), 0)*16) + y) + 15), x), z)
     a[i].max     : max(min((y + 15), x), max(min(((y + (a*16)) + -1), x), z))
+    max(z, min(max((y + 15), ((y + (a*16)) + -1)), x))
 
     a_copy[i].min: min(x, (let t11 = min(((min(((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -4), 0)/3)*6), (((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -6)) in min((((t11/max((((y - z) + 3)/3), 1))*5) + t), (s + -4))))
     a[i].min     : min(x, select((((t11 <= 0) && (((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6)*6) + 6) <= ((((y - z) + 3)/3)*(((s - t) + 5)/5)))) || (((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6) <= 0) && ((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -5) <= (((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6)*6))) || ((((t11 + 6) <= (((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6)*6)) && (6 <= ((((y - z) + 3)/3)*(((s - t) + 5)/5)))) || ((1 <= ((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -7)/6)) && (((((y - z) + 3)/3)*(((s - t) + 5)/5)) <= 5))))), (((t11/max((((y - z) + 3)/3), 1))*5) + t), (s + -4)))
@@ -473,6 +476,15 @@ void test() {
 
     a_copy[i].min: select(b, (x + 10), (x + -10))
     a[i].min     : select(((2 <= b) || (0 <= (b*-1))), (x + -10), (x + 10))
+
+    a_copy[i].min: min(min((x + -3), y), (let t12.s = (min((((((x - y)/4)*4) + y) + 3), x) - min(min(y, (x + -3)), (min(y, (x + 1)) + 1))) in (let t15 = min(min(min(y, (x + -3)), (min(y, (x + 1)) + 1)), (min((y + 3), x) + -2)) in t15)))
+    a[i].min     : (let t15 = min(min(min(y, (x + -3)), min((y + 1), (x + 2))), min((y + 1), (x + -2))) in min(t15, min(y, (x + -3))))
+
+    a_copy[i].max: max(min((((((x - y)/4)*4) + y) + 4), (x + 1)), (let t12.s = (min((((((x - y)/4)*4) + y) + 3), x) - min(min(y, (x + -3)), (min(y, (x + 1)) + 1))) in (let t14 = min((max(min(((((x - y)/4)*4) + y), (x + -3)), (min(((((x - y)/4)*4) + y), (x + 1)) + 1)) + (((t12.s + 1)/4)*4)), (min((((((x - y)/4)*4) + y) + 3), x) + -2)) in (t14 + 3))))
+    a[i].max     : (let t12.s = (min((((((x - y)/4)*4) + y) + 3), x) - min(min(y, (x + -3)), min((y + 1), (x + 2)))) in (let t14 = min(max(min((((((x - y)/4)*4) + y) + (((t12.s + 1)/4)*4)), ((x + (((t12.s + 1)/4)*4)) + -3)), min(((((((x - y)/4)*4) + y) + (((t12.s + 1)/4)*4)) + 1), ((x + (((t12.s + 1)/4)*4)) + 2))), min((((((x - y)/4)*4) + y) + 1), (x + -2))) in max((t14 + 3), min((((((x - y)/4)*4) + y) + 4), (x + 1)))))
+
+    a_copy[i].max: max(min(((x + (y*4)) + 4), (z + 1)), (let t18 = min((max((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3))) + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)), (min((((y*4) + x) + 3), z) + -2)) in (t18 + 3)))
+    a[i].max     : (let t18 = min(max(min(((((y*4) + x) + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)) + 1), ((z + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)) + 2)), min((((y*4) + x) + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)), ((z + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)) + -3))), min((((y*4) + x) + 1), (z + -2))) in max((t18 + 3), min((((y*4) + x) + 4), (z + 1))))
     */
 
     //Expr expr = w >= min(min(x, min(y, min(z, min((x + -1), min((x + -2), 0))))), min(y, min(z, s)));
@@ -487,12 +499,14 @@ void test() {
     //Expr expr = w >= min(x, (min((max(((y - z) + 1), 1) + 1), 0) + z));
     //Expr expr = w <= max(min((((max((max(a, 1) + -1), 0)*16) + y) + 15), x), z);
 
-    //Expr expr = w >= min(x, (let t11 = min(((min(((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -4), 0)/3)*6), (((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -6)) in min((((t11/max((((y - z) + 3)/3), 1))*5) + t), (s + -4))))
-
     //Expr expr = w <= max(x, Let::make("t10", min((((min(((((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -1)/4)*4), ((((((((y - z) + 3)/3)*(((s - t) + 5)/5)) + 5)/6)*3) + -4)) + 3)/3)*6), (((((y - z) + 3)/3)*(((s - t) + 5)/5)) + -6)), min((((((t10 + 5)/max((((y - z) + 3)/3), 1))*5) + t) + 4), s)));
     //Expr expr = w <= max(x, Let::make("t", min(x/2, y*6), min(t*3, z+y)));
 
-    Expr expr = w >= select(!v, max(x, y), y);
+    // TODO: need a good way to transform !v
+    //Expr expr = w >= select(!v, max(x, y), y);
+
+    //Expr expr = w <= max((min((min(x, 4) + (((max(x, 4) - min(x, 4))/8)*8)), (max(x, 4) + -7)) + 7), y);
+    //Expr expr = w <= (max(x,4)-min(x,4))/8*8 + 7;
     std::cout << "simplify: " << simplify(expr) << "\n";
 
     /*std::map<std::string, Expr> expr_substitutions;

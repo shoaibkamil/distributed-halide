@@ -1,14 +1,6 @@
-Internal error at /home/psuriana/distributed-halide/src/IR.cpp:62 triggered by user code at /home/psuriana/distributed-halide/test/correctness/memoize.cpp:329:
-Condition failed: a.defined()
-Sub of undefined
-bash: line 1:  3946 Aborted                 (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_memoize
-
 Internal error at /home/psuriana/distributed-halide/src/HalideNfmConverter.cpp:130 triggered by user code at /home/psuriana/distributed-halide/test/correctness_specialize.cpp:187:
 Condition failed: !verifyFunction(*function)
 
-
-bash: line 1:  8562 Segmentation fault      (core dumped) LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib /home/psuriana/distributed-halide/bin/correctness_tracing
-Condition failed: a.defined()
-Sub of undefined
-a: (undefined); b: (undefined)
-
+TODO: need a good way to handle the boolean condition
+a_copy[i].max: select(param$3, (f$3.s0.x$4.max + 10), (f$3.s0.x$4.max + -10))
+a[i].max     : select(((2 <= param$3) || (0 <= (param$3*-1))), (f$3.s0.x$4.max + -10), (f$3.s0.x$4.max + 10))

@@ -1373,11 +1373,6 @@ Expr convert_nfm_union_domain_to_halide_expr(Type type, NfmUnionDomain& union_do
             or_expr = expr;
         }
     }
-    if (expr_substitutions != NULL) {
-        or_expr = simplify(substitute(*expr_substitutions, or_expr));
-    } else {
-        or_expr = simplify(or_expr);
-    }
     if (!or_expr.defined()) {
         return or_expr;
     }
@@ -1387,6 +1382,11 @@ Expr convert_nfm_union_domain_to_halide_expr(Type type, NfmUnionDomain& union_do
         for (int i = let_substitutions->size()-2; i >= 0; --i) {
             or_expr = Let::make((*let_substitutions)[i].first, (*let_substitutions)[i].second, or_expr);
         }
+    }
+    if (expr_substitutions != NULL) {
+        or_expr = simplify(substitute(*expr_substitutions, or_expr));
+    } else {
+        or_expr = simplify(or_expr);
     }
     return or_expr;
 }
@@ -1625,13 +1625,6 @@ Interval convert_nfm_union_domain_to_halide_interval(
 
     //debug(0) << "\nresult.min: " << result.min << "\n";
     //debug(0) << "result.max: " << result.max << "\n";
-    if (expr_substitutions != NULL) {
-        result.min = simplify(substitute(*expr_substitutions, result.min));
-        result.max = simplify(substitute(*expr_substitutions, result.max));
-    } else {
-        result.min = simplify(result.min); // NOTE: Simplify sometimes give odd-looking results
-        result.max = simplify(result.max);
-    }
     if ((let_substitutions != NULL) && !let_substitutions->empty()) {
         if (result.min.defined()) {
             result.min = Let::make((*let_substitutions)[let_substitutions->size()-1].first,
@@ -1647,6 +1640,13 @@ Interval convert_nfm_union_domain_to_halide_interval(
                 result.max = Let::make((*let_substitutions)[i].first, (*let_substitutions)[i].second, result.max);
             }
         }
+    }
+    if (expr_substitutions != NULL) {
+        result.min = simplify(substitute(*expr_substitutions, result.min));
+        result.max = simplify(substitute(*expr_substitutions, result.max));
+    } else {
+        result.min = simplify(result.min); // NOTE: Simplify sometimes give odd-looking results
+        result.max = simplify(result.max);
     }
     //debug(0) << "\nAFTER SUBSTITUTION result.min: " << result.min << "\n";
     //debug(0) << "result.max: " << result.max << "\n";
