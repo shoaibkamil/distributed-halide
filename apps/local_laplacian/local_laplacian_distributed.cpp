@@ -247,19 +247,15 @@ int main(int argc, char **argv) {
     input.placement().distribute(y);
     input.allocate(local_laplacian, output);
 
-    for (int c = 0; c < d; c++) {
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
+    for (int z = 0; z < input.channels(); z++) {
+        for (int y = 0; y < input.height(); y++) {
+            for (int x = 0; x < input.width(); x++) {
+                int gx = input.global(0, x), gy = input.global(1, y), gz = input.global(2, z);
                 uint16_t v = rand() & 0xfff;
-                if (input.mine(x, y, c)) {
-                    int lx = input.local(0, x), ly = input.local(1, y), lc = input.local(2, c);
-                    input(lx, ly, lc) = v;
-                }
-                //global_input(x, y, c) = v;
+                input(x, y, z) = v;
             }
         }
     }
-
 
     // compute_correct(global_input, global_output);
     local_laplacian.realize(output.get_buffer());

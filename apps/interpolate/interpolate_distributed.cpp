@@ -196,19 +196,15 @@ int main(int argc, char **argv) {
 
     assert(input.channels() == 4);
 
-    for (int c = 0; c < d; c++) {
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                float v = x+y+c;//rndflt();
-                if (input.mine(x, y, c)) {
-                    int lx = input.local(0, x), ly = input.local(1, y), lc = input.local(2, c);
-                    input(lx, ly, lc) = v;
-                }
-                // global_input(x, y, c) = v;
+    for (int z = 0; z < input.channels(); z++) {
+        for (int y = 0; y < input.height(); y++) {
+            for (int x = 0; x < input.width(); x++) {
+                int gx = input.global(0, x), gy = input.global(1, y), gz = input.global(2, z);
+                float v = gx+gy+gz;
+                input(x, y, z) = v;
             }
         }
     }
-
 
     // JIT compile the pipeline eagerly, so we don't interfere with timing
     Target target = get_target_from_environment();
