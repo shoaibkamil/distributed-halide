@@ -40,5 +40,8 @@ distributed_bilateral_grid: bilateral_grid_distributed.cpp
 clean:
 	rm -f bilateral_grid bilateral_grid.mp4 bilateral_grid.o bilateral_grid.h bilateral filter distributed_bilateral_grid
 
-distrib:
+distrib: distributed_bilateral_grid
 	$(LD_PATH_SETUP) HL_DEBUG_CODEGEN=1 ./distributed_bilateral_grid 512 512 512
+
+run:
+	$(LD_PATH_SETUP) ./bilateral_grid 8

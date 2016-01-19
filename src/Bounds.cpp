@@ -1066,9 +1066,9 @@ void merge_boxes(Box &a, const Box &b) {
         std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
     }*/
 
-    //std::cout << "MERGE RESULT start NFM\n";
+    std::cout << "MERGE RESULT start NFM\n";
     merge_boxes_nfm(a, b);
-    //std::cout << "MERGE RESULT start halide\n";
+    std::cout << "MERGE RESULT start halide\n";
     merge_boxes_halide(a_copy, b_copy);
 
     //merge_boxes_nfm(a_copy, b_copy);
@@ -1086,14 +1086,14 @@ void merge_boxes(Box &a, const Box &b) {
     }
     std::cout << "\n";*/
 
-    for (size_t i = 0; i < a_copy.size(); ++i) {
+    /*for (size_t i = 0; i < a_copy.size(); ++i) {
         if (!equal(a_copy[i].min, a[i].min)) {
             std::cout << "\n  a_copy[i].min: " << a_copy[i].min << "\n  a[i].min     : " << a[i].min << "\n";
         }
         if (!equal(a_copy[i].max, a[i].max)) {
             std::cout << "\n  a_copy[i].max: " << a_copy[i].max << "\n  a[i].max     : " << a[i].max << "\n";
         }
-    }
+    }*/
 }
 
 void merge_boxes_halide(Box &a, const Box &b) {

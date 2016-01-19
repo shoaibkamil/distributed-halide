@@ -59,6 +59,15 @@ int non_neg_lcm(int a, int b) {
 // Compute a vector of integer which element is the max of the two. Save the
 // result in exp1
 void vector_max_exp(vector<int>& exp1, const vector<int>& exp2) {
+    if (exp1.size() != exp2.size()) {
+        std::cout << "!!!!vector_max_exp NOT THE SAME; exp1 size: " << exp1.size() << "; exp2 size: " << exp2.size() << "\n";
+        for (auto& val : exp1) {
+            std::cout << "val exp1: " << val << "\n";
+        }
+        for (auto& val : exp2) {
+            std::cout << "val exp2: " << val << "\n";
+        }
+    }
     assert(exp1.size() == exp2.size());
     for (size_t i = 0; i < exp1.size(); ++i) {
         assert((exp1[i] >= 0) && (exp2[i] >= 0));
@@ -1611,7 +1620,7 @@ public:
 
     NfmUnionDomain convert_to_nfm() {
         //debug(0) << "CONVERTING " << in_expr << "\n\n";
-        //debug(0) << "CONVERTING " << simplify(in_expr) << "\n\n";
+        //debug(0) << "CONVERTING START: " << simplify(in_expr) << "\n\n";
         NfmUnionDomain union_dom(sym_const_names, dim_names);
         if (!in_expr.defined() || is_one(in_expr)) { // Undefined expression -> no constraint (universe)
             NfmDomain domain(sym_const_names, dim_names);
@@ -1802,17 +1811,21 @@ private:
     }
 
     void insert_mul_term_mul(const string& var) {
+        //std::cout << "insert_mul_term_mul: " << var << "\n";
         int dim_idx = get_dim_idx(var);
         if (dim_idx >= 0) {
+            //std::cout << "insert_mul_term_mul dim_idx: " << dim_idx << "\n";
             mul_term.insert_dim_mul(dim_idx);
         } else {
             int sym_idx = get_sym_const_idx(var);
+            //std::cout << "insert_mul_term_mul sym_idx: " << sym_idx << "\n";
             if (sym_idx < 0) {
                 // If you can't find it in sym const either, there is a chance that
                 // the simplify function has replaced the var with var.s
                 user_assert(ends_with(var, ".s")) << "var: " << var << "\n";
                 string var = var.substr(0, var.size()-2);
                 dim_idx = get_dim_idx(var);
+                //std::cout << "insert_mul_term_mul var: " << var << "; dim_idx: " << dim_idx << "\n";
                 if (dim_idx >= 0) {
                     mul_term.insert_dim_mul(dim_idx);
                     return;
@@ -1822,12 +1835,15 @@ private:
                 if (sym_idx < 0) {
                     // If still can't find it, it's probably temp var from division
                     // normalization. We add it to the end of the sym_vars
+                    debug(0) << "ConvertToNfmStructs: adding new symbolic constants " << var << "\n";
                     sym_const_names.push_back(var);
-                    sym_const_to_idx[var] = sym_const_names.size()-1;
-                    //debug(0) << "ConvertToNfmStructs: adding new symbolic constants " << var << "\n";
+                    sym_idx = sym_const_names.size()-1;
+                    sym_const_to_idx[var] = sym_idx;
+                    debug(0) << "DONE ConvertToNfmStructs: adding new symbolic constants " << var << "\n";
                 }
             }
             user_assert(sym_idx >= 0) << "insert_mul_term_mul var: " << var << "\n";
+            //std::cout << "mul_term.insert_sym_const_mul(sym_idx)\n";
             mul_term.insert_sym_const_mul(sym_idx);
         }
     }
@@ -1852,7 +1868,7 @@ private:
     }
 
     NfmPoly convert_constraint_to_nfm_helper(Expr lhs, bool is_equality) {
-        //debug(0) << "convert_constraint_to_nfm_helper: " << lhs << "\n";
+        debug(0) << "convert_constraint_to_nfm_helper: " << lhs << "\n";
         // Convert into summation of multiplication term
         DistributeMul dist;
         dist.mutate(lhs);
@@ -1864,14 +1880,16 @@ private:
         int lcm_val = 1;
 
         // Determine the lowest common multiplier to normalize the division
-        for (const auto& term: dist.result) { //TODO
-            //debug(0) << "NFM Term: " << term << "\n";
+        for (const auto& term: dist.result) {
+            debug(0) << "NFM Term: " << term << "\n";
             reset_mul_term();
             mutate(term); // Multiplication terms of each add element
-            //debug(0) << "MulTerm: " << to_string(mul_term) << "\n";
+            debug(0) << "MulTerm: " << to_string(mul_term) << "\n";
 
             lcm_val = non_neg_lcm(lcm_val, mul_term.constant_denom);
+            //debug(0) << "non_neg_lcm: " << lcm_val << "\n";
             vector_max_exp(sym_const_exp_mul, mul_term.sym_const_exp_denom);
+            //debug(0) << "vector_max_exp: dim_exp_mul and mul_term.dim_exp_denom\n";
             vector_max_exp(dim_exp_mul, mul_term.dim_exp_denom);
             terms.push_back(std::move(mul_term));
         }
@@ -1898,6 +1916,7 @@ private:
     }
 
     void visit(const IntImm *op) {
+        //debug(0) << "IntImm: " << op->value << "\n";
         if (!is_div) {
             insert_mul_term_const_mul(op->value);
         } else {
@@ -1906,6 +1925,7 @@ private:
     }
 
     void visit(const Variable *op) {
+        //debug(0) << "Variable: " << op->name << "\n";
         if (!is_div) {
             insert_mul_term_mul(op->name);
         } else {

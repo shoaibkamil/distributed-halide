@@ -90,3 +90,16 @@ INTERESTING:
 
   a_copy[i].min: select(((input.stride.0 == 1) && (brighter.stride.0 == 1)), min(brighter.s0.v0.min, (brighter.s0.v0.max + -15)), min((brighter.s0.v0.max + -15), brighter.s0.v0.min))
   a[i].min     : select((((brighter.stride.0 == 1) && (input.stride.0 == 1)) || ((2 <= brighter.stride.0) || ((0 <= (brighter.stride.0*-1)) || ((2 <= input.stride.0) || (0 <= (input.stride.0*-1)))))), (brighter.s0.v0.max + -15), brighter.s0.v0.min)
+
+
+BILATERAL GRID
+
+  a_copy[i].min: min(min((blurz.s0.z.min + -2), int32(select(((1.000000f/r_sigma) < 0.000000f), ((1.000000f/r_sigma) + 0.500000f), 0.500000f))), (blurz.s0.z.min + -1))
+  a[i].min     : min(int32(select(((1.000000f/r_sigma) < 0.000000f), ((1.000000f/r_sigma) + 0.500000f), 0.500000f)), (blurz.s0.z.min + -2))
+
+  a_copy[i].max: max(max(min((((((blurz.s0.x.v2.loop_min + blurz.s0.x.v2.loop_extent) + blurz.s0.x.loop_min) + (blurz.s0.x.x.loop_min*8)) + (blurz.s0.x.x.loop_extent*8)) + -9), (((blurz.s0.x.v2.loop_min + blurz.s0.x.v2.loop_extent) + blurz.s0.x.loop_max) + -8)), histogram.s1.x.max), ((min(((((blurz.s0.x.x.loop_extent + blurz.s0.x.x.loop_min)*8) + blurz.s0.x.loop_min) + -8), (blurz.s0.x.loop_max + -7)) + (blurz.s0.x.v2.loop_extent + blurz.s0.x.v2.loop_min)) + -1))
+  a[i].max     : max(histogram.s1.x.max, min(((((((blurz.s0.x.x.loop_extent + blurz.s0.x.x.loop_min)*8) + blurz.s0.x.loop_min) + blurz.s0.x.v2.loop_extent) + blurz.s0.x.v2.loop_min) + -9), (((blurz.s0.x.loop_max + blurz.s0.x.v2.loop_extent) + blurz.s0.x.v2.loop_min) + -8)))
+
+  a_copy[i].max: max(max(((blurz.s0.z.loop_min + blurz.s0.z.loop_extent) + -1), int32(select(((1.000000f/r_sigma) < 0.000000f), 0.500000f, ((1.000000f/r_sigma) + 0.500000f)))), (blurz.s0.z.loop_extent + blurz.s0.z.loop_min))
+  a[i].max     : max(int32(select(((1.000000f/r_sigma) < 0.000000f), 0.500000f, ((1.000000f/r_sigma) + 0.500000f))), (blurz.s0.z.loop_extent + blurz.s0.z.loop_min))
+
