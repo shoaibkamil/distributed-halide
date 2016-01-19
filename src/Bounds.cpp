@@ -1440,8 +1440,7 @@ bool boxes_overlap_nfm(const Box &a, const Box &b) {
 }
 
 Box boxes_intersection(const Box &a, const Box &b) {
-    return boxes_intersection_halide(a, b);
-    /*std::cout << "\nINTERSECT BOXES\n";
+    std::cout << "\nINTERSECT BOXES\n";
     std::cout << "  Box A:\n";
     for (size_t i = 0; i < a.size(); ++i) {
         std::cout << "Dim (" << a[i].var << ") min: " << a[i].min << "; max: " << a[i].max << "\n";
@@ -1477,7 +1476,7 @@ Box boxes_intersection(const Box &a, const Box &b) {
         }
     }
 
-    return nfm_intersect;*/
+    return nfm_intersect;
 }
 
 Box boxes_intersection_halide(const Box &a, const Box &b) {
@@ -1543,14 +1542,16 @@ Box boxes_intersection_nfm(const Box &a, const Box &b) {
     assert(expr.defined());
     CollectVars collect(dim_names);
     collect.mutate(expr);
-    //const auto& let_assignments = collect.get_let_assignments();
+    const auto& let_assignments = collect.get_let_assignments();
 
+    std::map<std::string, Expr> expr_substitutions;
+    std::vector<std::pair<std::string, Expr>> let_substitutions;
     NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
-        expr, collect.get_sym_consts(), collect.get_dims());
-    /*Box result = convert_nfm_union_domain_to_halide_box(
-        type, union_dom, dim_names, &let_assignments);
-    return result;*/
-    return a;
+        expr, collect.get_sym_consts(), collect.get_dims(),
+        &expr_substitutions, &let_substitutions);
+    Box result = convert_nfm_union_domain_to_halide_box(type, union_dom, dim_names,
+        &let_assignments, &expr_substitutions, &let_substitutions);
+    return result;
 }
 
 Expr box_encloses(const Box &a, const Box &b) {

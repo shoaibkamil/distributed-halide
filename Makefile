@@ -910,7 +910,7 @@ $(BIN_DIR)/tutorial_%: $(ROOT_DIR)/tutorial/%.cpp $(BIN_DIR)/libHalide.so $(INCL
 
 $(BIN_DIR)/tutorial_lesson_15_generators: $(ROOT_DIR)/tutorial/lesson_15_generators.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h
 	$(CXX) $(TUTORIAL_CXX_FLAGS) $(LIBPNG_CXX_FLAGS) $(OPTIMIZE) $< $(ROOT_DIR)/tools/GenGen.cpp \
-	-I$(INCLUDE_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz $(LIBPNG_LIBS) -o $@
+	-I$(INCLUDE_DIR) -I$(NFM_HEADER) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz $(LIBPNG_LIBS) -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp -o $@
 
 tutorial_lesson_15_generators: $(ROOT_DIR)/tutorial/lesson_15_generators_usage.sh $(BIN_DIR)/tutorial_lesson_15_generators
 	@-mkdir -p $(TMP_DIR)
@@ -921,7 +921,7 @@ tutorial_lesson_15_generators: $(ROOT_DIR)/tutorial/lesson_15_generators_usage.s
 
 $(BIN_DIR)/tutorial_lesson_16_rgb_generate: $(ROOT_DIR)/tutorial/lesson_16_rgb_generate.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h
 	$(CXX) $(TUTORIAL_CXX_FLAGS) $(LIBPNG_CXX_FLAGS) $(OPTIMIZE) $< $(ROOT_DIR)/tools/GenGen.cpp \
-	-I$(INCLUDE_DIR) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz $(LIBPNG_LIBS) -o $@
+	-I$(INCLUDE_DIR) -I$(NFM_HEADER) -L$(BIN_DIR) -lHalide $(TEST_LDFLAGS) -lpthread -ldl -lz $(LIBPNG_LIBS) -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp -o $@
 
 $(BIN_DIR)/tutorial_lesson_16_rgb_run: $(ROOT_DIR)/tutorial/lesson_16_rgb_run.cpp $(BIN_DIR)/tutorial_lesson_16_rgb_generate
 	@-mkdir -p $(TMP_DIR)

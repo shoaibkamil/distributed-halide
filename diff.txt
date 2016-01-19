@@ -75,3 +75,18 @@ INTERESTING:
   a[i].max     : max(maximum.s1.r.y$r.max, min((((((t10 + 5)/max((((g.s0.x.max - g.s0.x.min) + 3)/3), 1))*5) + g.s0.y.min) + 4), g.s0.y.max))
 
 
+
+  a_copy[i].min: min(max(min((output$2.s0.y.min + -1), min(output$2.s0.y.min, 1279)), 0), 1279)
+  a[i].min     : min(max((output$2.s0.y.min + -1), 0), 1279)
+
+  a_copy[i].max: max(min(((spread.s0.x.loop_min + (spread.s0.x.x.loop_extent*16)) + 1), (spread.s0.x.loop_max + 2)), (min((((spread.s0.x.x.loop_extent*16) + spread.s0.x.loop_min) + -1), spread.s0.x.loop_max) + 2))
+  a[i].max     : min((((spread.s0.x.x.loop_extent*16) + spread.s0.x.loop_min) + 1), (spread.s0.x.loop_max + 2))
+
+  a_copy[i].min: min(min((mandelbrot.s1.r$2.x$r.min + -1), argmin.s1.r$2.x$r), min(mandelbrot.s1.r$2.x$r.min, mandelbrot.s0.t.min))
+  a[i].min     : min(mandelbrot.s0.t.min, min(argmin.s1.r$2.x$r, (mandelbrot.s1.r$2.x$r.min + -1)))
+
+  a_copy[i].max: max(min((((((spread.s0.x.v5.loop_extent + (spread.s0.x.x.loop_extent*16)) + spread.s0.x.v5.loop_min) + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -15), (((spread.s0.x.v5.loop_extent + spread.s0.x.v5.loop_min) + spread.s0.x.loop_max) + -14)), ((min(((((spread.s0.x.x.loop_extent + spread.s0.x.x.loop_min)*16) + spread.s0.x.loop_min) + -16), (spread.s0.x.loop_max + -15)) + (spread.s0.x.v5.loop_extent + spread.s0.x.v5.loop_min)) + 1))
+  a[i].max     : min((((((spread.s0.x.v5.loop_extent + (spread.s0.x.x.loop_extent*16)) + spread.s0.x.v5.loop_min) + spread.s0.x.loop_min) + (spread.s0.x.x.loop_min*16)) + -15), (((spread.s0.x.v5.loop_extent + spread.s0.x.v5.loop_min) + spread.s0.x.loop_max) + -14))
+
+  a_copy[i].min: select(((input.stride.0 == 1) && (brighter.stride.0 == 1)), min(brighter.s0.v0.min, (brighter.s0.v0.max + -15)), min((brighter.s0.v0.max + -15), brighter.s0.v0.min))
+  a[i].min     : select((((brighter.stride.0 == 1) && (input.stride.0 == 1)) || ((2 <= brighter.stride.0) || ((0 <= (brighter.stride.0*-1)) || ((2 <= input.stride.0) || (0 <= (input.stride.0*-1)))))), (brighter.s0.v0.max + -15), brighter.s0.v0.min)

@@ -485,6 +485,10 @@ void test() {
 
     a_copy[i].max: max(min(((x + (y*4)) + 4), (z + 1)), (let t18 = min((max((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3))) + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)), (min((((y*4) + x) + 3), z) + -2)) in (t18 + 3)))
     a[i].max     : (let t18 = min(max(min(((((y*4) + x) + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)) + 1), ((z + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)) + 2)), min((((y*4) + x) + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)), ((z + ((((min((((y*4) + x) + 3), z) - min((min((((y*4) + x) + -4), (z + -3)) + 5), min(((y*4) + x), (z + -3)))) + 1)/4)*4)) + -3))), min((((y*4) + x) + 1), (z + -2))) in max((t18 + 3), min((((y*4) + x) + 4), (z + 1))))
+
+    INTERESTING
+    a_copy[i].max: max(min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14)), ((min(((((y + t)*16) + s) + -16), (u + -15)) + (x + z)) + 1))
+    a[i].max     : min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14))
     */
 
     //Expr expr = w >= min(min(x, min(y, min(z, min((x + -1), min((x + -2), 0))))), min(y, min(z, s)));
@@ -507,6 +511,7 @@ void test() {
 
     //Expr expr = w <= max((min((min(x, 4) + (((max(x, 4) - min(x, 4))/8)*8)), (max(x, 4) + -7)) + 7), y);
     //Expr expr = w <= (max(x,4)-min(x,4))/8*8 + 7;
+    Expr expr = w <= max(min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14)), ((min(((((y + t)*16) + s) + -16), (u + -15)) + (x + z)) + 1));
     std::cout << "simplify: " << simplify(expr) << "\n";
 
     /*std::map<std::string, Expr> expr_substitutions;
@@ -524,9 +529,9 @@ int main(int argc, const char **argv) {
     //example_expr();
     //example_interval();
     //simplify_interval_test();
-    test();
+    //test();
     //boxes_merge_test();
-    //boxes_overlap_test();
+    boxes_overlap_test();
     //box_encloses_test();
     return 0;
 }
