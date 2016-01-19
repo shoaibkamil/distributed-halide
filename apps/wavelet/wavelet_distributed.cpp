@@ -139,6 +139,9 @@ int main(int argc, char **argv) {
     // daubechies_correct.realize(global_output);
 
     const int niters = 50;
+#ifdef USE_MPIP
+    MPI_Pcontrol(1);
+#endif
     MPITiming timing(MPI_COMM_WORLD);
     timing.barrier();
     for (int i = 0; i < niters; i++) {

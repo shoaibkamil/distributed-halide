@@ -81,6 +81,9 @@ int main(int argc, char **argv) {
 
     // Run the program and test output for correctness
     const int niters = 100;
+#ifdef USE_MPIP
+    MPI_Pcontrol(1);
+#endif
     MPITiming timing;
 #ifdef DISTRIBUTED
         timing = MPITiming(MPI_COMM_WORLD);

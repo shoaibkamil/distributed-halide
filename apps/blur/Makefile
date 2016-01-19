@@ -6,6 +6,10 @@ MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
 MPI_RUN=$(if $(WITH_MPI), srun --exclusive -N$(MPI_NODES), )
 MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
 
+MPIP_LINK_FLAGS := -L/data/scratch/tyler/install/lib -L/data/scratch/tyler/sw/mpiP-3.4.1/lib -lmpiP -lbfd -lm -lunwind
+MPI_COMPILE_FLAGS := -I/usr/local/include
+MPI_LINK_FLAGS := -L/usr/local/lib -lmpichf90 -Wl,-rpath -Wl,/usr/local/lib -lmpich -lpmi -lopa -lmpl
+
 all: test
 
 halide_blur: halide_blur.cpp
@@ -28,6 +32,9 @@ test: test.cpp halide_blur.o
 
 distributed_blur: halide_blur_distributed.cpp
 	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 halide_blur_distributed.cpp $(LIB_HALIDE) -o distributed_blur -ldl -lpthread -lz $(LDFLAGS)
+
+distributed_blur_mpip: halide_blur_distributed.cpp
+	g++ $(MPI_CXX_FLAGS) $(CXXFLAGS) -O3 $^ $(LIB_HALIDE) -o $@ -ldl -lpthread -lz $(LDFLAGS) $(MPIP_LINK_FLAGS) $(MPI_COMPILE_FLAGS) $(MPI_LINK_FLAGS) -DUSE_MPIP=1
 
 nondistributed_blur: ../../ halide_blur_distributed.cpp
 	$(MAKE) -C ../../ $(LIB_HALIDE)

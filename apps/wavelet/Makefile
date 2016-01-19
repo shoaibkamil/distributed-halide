@@ -4,6 +4,10 @@ WITH_MPI ?=
 CXX := $(if $(WITH_MPI), mpicxx, $(CXX))
 MPI_CXX_FLAGS=$(if $(WITH_MPI), -DWITH_MPI=1, )
 
+MPIP_LINK_FLAGS := -L/data/scratch/tyler/install/lib -L/data/scratch/tyler/sw/mpiP-3.4.1/lib -lmpiP -lbfd -lm -lunwind
+MPI_COMPILE_FLAGS := -I/usr/local/include
+MPI_LINK_FLAGS := -L/usr/local/lib -lmpichf90 -Wl,-rpath -Wl,/usr/local/lib -lmpich -lpmi -lopa -lmpl
+
 BUILD_DIR = build_make
 
 # If HL_TARGET isn't set, use host
@@ -13,6 +17,9 @@ all: $(BUILD_DIR)/wavelet
 
 distributed_wavelet: wavelet_distributed.cpp
 	$(CXX) $(CXXFLAGS) wavelet_distributed.cpp -g $(LIB_HALIDE) -o distributed_wavelet -lpthread -ldl -lz $(LDFLAGS)
+
+distributed_wavelet_mpip: wavelet_distributed.cpp
+	g++ $(CXXFLAGS) wavelet_distributed.cpp -g $(LIB_HALIDE) -o distributed_wavelet_mpip -lpthread -ldl -lz $(LDFLAGS) $(MPIP_LINK_FLAGS) $(MPI_COMPILE_FLAGS) $(MPI_LINK_FLAGS) -DUSE_MPIP=1
 
 clean:
 	@rm -rf $(BUILD_DIR)
