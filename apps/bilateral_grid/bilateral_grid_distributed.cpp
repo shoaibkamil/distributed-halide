@@ -151,24 +151,6 @@ int main(int argc, char **argv) {
     Func bilateral_grid("bilateral_grid");
     bilateral_grid(x, y) = interpolated(x, y, 0)/interpolated(x, y, 1);
 
-    output.set_domain(x, y);
-    output.placement().distribute(y);
-    output.allocate();
-    input.set_domain(x, y);
-    input.placement().distribute(y);
-    input.allocate(bilateral_grid, output);
-
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-            float v = x+y; //rndflt();
-            if (input.mine(x, y)) {
-                int lx = input.local(0, x), ly = input.local(1, y);
-                input(lx, ly) = v;
-            }
-            //global_input(x, y) = v;
-        }
-    }
-
     // CPU schedule
     Var yin;
     bilateral_grid.compute_root().parallel(y).distribute(y).vectorize(x, 4);
@@ -177,6 +159,21 @@ int main(int argc, char **argv) {
     blurz.compute_at(bilateral_grid, y).reorder(c, z, x, y).vectorize(x, 4).unroll(c);
     blurx.compute_at(bilateral_grid, y).reorder(c, x, y, z).vectorize(x, 4).unroll(c);
     blury.compute_at(bilateral_grid, y).reorder(c, x, y, z).vectorize(x, 4).unroll(c);
+
+    output.set_domain(x, y);
+    output.placement().distribute(y);
+    output.allocate();
+    input.set_domain(x, y);
+    input.placement().distribute(y);
+    input.allocate(bilateral_grid, output);
+
+    for (int y = 0; y < input.height(); y++) {
+        for (int x = 0; x < input.width(); x++) {
+            int gx = input.global(0, x), gy = input.global(1, y);
+            float v = gx+gy; //rndflt();
+            input(x, y) = v;
+        }
+    }
 
     // blurz.compute_root().reorder(c, z, x, y).parallel(y).vectorize(x, 4).unroll(c).distribute(y);
     // blurx.compute_root().reorder(c, x, y, z).parallel(z).vectorize(x, 4).unroll(c).distribute(z);
