@@ -110,7 +110,8 @@ Expr Mod::make(Expr a, Expr b) {
 Expr Min::make(Expr a, Expr b) {
     internal_assert(a.defined()) << "Min of undefined\n";
     internal_assert(b.defined()) << "Min of undefined\n";
-    internal_assert(a.type() == b.type()) << "Min of mismatched types\n";
+    internal_assert(a.type() == b.type()) << "Min of mismatched types\n"
+        << "a: " << a << "; a.type: " << a.type() << "; b: " << b << "; b.type: " << b.type();
 
     Min *node = new Min;
     node->type = a.type();

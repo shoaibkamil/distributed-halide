@@ -201,6 +201,13 @@ private:
 
     using IRMutator::visit;
 
+    void visit(const FloatImm *op) {
+        // Float has to actually be an integer, e.g. 10.0f
+        //debug(0) << "FloatImm: " << op->value << "\n";
+        assert(ceilf(op->value) == floorf(op->value));
+        expr = (int)op->value;
+    }
+
     void visit(const Cast *op) {
         //debug(0) << "Cast " << op->type << ": " << op->value << "\n";
         if (op->type.is_int() && (op->value.as<IntImm>() != NULL)) {
@@ -704,8 +711,7 @@ private:
     void visit(const FloatImm *op) {
         // Float has to actually be an integer, e.g. 10.0f
         //debug(0) << "FloatImm: " << op->value << "\n";
-        assert(ceilf(op->value) == floorf(op->value));
-        expr = (int)op->value;
+        internal_error << "ConvertToNfmStructs can't handle FloatImm\n";
     }
 
     void visit(const Cast *op) {
@@ -1596,7 +1602,7 @@ public:
 
     ConvertToNfmStructs(Expr e, const vector<string>& sym_const, const vector<string>& dim)
                         : dim_names(dim), sym_const_names(sym_const) {
-        //debug(0) << "PreProcessor: " << e << "\n\n";
+        debug(0) << "ConvertToNfmStructs in_expr: " << e << "\n\n";
         AddNewVar new_var_convert;
         in_expr = new_var_convert.mutate(e);
         expr_substitutions = std::move(new_var_convert.get_expr_substitutions());
@@ -1604,11 +1610,11 @@ public:
             insert_sym_const(str);
         }
 
-        //debug(0) << "PreProcessor: " << in_expr << "\n\n";
+        debug(0) << "After AddNewVar: " << in_expr << "\n\n";
 
         PreProcessor process;
         in_expr = process.mutate(in_expr);
-        //debug(0) << "PreProcessor: " << in_expr << "\n\n";
+        debug(0) << "After PreProcessor: " << in_expr << "\n\n";
 
         for (size_t i = 0; i < dim_names.size(); ++i) {
             dim_to_idx[dim_names[i]] = i;
@@ -1620,7 +1626,7 @@ public:
 
     NfmUnionDomain convert_to_nfm() {
         //debug(0) << "CONVERTING " << in_expr << "\n\n";
-        //debug(0) << "CONVERTING START: " << simplify(in_expr) << "\n\n";
+        debug(0) << "CONVERTING START: " << simplify(in_expr) << "\n\n";
         NfmUnionDomain union_dom(sym_const_names, dim_names);
         if (!in_expr.defined() || is_one(in_expr)) { // Undefined expression -> no constraint (universe)
             NfmDomain domain(sym_const_names, dim_names);
@@ -1658,7 +1664,7 @@ public:
         ineqs_expr = convert_dnf.mutate(ineqs_expr);
 
         //debug(0) << "CONVERTING " << ineqs_expr << "\n\n";
-        //debug(0) << "CONVERTING " << simplify(ineqs_expr) << "\n\n";
+        debug(0) << "CONVERTING " << simplify(ineqs_expr) << "\n\n";
 
         // Convert into disjunctive normal form (or of ands)
         SplitOrs split;
@@ -1881,10 +1887,10 @@ private:
 
         // Determine the lowest common multiplier to normalize the division
         for (const auto& term: dist.result) {
-            debug(0) << "NFM Term: " << term << "\n";
+            //debug(0) << "NFM Term: " << term << "\n";
             reset_mul_term();
             mutate(term); // Multiplication terms of each add element
-            debug(0) << "MulTerm: " << to_string(mul_term) << "\n";
+            //debug(0) << "MulTerm: " << to_string(mul_term) << "\n";
 
             lcm_val = non_neg_lcm(lcm_val, mul_term.constant_denom);
             //debug(0) << "non_neg_lcm: " << lcm_val << "\n";

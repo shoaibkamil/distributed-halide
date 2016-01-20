@@ -4,3 +4,10 @@ Condition failed: !verifyFunction(*function)
 TODO: need a good way to handle the boolean condition
 a_copy[i].max: select(param$3, (f$3.s0.x$4.max + 10), (f$3.s0.x$4.max + -10))
 a[i].max     : select(((2 <= param$3) || (0 <= (param$3*-1))), (f$3.s0.x$4.max + -10), (f$3.s0.x$4.max + 10))
+
+
+apps/transpose
+Error:
+Output buffer f6 is accessed at -8, which is before the min (0) in dimension 0
+Aborted (core dumped)
+make: *** [run] Error 134

@@ -511,7 +511,10 @@ void test() {
 
     //Expr expr = w <= max((min((min(x, 4) + (((max(x, 4) - min(x, 4))/8)*8)), (max(x, 4) + -7)) + 7), y);
     //Expr expr = w <= (max(x,4)-min(x,4))/8*8 + 7;
-    Expr expr = w <= max(min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14)), ((min(((((y + t)*16) + s) + -16), (u + -15)) + (x + z)) + 1));
+    //Expr expr = w <= max(min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14)), ((min(((((y + t)*16) + s) + -16), (u + -15)) + (x + z)) + 1));
+
+    Expr expr = (min((let t19 = min((max(abs(((float32((x + int32(((float32(y)*0.500000f) + -1.250000f)))) - (float32(z)*0.500000f)) + -0.250000f)), abs(((float32((s + int32(((float32(z)*0.500000f) + -1.250000f)))) - (float32(y)*0.500000f)) + -0.250000f)))*max(abs(((float32((x + int32(((float32(y)*0.500000f) + -1.250000f)))) - (float32(z)*0.500000f)) + -0.250000f)), abs(((float32((s + int32(((float32(z)*0.500000f) + -1.250000f)))) - (float32(y)*0.500000f)) + -0.250000f)))), 0.000000f) in (let t18 = max((max(abs(((float32((x + int32(((float32(y)*0.500000f) + -1.250000f)))) - (float32(z)*0.500000f)) + -0.250000f)), abs(((float32((s + int32(((float32(z)*0.500000f) + -1.250000f)))) - (float32(y)*0.500000f)) + -0.250000f)))*max(abs(((float32((x + int32(((float32(y)*0.500000f) + -1.250000f)))) - (float32(z)*0.500000f)) + -0.250000f)), abs(((float32((s + int32(((float32(z)*0.500000f) + -1.250000f)))) - (float32(y)*0.500000f)) + -0.250000f)))), 0.000000f) in y)), t) <= w);
+
     std::cout << "simplify: " << simplify(expr) << "\n";
 
     /*std::map<std::string, Expr> expr_substitutions;
