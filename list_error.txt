@@ -11,3 +11,9 @@ Error:
 Output buffer f6 is accessed at -8, which is before the min (0) in dimension 0
 Aborted (core dumped)
 make: *** [run] Error 134
+
+
+apps/resize
+After AddNewVar: (min((let t19 = min((max(_call, _call$2)*max(_call, _call$2)), 0) in (let t18 = max((max(_call, _call$2)*max(_call, _call$2)), 0) in sum.s1.x.min)), kernelx.s0.x.min) <= _interval$161)
+Error:
+_call is float, 0 is int (NEED to fix this, but not really high in priority right now)

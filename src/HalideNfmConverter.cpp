@@ -1602,19 +1602,20 @@ public:
 
     ConvertToNfmStructs(Expr e, const vector<string>& sym_const, const vector<string>& dim)
                         : dim_names(dim), sym_const_names(sym_const) {
-        debug(0) << "ConvertToNfmStructs in_expr: " << e << "\n\n";
+        in_expr = simplify(e);
+        //debug(0) << "ConvertToNfmStructs in_expr: " << in_expr << "\n\n";
         AddNewVar new_var_convert;
-        in_expr = new_var_convert.mutate(e);
+        in_expr = new_var_convert.mutate(in_expr);
         expr_substitutions = std::move(new_var_convert.get_expr_substitutions());
         for (auto& str : new_var_convert.get_additional_sym_consts()) {
             insert_sym_const(str);
         }
 
-        debug(0) << "After AddNewVar: " << in_expr << "\n\n";
+        //debug(0) << "After AddNewVar: " << in_expr << "\n\n";
 
         PreProcessor process;
         in_expr = process.mutate(in_expr);
-        debug(0) << "After PreProcessor: " << in_expr << "\n\n";
+        //debug(0) << "After PreProcessor: " << in_expr << "\n\n";
 
         for (size_t i = 0; i < dim_names.size(); ++i) {
             dim_to_idx[dim_names[i]] = i;
@@ -1626,7 +1627,7 @@ public:
 
     NfmUnionDomain convert_to_nfm() {
         //debug(0) << "CONVERTING " << in_expr << "\n\n";
-        debug(0) << "CONVERTING START: " << simplify(in_expr) << "\n\n";
+        //debug(0) << "CONVERTING START: " << simplify(in_expr) << "\n\n";
         NfmUnionDomain union_dom(sym_const_names, dim_names);
         if (!in_expr.defined() || is_one(in_expr)) { // Undefined expression -> no constraint (universe)
             NfmDomain domain(sym_const_names, dim_names);
@@ -1664,7 +1665,7 @@ public:
         ineqs_expr = convert_dnf.mutate(ineqs_expr);
 
         //debug(0) << "CONVERTING " << ineqs_expr << "\n\n";
-        debug(0) << "CONVERTING " << simplify(ineqs_expr) << "\n\n";
+        //debug(0) << "CONVERTING " << simplify(ineqs_expr) << "\n\n";
 
         // Convert into disjunctive normal form (or of ands)
         SplitOrs split;
@@ -1874,7 +1875,7 @@ private:
     }
 
     NfmPoly convert_constraint_to_nfm_helper(Expr lhs, bool is_equality) {
-        debug(0) << "convert_constraint_to_nfm_helper: " << lhs << "\n";
+        //debug(0) << "convert_constraint_to_nfm_helper: " << lhs << "\n";
         // Convert into summation of multiplication term
         DistributeMul dist;
         dist.mutate(lhs);

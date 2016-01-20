@@ -509,11 +509,9 @@ void test() {
     // TODO: need a good way to transform !v
     //Expr expr = w >= select(!v, max(x, y), y);
 
-    //Expr expr = w <= max((min((min(x, 4) + (((max(x, 4) - min(x, 4))/8)*8)), (max(x, 4) + -7)) + 7), y);
+    Expr expr = w <= max((min((min(x, 4) + (((max(x, 4) - min(x, 4))/8)*8)), (max(x, 4) + -7)) + 7), y);
     //Expr expr = w <= (max(x,4)-min(x,4))/8*8 + 7;
     //Expr expr = w <= max(min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14)), ((min(((((y + t)*16) + s) + -16), (u + -15)) + (x + z)) + 1));
-
-    Expr expr = (min((let t19 = min((max(abs(((float32((x + int32(((float32(y)*0.500000f) + -1.250000f)))) - (float32(z)*0.500000f)) + -0.250000f)), abs(((float32((s + int32(((float32(z)*0.500000f) + -1.250000f)))) - (float32(y)*0.500000f)) + -0.250000f)))*max(abs(((float32((x + int32(((float32(y)*0.500000f) + -1.250000f)))) - (float32(z)*0.500000f)) + -0.250000f)), abs(((float32((s + int32(((float32(z)*0.500000f) + -1.250000f)))) - (float32(y)*0.500000f)) + -0.250000f)))), 0.000000f) in (let t18 = max((max(abs(((float32((x + int32(((float32(y)*0.500000f) + -1.250000f)))) - (float32(z)*0.500000f)) + -0.250000f)), abs(((float32((s + int32(((float32(z)*0.500000f) + -1.250000f)))) - (float32(y)*0.500000f)) + -0.250000f)))*max(abs(((float32((x + int32(((float32(y)*0.500000f) + -1.250000f)))) - (float32(z)*0.500000f)) + -0.250000f)), abs(((float32((s + int32(((float32(z)*0.500000f) + -1.250000f)))) - (float32(y)*0.500000f)) + -0.250000f)))), 0.000000f) in y)), t) <= w);
 
     std::cout << "simplify: " << simplify(expr) << "\n";
 
@@ -532,9 +530,9 @@ int main(int argc, const char **argv) {
     //example_expr();
     //example_interval();
     //simplify_interval_test();
-    //test();
+    test();
     //boxes_merge_test();
-    boxes_overlap_test();
+    //boxes_overlap_test();
     //box_encloses_test();
     return 0;
 }
