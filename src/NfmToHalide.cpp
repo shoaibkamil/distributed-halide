@@ -521,7 +521,8 @@ bool do_subsume(const NfmBound& lhs, vector<AndNfmBounds>& bounds, bool is_min) 
 bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
                 NfmBound& rhs, bool is_min) {
     assert(lhs.idx == rhs.idx);
-    assert(lhs.type == rhs.type);
+    user_assert(lhs.type == rhs.type) << "lhs: " << lhs.to_string() << "; lhs.type: " << lhs.type
+        << "; rhs: " << rhs.to_string() << "; rhs.type: " << rhs.type << ";is_min: " << is_min << "\n";
     NfmPolyFrac diff = lhs.rhs - rhs.rhs;
     //debug(0) << "do_subsume context: " << ctx_dom.to_string() << "\n";
     //debug(0) << "   lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
@@ -1851,6 +1852,7 @@ Box convert_nfm_union_domain_to_halide_box(
             vector<AndNfmBounds>& upper_bounds_no_cond = upper_bounds_no_cond_list[j];
 
             VarDomainBound& bound = bounds[j];
+            std::cout << "\nBOUND: \n" << bound.to_string() << "\n";
             if (!bound.is_feasible()) { // Empty domain
                 continue;
             }

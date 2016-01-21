@@ -294,6 +294,45 @@ void boxes_overlap_test() {
     std::cout << "Box intersection Halide is empty? " << empty_intersection_halide << "\n";
 }
 
+void boxes_intersect_test() {
+    Expr x = Variable::make(Int(32), "x");
+    Expr y = Variable::make(Int(32), "y");
+    Expr z = Variable::make(Int(32), "z");
+    Expr w = Variable::make(Int(32), "w");
+    Expr M = Variable::make(Int(32), "M");
+    Expr N = Variable::make(Int(32), "N");
+    Expr P = Variable::make(Int(32), "P");
+
+    vector<string> sym_consts = {"P", "N", "M"};
+    vector<string> dims = {"x", "y", "z", "w"};
+
+    Box a, b;
+    a.push_back(Interval("x", 10, 19));
+
+    b.push_back(Interval("x", min(max(((M*x) + y), 0), 19), max(min((((M + 1)*x) + y), 19), 0)));
+
+    bool is_overlap = boxes_overlap_nfm(a, b);
+    printf("is overlap? %d\n", is_overlap);
+
+    Box intersection = boxes_intersection_nfm(a, b);
+    std::cout << "Box intersection NFM:\n";
+    for (size_t i = 0; i < intersection.size(); ++i) {
+        std::cout << "Dim: " << intersection[i].var << "\n  min: " << a[i].min
+                  << "\n  max: " << intersection[i].max << "\n";
+    }
+    Expr empty_intersection = is_box_empty_nfm(intersection);
+    std::cout << "Box intersection NFM is empty? " << empty_intersection << "\n";
+
+    Box intersection_halide = boxes_intersection_halide(a, b);
+    std::cout << "\nBox intersection Halide:\n";
+    for (size_t i = 0; i < intersection_halide.size(); ++i) {
+        std::cout << "Dim: " << intersection_halide[i].var << "\n  min: " << a[i].min
+                  << "\n  max: " << intersection_halide[i].max << "\n";
+    }
+    Expr empty_intersection_halide = is_box_empty_halide(intersection);
+    std::cout << "Box intersection Halide is empty? " << empty_intersection_halide << "\n";
+}
+
 void box_encloses_test() {
     Expr x = Variable::make(Int(32), "x");
     Expr y = Variable::make(Int(32), "y");
@@ -381,6 +420,7 @@ void test() {
     Expr y = Variable::make(Int(32), "y");
     Expr z = Variable::make(Int(32), "z");
     Expr w = Variable::make(Int(32), "w");
+    Expr r = Variable::make(Int(32), "r");
     Expr s = Variable::make(Int(32), "s");
     Expr t = Variable::make(Int(32), "t");
     Expr u = Variable::make(Int(32), "u");
@@ -391,6 +431,7 @@ void test() {
     Expr t10 = Variable::make(Int(32), "t10");
     Expr p = Variable::make(Float(32), "p");
     Expr v = Variable::make(Bool(), "v");
+    Expr M = Variable::make(Int(32), "M");
     //vector<string> loop_dims = {"x", "y", "z", "s", "t", "u", "w"};
     vector<string> loop_dims = {"w"};
 
@@ -489,6 +530,9 @@ void test() {
     INTERESTING
     a_copy[i].max: max(min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14)), ((min(((((y + t)*16) + s) + -16), (u + -15)) + (x + z)) + 1))
     a[i].max     : min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14))
+
+    halide_intersect[i].min: max((M*10), min(max((r*x), 0), 19))
+    nfm_intersect[i].min   : min(max((M*10), 19), max(max((M*10), (r*x)), 0))
     */
 
     //Expr expr = w >= min(min(x, min(y, min(z, min((x + -1), min((x + -2), 0))))), min(y, min(z, s)));
@@ -509,9 +553,10 @@ void test() {
     // TODO: need a good way to transform !v
     //Expr expr = w >= select(!v, max(x, y), y);
 
-    Expr expr = w <= max((min((min(x, 4) + (((max(x, 4) - min(x, 4))/8)*8)), (max(x, 4) + -7)) + 7), y);
+    //Expr expr = w <= max((min((min(x, 4) + (((max(x, 4) - min(x, 4))/8)*8)), (max(x, 4) + -7)) + 7), y);
     //Expr expr = w <= (max(x,4)-min(x,4))/8*8 + 7;
     //Expr expr = w <= max(min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14)), ((min(((((y + t)*16) + s) + -16), (u + -15)) + (x + z)) + 1));
+    Expr expr = w >= max((M*10), min(max((r*x), 0), 19));
 
     std::cout << "simplify: " << simplify(expr) << "\n";
 
@@ -530,9 +575,10 @@ int main(int argc, const char **argv) {
     //example_expr();
     //example_interval();
     //simplify_interval_test();
-    test();
+    //test();
     //boxes_merge_test();
     //boxes_overlap_test();
+    boxes_intersect_test();
     //box_encloses_test();
     return 0;
 }

@@ -1,0 +1,151 @@
+cd tmp ; HL_JIT_TARGET=host LD_LIBRARY_PATH=:/home/psuriana/distributed-halide/bin:/home/psuriana/distributed-halide/non-linear-FM/bin/:/home/psuriana/distributed-halide/non-linear-FM/isl-0.15/release/lib   ../bin/distributed_distributed 2>&1
+
+INTERSECT BOXES
+  Box A:
+Dim (_interval$205) min: 10; max: 19
+  Box B:
+Dim (_interval$151) min: min(max(((Rank*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors))))) + f.min.0), 0), 19); max: max(min((((Rank + 1)*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors))))) + f.min.0), 19), 0)
+
+  halide_intersect[i].min: max(min(max(((Rank*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors))))) + f.min.0), 0), 19), 10)
+  nfm_intersect[i].min   : min(max((f.min.0 + (Rank*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors)))))), 10), 19)
+
+  halide_intersect[i].max: min(max(min((((Rank + 1)*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors))))) + f.min.0), 19), 0), 19)
+  nfm_intersect[i].max   : max(min(((int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors)))) + f.min.0) + (Rank*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors)))))), 19), 0)
+
+INTERSECT BOXES
+  Box A:
+Dim (_interval$212) min: 0; max: 9
+  Box B:
+Dim (_interval$151) min: min(max(((Rank*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors))))) + f.min.0), 0), 19); max: max(min((((Rank + 1)*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors))))) + f.min.0), 19), 0)
+
+  halide_intersect[i].min: max(min(max(((Rank*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors))))) + f.min.0), 0), 19), 0)
+  nfm_intersect[i].min   : min(max((f.min.0 + (Rank*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors)))))), 0), 19)
+
+  halide_intersect[i].max: min(max(min((((Rank + 1)*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors))))) + f.min.0), 19), 0), 9)
+  nfm_intersect[i].max   : max(min(((int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors)))) + f.min.0) + (Rank*int32(ceil_f32((float32(f.extent.0)/float32(NumProcessors)))))), 9), 0)
+
+INTERSECT BOXES
+  Box A:
+Dim (_interval$315) min: (Rank*10); max: ((min((Rank + -1), 0)*10) + 19)
+  Box B:
+Dim (_interval$313) min: (r*10); max: ((r*10) + 9)
+
+  halide_intersect[i].max: min(((min((Rank + -1), 0)*10) + 19), ((r*10) + 9))
+  nfm_intersect[i].max   : min(((min(Rank, r)*10) + 9), 19)
+
+INTERSECT BOXES
+  Box A:
+Dim (_interval$683) min: (Rank*10); max: ((min((Rank + -1), 0)*10) + 19)
+  Box B:
+Dim (_interval$681) min: min((max(r, 0)*11), 19); max: max(min(((r*11) + 11), 19), 0)
+
+  halide_intersect[i].min: max((Rank*10), min((max(r, 0)*11), 19))
+  nfm_intersect[i].min   : min(max((Rank*10), 19), max(max((Rank*10), (r*11)), 0))
+
+  halide_intersect[i].max: min(((min((Rank + -1), 0)*10) + 19), max(min(((r*11) + 11), 19), 0))
+  nfm_intersect[i].max   : max(min(((Rank*10) + 9), 0), min(min(((Rank*10) + 9), ((r*11) + 11)), 19))
+
+INTERSECT BOXES
+  Box A:
+Dim (_interval$683) min: (Rank*10); max: ((min((Rank + -1), 0)*10) + 19)
+  Box B:
+Dim (_interval$681) min: min((max(r, 0)*11), 19); max: max(min(((r*11) + 11), 19), 0)
+
+  halide_intersect[i].min: max((Rank*10), min((max(r, 0)*11), 19))
+  nfm_intersect[i].min   : min(max((Rank*10), 19), max(max((Rank*10), (r*11)), 0))
+
+  halide_intersect[i].max: min(((min((Rank + -1), 0)*10) + 19), max(min(((r*11) + 11), 19), 0))
+  nfm_intersect[i].max   : max(min(((Rank*10) + 9), 0), min(min(((Rank*10) + 9), ((r*11) + 11)), 19))
+
+INTERSECT BOXES
+  Box A:
+Dim (_interval$1679) min: 0; max: 9
+Dim (_interval$1680) min: (Rank*10); max: ((min((Rank + -1), 0)*10) + 19)
+  Box B:
+Dim (_interval$1675) min: 0; max: max(min((g$2.max.0 - g$2.min.0), 9), 0)
+Dim (_interval$1676) min: min(max((r*int32(ceil_f32((float32(((g$2.max.1 - g$2.min.1) + 1))*0.500000f)))), 0), 19); max: max(min((((r + 1)*int32(ceil_f32((float32(((g$2.max.1 - g$2.min.1) + 1))*0.500000f)))) + 1), 19), 0)
+
+  halide_intersect[i].max: min(max(min((g$2.max.0 - g$2.min.0), 9), 0), 9)
+  nfm_intersect[i].max   : max(min((g$2.max.0 - g$2.min.0), 9), 0)
+
+  halide_intersect[i].min: max((Rank*10), min(max((r*int32(ceil_f32((float32(((g$2.max.1 - g$2.min.1) + 1))*0.500000f)))), 0), 19))
+  nfm_intersect[i].min   : min(max((Rank*10), 19), max(max((Rank*10), (r*int32(ceil_f32((float32(((g$2.max.1 - g$2.min.1) + 1))*0.500000f))))), 0))
+
+  halide_intersect[i].max: min(((min((Rank + -1), 0)*10) + 19), max(min((((r + 1)*int32(ceil_f32((float32(((g$2.max.1 - g$2.min.1) + 1))*0.500000f)))) + 1), 19), 0))
+  nfm_intersect[i].max   : max(min(((Rank*10) + 9), 0), min(min(((Rank*10) + 9), (((r + 1)*int32(ceil_f32((float32(((g$2.max.1 - g$2.min.1) + 1))*0.500000f)))) + 1)), 19))
+
+
+Distribute loops internal test passed
+
+
+
+INTERSECT BOXES
+  Box A:
+Dim (_interval$2043) min: (int32(ceil_f32((20.000000f/float32(NumProcessors))))*Rank); max: (((int32(ceil_f32((20.000000f/float32(NumProcessors))))*Rank) + ((min(((int32(ceil_f32((20.000000f/float32(NumProcessors))))*(Rank + 1)) + -1), 19) - (int32(ceil_f32((20.000000f/float32(NumProcessors))))*Rank)) + 1)) - 1)
+  Box B:
+Dim (_interval$2171) min: min(max((((r*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0) + -1), 0), 19); max: max(min((((r + 1)*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0), 19), 0)
+
+  halide_intersect[i].min: max((int32(ceil_f32((20.000000f/float32(NumProcessors))))*Rank), min(max((((r*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0) + -1), 0), 19))
+  nfm_intersect[i].min   : min(max((Rank*int32(ceil_f32((20.000000f/float32(NumProcessors))))), 19), max(max((Rank*int32(ceil_f32((20.000000f/float32(NumProcessors))))), ((f$5.min.0 + (r*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))))) + -1)), 0))
+
+  halide_intersect[i].max: min((min((int32(ceil_f32((20.000000f/float32(NumProcessors))))*(Rank + 1)), 20) + -1), max(min((((r + 1)*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0), 19), 0))
+  nfm_intersect[i].max   : max(min((((Rank + 1)*int32(ceil_f32((20.000000f/float32(NumProcessors))))) + -1), 0), min(min((((Rank + 1)*int32(ceil_f32((20.000000f/float32(NumProcessors))))) + -1), ((int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))) + f$5.min.0) + (r*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))))), 19))
+
+BOX ENCLOSE
+  Box A:
+Dim (_interval$2169) min: (int32(ceil_f32((20.000000f/float32(NumProcessors))))*r); max: (min((int32(ceil_f32((20.000000f/float32(NumProcessors))))*(r + 1)), 20) + -1)
+  Box B:
+Dim (_interval$2171) min: min(max((((r*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0) + -1), 0), 19); max: max(min((((r + 1)*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0), 19), 0)
+
+  halide_encloses: (((int32(ceil_f32((20.000000f/float32(NumProcessors))))*r) <= min(max((((r*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0) + -1), 0), 19)) && ((max(min((((r + 1)*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0), 19), 0) + 1) <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(r + 1))))
+  nfm_encloses: (((((((-19 <= ((int32(ceil_f32((20.000000f/float32(NumProcessors))))*-1)*r)) && (1 <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(r + 1)))) && ((f$5.min.0 + 1) <= ((int32(ceil_f32((20.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))))*(r + 1)))) && ((1 - f$5.min.0) <= ((int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))) - int32(ceil_f32((20.000000f/float32(NumProcessors)))))*r))) || (((0 <= ((int32(ceil_f32((20.000000f/float32(NumProcessors))))*-1)*r)) && (1 <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(r + 1)))) && ((f$5.min.0 + 1) <= ((int32(ceil_f32((20.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))))*(r + 1))))) || (((-19 <= ((int32(ceil_f32((20.000000f/float32(NumProcessors))))*-1)*r)) && (20 <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(r + 1)))) && ((1 - f$5.min.0) <= ((int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))) - int32(ceil_f32((20.000000f/float32(NumProcessors)))))*r)))) || ((0 <= ((int32(ceil_f32((20.000000f/float32(NumProcessors))))*-1)*r)) && (20 <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(r + 1)))))
+
+BOX ENCLOSE
+  Box A:
+Dim (_interval$2043) min: (int32(ceil_f32((20.000000f/float32(NumProcessors))))*Rank); max: (((int32(ceil_f32((20.000000f/float32(NumProcessors))))*Rank) + ((min(((int32(ceil_f32((20.000000f/float32(NumProcessors))))*(Rank + 1)) + -1), 19) - (int32(ceil_f32((20.000000f/float32(NumProcessors))))*Rank)) + 1)) - 1)
+  Box B:
+Dim (_interval$2087) min: min(max((((Rank*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0) + -1), 0), 19); max: max(min((((Rank + 1)*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0), 19), 0)
+
+  halide_encloses: (((int32(ceil_f32((20.000000f/float32(NumProcessors))))*Rank) <= min(max((((Rank*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0) + -1), 0), 19)) && ((max(min((((Rank + 1)*int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + f$5.min.0), 19), 0) + 1) <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(Rank + 1))))
+  nfm_encloses: (((((((-19 <= ((int32(ceil_f32((20.000000f/float32(NumProcessors))))*-1)*Rank)) && (1 <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(Rank + 1)))) && ((((f$5.min.0 - ((int32(ceil_f32((20.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))))*Rank)) + int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + 1) <= int32(ceil_f32((20.000000f/float32(NumProcessors)))))) && ((1 - ((int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))) - int32(ceil_f32((20.000000f/float32(NumProcessors)))))*Rank)) <= f$5.min.0)) || (((0 <= ((int32(ceil_f32((20.000000f/float32(NumProcessors))))*-1)*Rank)) && (1 <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(Rank + 1)))) && ((((f$5.min.0 - ((int32(ceil_f32((20.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))))*Rank)) + int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors))))) + 1) <= int32(ceil_f32((20.000000f/float32(NumProcessors))))))) || (((-19 <= ((int32(ceil_f32((20.000000f/float32(NumProcessors))))*-1)*Rank)) && (20 <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(Rank + 1)))) && ((1 - ((int32(ceil_f32((float32(f$5.extent.0)/float32(NumProcessors)))) - int32(ceil_f32((20.000000f/float32(NumProcessors)))))*Rank)) <= f$5.min.0))) || ((0 <= ((int32(ceil_f32((20.000000f/float32(NumProcessors))))*-1)*Rank)) && (20 <= (int32(ceil_f32((20.000000f/float32(NumProcessors))))*(Rank + 1)))))
+Rank 0 Success!
+
+
+  halide_intersect[i].min: max((M*10), min(max((r*x), 0), 19))
+  nfm_intersect[i].min   : min(max((M*10), 19), max(max((M*10), (r*x)), 0))
+
+  halide_intersect[i].max: min(((min((M + -1), 0)*10) + 19), max(min((((r + 1)*x) + 1), 19), 0))
+  nfm_intersect[i].max   : max(min(((M*10) + 9), 0), min(min(((M*10) + 9), (((r + 1)*x) + 1)), 19))
+
+
+  halide_intersect[i].min: max((x*M), min(max((((r*y) + z) + -1), 0), 19))
+  nfm_intersect[i].min   : min(max((M*x), 19), max(max((M*x), ((z + (r*y)) + -1)), 0))
+
+  halide_intersect[i].max: min((min((x*(M + 1)), 20) + -1), max(min((((r + 1)*y) + z), 19), 0))
+  nfm_intersect[i].max   : max(min((((M + 1)*x) + -1), 0), min(min((((M + 1)*x) + -1), ((y + z) + (r*y))), 19))
+
+
+  halide_intersect[i].min: max((x*r), min(max((((M*y) + z) + -1), 0), 19))
+  nfm_intersect[i].min   : min(max((r*x), 19), max(max((r*x), ((z + (M*y)) + -1)), 0))
+
+  halide_intersect[i].max: min((min((x*(r + 1)), 20) + -1), max(min((((M + 1)*y) + z), 19), 0))
+  nfm_intersect[i].max   : max(min((((r + 1)*x) + -1), 0), min(min((((r + 1)*x) + -1), ((y + z) + (M*y))), 19))
+
+
+BOX ENCLOSE
+  Box A:
+Dim (_interval$2169) min: (x*r); max: (min((x*(r + 1)), 20) + -1)
+  Box B:
+Dim (_interval$2171) min: min(max((((r*y) + z) + -1), 0), 19); max: max(min((((r + 1)*y) + z), 19), 0)
+
+  halide_encloses: (((x*r) <= min(max((((r*y) + z) + -1), 0), 19)) && ((max(min((((r + 1)*y) + z), 19), 0) + 1) <= (x*(r + 1))))
+  nfm_encloses: (((((((-19 <= ((x*-1)*r)) && (1 <= (x*(r + 1)))) && ((z + 1) <= ((x - y)*(r + 1)))) && ((1 - z) <= ((y - x)*r))) || (((0 <= ((x*-1)*r)) && (1 <= (x*(r + 1)))) && ((z + 1) <= ((x - y)*(r + 1))))) || (((-19 <= ((x*-1)*r)) && (20 <= (x*(r + 1)))) && ((1 - z) <= ((y - x)*r)))) || ((0 <= ((x*-1)*r)) && (20 <= (x*(r + 1)))))
+
+BOX ENCLOSE
+  Box A:
+Dim (_interval$2043) min: (x*Rank); max: (((x*Rank) + ((min(((x*(Rank + 1)) + -1), 19) - (x*Rank)) + 1)) - 1)
+  Box B:
+Dim (_interval$2087) min: min(max((((Rank*y) + z) + -1), 0), 19); max: max(min((((Rank + 1)*y) + z), 19), 0)
+
+  halide_encloses: (((x*Rank) <= min(max((((Rank*y) + z) + -1), 0), 19)) && ((max(min((((Rank + 1)*y) + z), 19), 0) + 1) <= (x*(Rank + 1))))
+  nfm_encloses: (((((((-19 <= ((x*-1)*Rank)) && (1 <= (x*(Rank + 1)))) && ((((z - ((x - y)*Rank)) + y) + 1) <= x)) && ((1 - ((y - x)*Rank)) <= z)) || (((0 <= ((x*-1)*Rank)) && (1 <= (x*(Rank + 1)))) && ((((z - ((x - y)*Rank)) + y) + 1) <= x))) || (((-19 <= ((x*-1)*Rank)) && (20 <= (x*(Rank + 1)))) && ((1 - ((y - x)*Rank)) <= z))) || ((0 <= ((x*-1)*Rank)) && (20 <= (x*(Rank + 1)))))

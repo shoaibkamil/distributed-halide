@@ -776,7 +776,7 @@ $(BIN_DIR)/error_runtime_%: $(ROOT_DIR)/test/error/runtime_%.cpp $(HALIDE_DEBUG_
 	$(CXX) $(CXX_FLAGS) $< -I$(INCLUDE_DIR) -I$(NFM_HEADER) $(HALIDE_DEBUG_RUNTIME)  -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 $(BIN_DIR)/distributed_%: test/distributed/%.cpp $(BIN_DIR)/libHalide.so include/Halide.h
-	$(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -Iinclude -I$(NFM_HEADER) -Isrc -L$(BIN_DIR) -lHalide $(LLVM_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
+	WITH_MPI=1 MPI_NODES=2 $(CXX) $(TEST_CXX_FLAGS) $(OPTIMIZE) $< -Iinclude -I$(NFM_HEADER) -Isrc -L$(BIN_DIR) -lHalide $(LLVM_LDFLAGS) -lpthread -ldl -lz -o $@ -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp
 
 # Error tests that link against libHalide
 $(BIN_DIR)/error_%: $(ROOT_DIR)/test/error/%.cpp $(BIN_DIR)/libHalide.so $(INCLUDE_DIR)/Halide.h

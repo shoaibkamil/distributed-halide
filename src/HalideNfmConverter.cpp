@@ -1627,7 +1627,7 @@ public:
 
     NfmUnionDomain convert_to_nfm() {
         //debug(0) << "CONVERTING " << in_expr << "\n\n";
-        //debug(0) << "CONVERTING START: " << simplify(in_expr) << "\n\n";
+        debug(0) << "CONVERTING START: " << simplify(in_expr) << "\n\n";
         NfmUnionDomain union_dom(sym_const_names, dim_names);
         if (!in_expr.defined() || is_one(in_expr)) { // Undefined expression -> no constraint (universe)
             NfmDomain domain(sym_const_names, dim_names);
@@ -1725,13 +1725,13 @@ public:
 
         NfmUnionDomain simplified_union_dom = NfmSolver::nfm_union_domain_simplify(union_dom);
         //debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n" << simplified_union_dom.to_string() << "\n\n";
-        /*debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
+        debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
         simplified_union_dom.sort();
         for (const auto& dom : simplified_union_dom.get_domains()) {
             debug(0) << dom << "\n";
             debug(0) << "    Context: " << dom.get_context_domain() << "\n";
         }
-        debug(0) << "\n\n";*/
+        debug(0) << "\n\n";
         return simplified_union_dom;
     }
 
@@ -2010,12 +2010,17 @@ void ir_nfm_test() {
     convert.mutate(expr);
     std::cout << convert.get_result() << "\n\n";*/
 
-    Expr expr = max(min((((max((max(s, 1) + -1), 0)*16) + y) + 15), x), z);
-    std::cout << "Before mutating: " << expr << "\n\n";
+    Expr expr = w <= max(((0 + select((x < 22), (x + 1), x)) - 1), y);
+    NumOpsCounter counter;
+    counter.mutate(expr);
+    std::cout << "Expr: " << expr << "\n";
+    std::cout << "Count: " << counter.get_count() << "\n";
+    //Expr expr = max(min((((max((max(s, 1) + -1), 0)*16) + y) + 15), x), z);
+    /*std::cout << "Before mutating: " << expr << "\n\n";
     PreProcessor process;
     expr = process.mutate(expr);
     std::cout << "After mutating: " << expr << "\n\n";
-    std::cout << "After mutating (SIMPLIFY): " << simplify(expr) << "\n\n";
+    std::cout << "After mutating (SIMPLIFY): " << simplify(expr) << "\n\n";*/
 
     /*std::cout << convert.mutate(x) << "\n\n";
     std::cout << convert.mutate(eq_expr) << "\n\n";

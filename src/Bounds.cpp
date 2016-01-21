@@ -1067,12 +1067,12 @@ void merge_boxes(Box &a, const Box &b) {
     }*/
 
     //std::cout << "MERGE RESULT start NFM\n";
-    //merge_boxes_nfm(a, b);
+    merge_boxes_nfm(a, b);
     //std::cout << "MERGE RESULT start halide\n";
-    //merge_boxes_halide(a_copy, b_copy);
+    merge_boxes_halide(a_copy, b_copy);
 
     //merge_boxes_nfm(a_copy, b_copy);
-    merge_boxes_halide(a, b);
+    //merge_boxes_halide(a, b);
 
     /*std::cout << "MERGE RESULT USING NFM\n";
     for (size_t i = 0; i < a.size(); ++i) {
@@ -1337,13 +1337,12 @@ bool boxes_overlap(const Box &a, const Box &b) {
     Box a_copy(a);
     Box b_copy(b);
     bool halide_overlap = boxes_overlap_halide(a_copy, b_copy);
-    std::cout << "boxes_overlap_halide? " << halide_overlap << "\n";
+    std::cout << "\nboxes_overlap_halide? " << halide_overlap << "\n";
 
-    /*bool nfm_overlap = boxes_overlap_nfm(a, b);
+    bool nfm_overlap = boxes_overlap_nfm(a, b);
     std::cout << "boxes_overlap_nfm? " << nfm_overlap << "\n";
     assert(halide_overlap == nfm_overlap);
-    return nfm_overlap;*/
-    return halide_overlap;
+    return nfm_overlap;
 }
 
 bool boxes_overlap_halide(const Box &a, const Box &b) {
@@ -1441,7 +1440,7 @@ bool boxes_overlap_nfm(const Box &a, const Box &b) {
 }
 
 Box boxes_intersection(const Box &a, const Box &b) {
-    /*std::cout << "\nINTERSECT BOXES\n";
+    std::cout << "\nINTERSECT BOXES\n";
     std::cout << "  Box A:\n";
     for (size_t i = 0; i < a.size(); ++i) {
         std::cout << "Dim (" << a[i].var << ") min: " << a[i].min << "; max: " << a[i].max << "\n";
@@ -1449,11 +1448,11 @@ Box boxes_intersection(const Box &a, const Box &b) {
     std::cout << "  Box B:\n";
     for (size_t i = 0; i < b.size(); ++i) {
         std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
-    }*/
+    }
 
     Box halide_intersect = boxes_intersection_halide(a, b);
 
-    //Box nfm_intersect = boxes_intersection_nfm(a, b);
+    Box nfm_intersect = boxes_intersection_nfm(a, b);
 
     /*std::cout << "INTERSECT RESULT USING HALIDE\n";
     for (size_t i = 0; i < halide_intersect.size(); ++i) {
@@ -1464,21 +1463,20 @@ Box boxes_intersection(const Box &a, const Box &b) {
     for (size_t i = 0; i < nfm_intersect.size(); ++i) {
         std::cout << "Dim: " << nfm_intersect[i].var << "\n  min: "
                   << nfm_intersect[i].min << "\n  max: " << nfm_intersect[i].max << "\n";
-    }
+    }*/
 
     for (size_t i = 0; i < halide_intersect.size(); ++i) {
         if (!equal(halide_intersect[i].min, nfm_intersect[i].min)) {
             std::cout << "\n  halide_intersect[i].min: " << halide_intersect[i].min
-                      << "\n  nfm_intersect[i].min: " << nfm_intersect[i].min << "\n";
+                      << "\n  nfm_intersect[i].min   : " << nfm_intersect[i].min << "\n";
         }
         if (!equal(halide_intersect[i].max, nfm_intersect[i].max)) {
             std::cout << "\n  halide_intersect[i].max: " << halide_intersect[i].max
-                      << "\n  nfm_intersect[i].max: " << nfm_intersect[i].max << "\n";
+                      << "\n  nfm_intersect[i].max   : " << nfm_intersect[i].max << "\n";
         }
     }
 
-    return nfm_intersect;*/
-    return halide_intersect;
+    return nfm_intersect;
 }
 
 Box boxes_intersection_halide(const Box &a, const Box &b) {
@@ -1501,7 +1499,7 @@ Box boxes_intersection_halide(const Box &a, const Box &b) {
     return result;
 }
 
-Box boxes_intersection_nfm(const Box &a, const Box &b) {
+/*Box boxes_intersection_nfm(const Box &a, const Box &b) {
     // If one box is scalar and the other is not, the boxes cannot
     // intersect.
     if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
@@ -1520,11 +1518,11 @@ Box boxes_intersection_nfm(const Box &a, const Box &b) {
         result.push_back(nfm_simplify_interval(interval));
     }
     return result;
-}
+}*/
 
 // Return a Box representing intersection of Box A and Box B.
 // Ignore the "used" condition
-/*Box boxes_intersection_nfm(const Box &a, const Box &b) {
+Box boxes_intersection_nfm(const Box &a, const Box &b) {
     // If one box is scalar and the other is not, the boxes cannot
     // intersect.
     if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
@@ -1575,10 +1573,10 @@ Box boxes_intersection_nfm(const Box &a, const Box &b) {
     Box result = convert_nfm_union_domain_to_halide_box(type, union_dom, dim_names,
         &let_assignments, &expr_substitutions, &let_substitutions);
     return result;
-}*/
+}
 
 Expr box_encloses(const Box &a, const Box &b) {
-    /*std::cout << "\nBOX ENCLOSE\n";
+    std::cout << "\nBOX ENCLOSE\n";
     std::cout << "  Box A:\n";
     for (size_t i = 0; i < a.size(); ++i) {
         std::cout << "Dim (" << a[i].var << ") min: " << a[i].min << "; max: " << a[i].max << "\n";
@@ -1586,22 +1584,21 @@ Expr box_encloses(const Box &a, const Box &b) {
     std::cout << "  Box B:\n";
     for (size_t i = 0; i < b.size(); ++i) {
         std::cout << "Dim (" << b[i].var << ") min: " << b[i].min << "; max: " << b[i].max << "\n";
-    }*/
+    }
 
     Expr halide_encloses = box_encloses_halide(a, b);
 
-    //Expr nfm_encloses = box_encloses_nfm(a, b);
+    Expr nfm_encloses = box_encloses_nfm(a, b);
 
     /*std::cout << "INTERSECT RESULT USING HALIDE: " << halide_encloses << "\n";
-    std::cout << "INTERSECT RESULT USING NFM: " << nfm_encloses << "\n";
+    std::cout << "INTERSECT RESULT USING NFM: " << nfm_encloses << "\n";*/
 
     if (!equal(halide_encloses, nfm_encloses)) {
         std::cout << "\n  halide_encloses: " << halide_encloses
                   << "\n  nfm_encloses: " << nfm_encloses << "\n";
     }
 
-    return nfm_encloses;*/
-    return halide_encloses;
+    return nfm_encloses;
 }
 
 Expr box_encloses_halide(const Box &a, const Box &b) {
@@ -1650,18 +1647,18 @@ Expr box_encloses_nfm(const Box &a, const Box &b) {
 }
 
 Expr is_box_empty(const Box &box) {
-    std::cout << "\nIS BOX EMPTY?\n";
+    /*std::cout << "\nIS BOX EMPTY?\n";
     std::cout << "  Box:\n";
     for (size_t i = 0; i < box.size(); ++i) {
         std::cout << "Dim (" << box[i].var << ") min: " << box[i].min << "; max: " << box[i].max << "\n";
-    }
+    }*/
 
     Expr halide_empty = is_box_empty_halide(box);
 
     Expr nfm_empty = is_box_empty_halide(box);
 
-    std::cout << "IS BOX EMPTY RESULT USING HALIDE: " << halide_empty << "\n";
-    std::cout << "IS BOX EMPTY RESULT USING NFM: " << nfm_empty << "\n";
+    //std::cout << "IS BOX EMPTY RESULT USING HALIDE: " << halide_empty << "\n";
+    //std::cout << "IS BOX EMPTY RESULT USING NFM: " << nfm_empty << "\n";
 
     if (!equal(halide_empty, nfm_empty)) {
         std::cout << "\n  halide_empty: " << halide_empty
