@@ -264,34 +264,17 @@ void boxes_overlap_test() {
     vector<string> dims = {"x", "y", "z", "w"};
 
     Box a, b;
-    a.push_back(Interval("x", 1, min(M, 3)));
-    a.push_back(Interval("y", N, 6));
-    a.push_back(Interval("z", 0, 4));
+    a.push_back(Interval("dim0", x + y, x + y));
+    a.push_back(Interval("dim1", 8, 8));
 
-    b.push_back(Interval("x", 0, N));
-    b.push_back(Interval("y", 0, 4));
-    b.push_back(Interval("z", 0, 4));
+    b.push_back(Interval("dim0", (((x*-1) - y) + 16), (((x*-1) - y) + 16)));
+    b.push_back(Interval("dim1", 8, 8));
 
-    bool is_overlap = boxes_overlap_nfm(a, b);
-    printf("is overlap? %d\n", is_overlap);
+    bool is_overlap_nfm = boxes_overlap_nfm(a, b);
+    printf("is overlap nfm? %d\n", is_overlap_nfm);
 
-    Box intersection = boxes_intersection_nfm(a, b);
-    std::cout << "Box intersection NFM:\n";
-    for (size_t i = 0; i < intersection.size(); ++i) {
-        std::cout << "Dim: " << intersection[i].var << "\n  min: " << a[i].min
-                  << "\n  max: " << intersection[i].max << "\n";
-    }
-    Expr empty_intersection = is_box_empty_nfm(intersection);
-    std::cout << "Box intersection NFM is empty? " << empty_intersection << "\n";
-
-    Box intersection_halide = boxes_intersection_halide(a, b);
-    std::cout << "\nBox intersection Halide:\n";
-    for (size_t i = 0; i < intersection_halide.size(); ++i) {
-        std::cout << "Dim: " << intersection_halide[i].var << "\n  min: " << a[i].min
-                  << "\n  max: " << intersection_halide[i].max << "\n";
-    }
-    Expr empty_intersection_halide = is_box_empty_halide(intersection);
-    std::cout << "Box intersection Halide is empty? " << empty_intersection_halide << "\n";
+    bool is_overlap_halide = boxes_overlap_halide(a, b);
+    printf("is overlap halide? %d\n", is_overlap_halide);
 }
 
 void boxes_intersect_test() {
@@ -309,19 +292,20 @@ void boxes_intersect_test() {
     Box a, b;
     a.push_back(Interval("x", 10, 19));
 
+    //b.push_back(Interval("x", min(x, y), z));
     b.push_back(Interval("x", min(max(((M*x) + y), 0), 19), max(min((((M + 1)*x) + y), 19), 0)));
 
-    bool is_overlap = boxes_overlap_nfm(a, b);
-    printf("is overlap? %d\n", is_overlap);
+    //bool is_overlap = boxes_overlap_nfm(a, b);
+    //printf("\nis overlap? %d\n", is_overlap);
 
     Box intersection = boxes_intersection_nfm(a, b);
-    std::cout << "Box intersection NFM:\n";
+    /*std::cout << "\nBox intersection NFM:\n";
     for (size_t i = 0; i < intersection.size(); ++i) {
         std::cout << "Dim: " << intersection[i].var << "\n  min: " << a[i].min
                   << "\n  max: " << intersection[i].max << "\n";
     }
     Expr empty_intersection = is_box_empty_nfm(intersection);
-    std::cout << "Box intersection NFM is empty? " << empty_intersection << "\n";
+    std::cout << "\nBox intersection NFM is empty? " << empty_intersection << "\n";
 
     Box intersection_halide = boxes_intersection_halide(a, b);
     std::cout << "\nBox intersection Halide:\n";
@@ -330,7 +314,10 @@ void boxes_intersect_test() {
                   << "\n  max: " << intersection_halide[i].max << "\n";
     }
     Expr empty_intersection_halide = is_box_empty_halide(intersection);
-    std::cout << "Box intersection Halide is empty? " << empty_intersection_halide << "\n";
+    std::cout << "\nBox intersection Halide is empty? " << empty_intersection_halide << "\n";*/
+
+    Expr empty_intersection = is_box_empty(intersection);
+    //std::cout << "\nBox intersection is empty? " << empty_intersection << "\n";
 }
 
 void box_encloses_test() {
@@ -556,7 +543,8 @@ void test() {
     //Expr expr = w <= max((min((min(x, 4) + (((max(x, 4) - min(x, 4))/8)*8)), (max(x, 4) + -7)) + 7), y);
     //Expr expr = w <= (max(x,4)-min(x,4))/8*8 + 7;
     //Expr expr = w <= max(min((((((x + (y*16)) + z) + s) + (t*16)) + -15), (((x + z) + u) + -14)), ((min(((((y + t)*16) + s) + -16), (u + -15)) + (x + z)) + 1));
-    Expr expr = w >= max((M*10), min(max((r*x), 0), 19));
+    //Expr expr = w >= max((M*10), min(max((r*x), 0), 19));
+    Expr expr = w <= Min::make(Max::make(Min::make(((M + 1)*x + y), 19), 0), 9);
 
     std::cout << "simplify: " << simplify(expr) << "\n";
 
@@ -577,8 +565,8 @@ int main(int argc, const char **argv) {
     //simplify_interval_test();
     //test();
     //boxes_merge_test();
-    //boxes_overlap_test();
-    boxes_intersect_test();
+    boxes_overlap_test();
+    //boxes_intersect_test();
     //box_encloses_test();
     return 0;
 }

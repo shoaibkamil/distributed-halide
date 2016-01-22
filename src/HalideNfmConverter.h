@@ -19,141 +19,6 @@
 namespace Halide {
 namespace Internal {
 
-class NumOpsCounter : public IRMutator {
-public:
-    NumOpsCounter() : count(0) {}
-    int get_count() { return count; }
-protected:
-    using IRMutator::visit;
-
-    void visit(const IntImm *) { count = 0; }
-    void visit(const UIntImm *) { count = 0; }
-    void visit(const FloatImm *) { count = 0; }
-    void visit(const Variable *) { count = 0; }
-
-    void visit(const Cast *op) { update_simple(op->value, COST_CAST); }
-    void visit(const Add *op) { update_simple(op->a, op->b, COST_ADD); }
-    void visit(const Sub *op) { update_simple(op->a, op->b, COST_SUB); }
-    void visit(const Mul *op) { update_simple(op->a, op->b, COST_MUL); }
-    void visit(const Div *op) { update_simple(op->a, op->b, COST_DIV); }
-    void visit(const Mod *op) { update_simple(op->a, op->b, COST_MOD); }
-
-    void visit(const Min *op) { update_min_max(op->a, op->b); }
-    void visit(const Max *op) { update_min_max(op->a, op->b); }
-
-    void visit(const EQ *op) { update_simple(op->a, op->b, COST_COMPARE); }
-    void visit(const NE *op) { update_simple(op->a, op->b, COST_COMPARE); }
-    void visit(const LT *op) { update_simple(op->a, op->b, COST_COMPARE); }
-    void visit(const LE *op) { update_simple(op->a, op->b, COST_COMPARE); }
-    void visit(const GT *op) { update_simple(op->a, op->b, COST_COMPARE); }
-    void visit(const GE *op) { update_simple(op->a, op->b, COST_COMPARE); }
-    void visit(const And *op) { update_simple(op->a, op->b, COST_AND); }
-    void visit(const Or *op) { update_simple(op->a, op->b, COST_OR); }
-    void visit(const Not *op) { update_simple(op->a, COST_NOT); }
-
-    void visit(const Select *op) {
-        int cond = 0;
-        mutate(op->condition);
-        swap(cond, count);
-
-        int left = 0;
-        mutate(op->true_value);
-        swap(left, count);
-
-        int right = 0;
-        mutate(op->false_value);
-        swap(right, count);
-
-        count = std::max(left, right) + cond + COST_RETURN;
-    }
-
-    void visit(const Call *op) {
-        for (const auto& expr : op->args) {
-            update_simple(expr, COST_CALL);
-        }
-    }
-
-    void visit(const Let *op) {
-        update_simple(op->value, 0);
-        update_simple(op->body, 0);
-    }
-
-    void visit(const StringImm *) { error("StringImm"); }
-    void visit(const Load *) { error("Load"); }
-    void visit(const Ramp *) { error("Ramp"); }
-    void visit(const Broadcast *) { error("Broadcast"); }
-    void visit(const LetStmt *) { error("LetStmt"); }
-    void visit(const AssertStmt *) { error("AssertStmt"); }
-    void visit(const ProducerConsumer *) { error("ProducerConsumer"); }
-    void visit(const For *) { error("For"); }
-    void visit(const Store *) { error("Store"); }
-    void visit(const Provide *) { error("Provide"); }
-    void visit(const Allocate *) { error("Allocate"); }
-    void visit(const Free *) { error("Free"); }
-    void visit(const Realize *) { error("Realize"); }
-    void visit(const Block *) { error("Block"); }
-    void visit(const IfThenElse *) { error("IfThenElse"); }
-    void visit(const Evaluate *) { error("Evaluate"); }
-
-private:
-    static const int COST_CAST = 1;
-    static const int COST_ADD = 1;
-    static const int COST_SUB = 1;
-    static const int COST_MUL = 1;
-    static const int COST_DIV = 1;
-    static const int COST_MOD = 1;
-    static const int COST_RETURN = 1;
-    static const int COST_COMPARE = 1;
-    static const int COST_AND = 1;
-    static const int COST_OR = 1;
-    static const int COST_NOT = 1;
-    static const int COST_CALL = 1;
-
-    int count;
-
-    void error(const std::string& op_name) {
-        internal_error << "NumOpsCounter can't handle " << op_name << "\n";
-    }
-
-    void update_simple(const Expr& a, int cost) {
-        int val = 0;
-        mutate(a);
-        swap(val, count);
-
-        count = val + cost;
-    }
-
-    void update_simple(const Expr& a, const Expr&b, int cost) {
-        int left = 0;
-        mutate(a);
-        swap(left, count);
-
-        int right = 0;
-        mutate(b);
-        swap(right, count);
-
-        count = left + right + cost;
-    }
-
-    void update_min_max(const Expr& a, const Expr&b) {
-        int left = 0;
-        mutate(a);
-        swap(left, count);
-
-        int right = 0;
-        mutate(b);
-        swap(right, count);
-
-        count = left + right + COST_COMPARE + COST_RETURN;
-    }
-
-    void swap(int& a, int&b) {
-        int temp = a;
-        a = b;
-        b = temp;
-    }
-};
-
 class CollectVars : public IRMutator {
 public:
     CollectVars(const std::vector<Dim>& loop_dims) {
@@ -290,6 +155,8 @@ private:
 };
 
 void ir_nfm_test();
+
+int count_expr(const Expr& expr);
 
 std::vector<std::vector<Expr>> split_expr_into_dnf(Expr expr);
 

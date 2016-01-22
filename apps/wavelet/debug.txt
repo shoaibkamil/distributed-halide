@@ -1,0 +1,48 @@
+Building Generator daubechies_x_generator.cpp
+Running Generator build_make/daubechies_x.generator
+LD_LIBRARY_PATH=:../../non-linear-FM/bin/:../../non-linear-FM/isl-0.15/release/lib build_make/daubechies_x.generator -g daubechies_x -o build_make target=host
+
+  a_copy[i].min (22): max(min((min((out.s0.x.min*2), (in.min.0 + in.extent.0)) + -1), min((out.s0.x.min*2), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].min      (17): max(min((out.s0.x.min*2), (min((in.extent.0 + in.min.0), (out.s0.x.min*2)) + -1)), in.min.0)
+
+  a_copy[i].min (29): max(min(min((out.s0.x.min*2), (min((in.extent.0 + in.min.0), (out.s0.x.min*2)) + -1)), min(((out.s0.x.min*2) + 1), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].min      (25): max(min(((out.s0.x.min*2) + 1), min(((out.s0.x.min*2) + -1), min(((in.min.0 + in.extent.0) + -1), (out.s0.x.min*2)))), in.min.0)
+
+  a_copy[i].min (37): max(min(min(((out.s0.x.min*2) + 1), min(((out.s0.x.min*2) + -1), min(((in.min.0 + in.extent.0) + -1), (out.s0.x.min*2)))), min(((out.s0.x.min*2) + 2), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].min      (24): max(min(((out.s0.x.min*2) + 2), min((out.s0.x.min*2), (min((in.extent.0 + in.min.0), (out.s0.x.min*2)) + -1))), in.min.0)
+
+  a_copy[i].min (22): max(min((min((out.s0.x.min*2), (in.min.0 + in.extent.0)) + -1), min((out.s0.x.min*2), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].min      (17): max(min((out.s0.x.min*2), (min((in.extent.0 + in.min.0), (out.s0.x.min*2)) + -1)), in.min.0)
+
+  a_copy[i].min (29): max(min(min((out.s0.x.min*2), (min((in.extent.0 + in.min.0), (out.s0.x.min*2)) + -1)), min(((out.s0.x.min*2) + 1), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].min      (25): max(min(((out.s0.x.min*2) + 1), min(((out.s0.x.min*2) + -1), min(((in.min.0 + in.extent.0) + -1), (out.s0.x.min*2)))), in.min.0)
+
+  a_copy[i].min (37): max(min(min(((out.s0.x.min*2) + 1), min(((out.s0.x.min*2) + -1), min(((in.min.0 + in.extent.0) + -1), (out.s0.x.min*2)))), min(((out.s0.x.min*2) + 2), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].min      (24): max(min(((out.s0.x.min*2) + 2), min((out.s0.x.min*2), (min((in.extent.0 + in.min.0), (out.s0.x.min*2)) + -1))), in.min.0)
+Building Generator haar_x_generator.cpp
+Running Generator build_make/haar_x.generator
+LD_LIBRARY_PATH=:../../non-linear-FM/bin/:../../non-linear-FM/isl-0.15/release/lib build_make/haar_x.generator -g haar_x -o build_make target=host
+Building Generator inverse_daubechies_x_generator.cpp
+Running Generator build_make/inverse_daubechies_x.generator
+LD_LIBRARY_PATH=:../../non-linear-FM/bin/:../../non-linear-FM/isl-0.15/release/lib build_make/inverse_daubechies_x.generator -g inverse_daubechies_x -o build_make target=host
+
+  a_copy[i].min (73): max(min(min(((in.extent.0 + in.min.0) + -1), (min(out.s0.x.min, (out.s0.x.max + -1))/2)), min(((min(out.s0.x.min, (out.s0.x.max + -1))/2) + 1), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].min      (68): max(min(((min(out.s0.x.min, (out.s0.x.max + -1))/2) + 1), min((min(out.s0.x.min, (out.s0.x.max + -1))/2), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+
+  a_copy[i].max (131): max(max(min((min((((((out.s0.x.max - out.s0.x.min)/2)*2) + out.s0.x.min) + 1), out.s0.x.max)/2), ((in.extent.0 + in.min.0) + -1)), min(((min((((((out.s0.x.max - out.s0.x.min)/2)*2) + out.s0.x.min) + 1), out.s0.x.max)/2) + 1), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].max      (66): max(in.min.0, min(((min((((((out.s0.x.max - out.s0.x.min)/2)*2) + out.s0.x.min) + 1), out.s0.x.max)/2) + 1), ((in.extent.0 + in.min.0) + -1)))
+
+  a_copy[i].max (16): max(max(min(((in.extent.2 + in.min.2) + -1), 1), min(((in.min.2 + in.extent.2) + -1), 0)), in.min.2)
+  a[i].max      (8): max(in.min.2, min(((in.extent.2 + in.min.2) + -1), 1))
+
+  a_copy[i].min (65): max(min(min(((in.extent.0 + in.min.0) + -1), (out.s0.x.min/2)), min(((out.s0.x.min/2) + 1), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].min      (60): max(min(((out.s0.x.min/2) + 1), min((out.s0.x.min/2), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+
+  a_copy[i].max (65): max(max(min((out.s0.x.max/2), ((in.extent.0 + in.min.0) + -1)), min(((out.s0.x.max/2) + 1), ((in.min.0 + in.extent.0) + -1))), in.min.0)
+  a[i].max      (33): max(in.min.0, min(((out.s0.x.max/2) + 1), ((in.extent.0 + in.min.0) + -1)))
+
+  a_copy[i].max (16): max(max(min(((in.extent.2 + in.min.2) + -1), 1), min(((in.min.2 + in.extent.2) + -1), 0)), in.min.2)
+  a[i].max      (8): max(in.min.2, min(((in.extent.2 + in.min.2) + -1), 1))
+Building Generator inverse_haar_x_generator.cpp
+Running Generator build_make/inverse_haar_x.generator
+LD_LIBRARY_PATH=:../../non-linear-FM/bin/:../../non-linear-FM/isl-0.15/release/lib build_make/inverse_haar_x.generator -g inverse_haar_x -o build_make target=host

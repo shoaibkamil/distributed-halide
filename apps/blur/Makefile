@@ -40,12 +40,14 @@ test: test.cpp halide_blur.o
 distributed_blur: halide_blur_distributed.cpp
 	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -I$(NFM_HEADER) -O3 halide_blur_distributed.cpp $(LIB_HALIDE) -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp -o distributed_blur -ldl -ltinfo -lpthread -lz $(LDFLAGS)
 
-nondistributed_blur: ../../ halide_blur_distributed.cpp
-	$(MAKE) -C ../../ $(LIB_HALIDE)
-	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -I$(NFM_HEADER) -O3 halide_blur_distributed.cpp -DNON_DISTRIBUTED ../../$(LIB_HALIDE) -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp -o nondistributed_blur -ldl -ltinfo -lpthread -lz $(LDFLAGS)
+nondistributed_blur: halide_blur_distributed.cpp
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -I$(NFM_HEADER) -O3 halide_blur_distributed.cpp -DNON_DISTRIBUTED .$(LIB_HALIDE) -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp -o nondistributed_blur -ldl -ltinfo -lpthread -lz $(LDFLAGS)
 
-test_distributed: ../../ distributed_blur
-	$(LD_PATH_SETUP) $(MPI_RUN) ./distributed_blur
+distrib: distributed_blur
+	$(LD_PATH_SETUP) ./distributed_blur 8 8
 
 clean:
 	rm -f test halide_blur.o halide_blur distributed_blur
+
+run: halide_blur
+	$(LD_PATH_SETUP) ./halide_blur

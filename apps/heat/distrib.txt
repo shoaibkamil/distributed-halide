@@ -1,0 +1,642 @@
+LD_LIBRARY_PATH=:../../non-linear-FM/bin/:../../non-linear-FM/isl-0.15/release/lib ./distributed_heat 8 8 8
+
+  a_copy[i].min (16): max(min(((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min) + -1), 7), 0)
+  a[i].min      (17): min(max(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), (((heat3d.s0.x.xi.loop_min + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_min*8)) + -1)), 0), 7)
+
+  a_copy[i].max (19): max(min(((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1), 7), 0)
+  a[i].max      (23): max(min(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.max) + -8)), 7), 0)
+
+  a_copy[i].min (15): max(min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min), 7), 0)
+  a[i].min      (16): min(max(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8))), 0), 7)
+
+  a_copy[i].max (19): max(min(((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -1), 7), 0)
+  a[i].max      (23): max(min(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.max) + -8)), 7), 0)
+
+  a_copy[i].min (33): min(max(min(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), (((heat3d.s0.x.xi.loop_min + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_min*8)) + -1)), min(((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min) + 1), 7)), 0), 7)
+  a[i].min      (31): min(max(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8)))), 0), 7)
+
+  a_copy[i].max (38): max(min(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.max) + -8)), (min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent))), 7), 0)
+  a[i].max      (37): max(min(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), 7), 0)
+
+  a_copy[i].min (31): min(max(min(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8))), min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min), 7)), 0), 7)
+  a[i].min      (16): min(max(min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), ((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7)), 0), 7)
+
+  a_copy[i].max (39): max(min(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.max) + -8)), ((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (20): max(min(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), 7), 0)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.loop_min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.loop_min, 0), 7)
+
+  a_copy[i].min (46): min(max(min(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8)))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -7), min(((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -6)))))), 0), 7)
+
+  a_copy[i].max (53): max(min(max(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), ((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (43): max(min(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8)), min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7))), 7), 0)
+
+  a_copy[i].min (32): min(max(min(min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), ((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7)), min(((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min) + -1), 7)), 0), 7)
+  a[i].min      (30): min(max(min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8)) + -1), min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8))))), 0), 7)
+
+  a_copy[i].max (36): max(min(max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), ((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -2)), 7), 0)
+  a[i].max      (43): max(min(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)), min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8))), 7), 0)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.loop_min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.loop_min, 0), 7)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -7), min(((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -6)))))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8), min((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -7)))))), 0), 7)
+
+  a_copy[i].max (59): max(min(max(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8)), min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7))), ((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (37): max(min(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), 7), 0)
+
+  a_copy[i].min (46): min(max(min(min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8)) + -1), min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8))))), min(((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min) + 1), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -6), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + 1), min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + -1), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -8)))))), 0), 7)
+
+  a_copy[i].max (58): max(min(max(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)), min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8))), (min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent))), 7), 0)
+  a[i].max      (54): max(min(max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -7)), max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)))), 7), 0)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.loop_min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.loop_min, 0), 7)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8), min((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -7)))))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -7), min(((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -6)))))), 0), 7)
+
+  a_copy[i].max (53): max(min(max(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), ((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (43): max(min(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8)), min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7))), 7), 0)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -6), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + 1), min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + -1), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -8)))))), min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + -1), min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7), min(((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min), min((((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + 1), ((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -6)))))), 0), 7)
+
+  a_copy[i].max (70): max(min(max(max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -7)), max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)))), ((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (63): max(min(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)), max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8)), min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -7)))), 7), 0)
+
+  a_copy[i].min (13): min(max(min(heat3d.s0.z.loop_min, min((heat3d.s0.z.loop_min + -1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.loop_min + -1), 0), 7)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -7), min(((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -6)))))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8), min((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -7)))))), 0), 7)
+
+  a_copy[i].max (59): max(min(max(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8)), min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7))), ((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (37): max(min(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), 7), 0)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + -1), min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7), min(((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min), min((((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + 1), ((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -6)))))), min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -6), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + 1), min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + -1), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -8)))))), 0), 7)
+
+  a_copy[i].max (79): max(min(max(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)), max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8)), min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -7)))), ((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (54): max(min(max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -7)), max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)))), 7), 0)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.z.loop_min + -1), min((heat3d.s0.z.loop_min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.loop_min + -1), 0), 7)
+
+  a_copy[i].max (12): max(min(max(((heat3d.s0.z.loop_extent + heat3d.s0.z.loop_min) + -1), (heat3d.s0.z.loop_min + heat3d.s0.z.loop_extent)), 7), 0)
+  a[i].max      (7): max(min((heat3d.s0.z.loop_min + heat3d.s0.z.loop_extent), 7), 0)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.y.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.y.min, 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.min, 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.x.min + -1), min(heat3d.s0.x.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min(heat3d.s0.y.min, min((heat3d.s0.y.min + -1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.y.min + -1), 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.min, 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.x.min + -1), min(heat3d.s0.x.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.y.min + -1), min((heat3d.s0.y.min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.y.min + -1), 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.min, 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.x.min + -1), min(heat3d.s0.x.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.y.min + -1), min(heat3d.s0.y.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.y.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min(heat3d.s0.z.min, min((heat3d.s0.z.min + -1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.x.min + -1), min(heat3d.s0.x.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.y.min + -1), min(heat3d.s0.y.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.y.min + -1), 0), 7)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.z.min + -1), min((heat3d.s0.z.min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.min + -1), 0), 7)
+
+  a_copy[i].min (16): max(min(((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min), (heat3d.s0.x.loop_max + -7)) + heat3d.s0.x.xi.loop_min) + -1), 7), 0)
+  a[i].min      (17): min(max(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -8), (((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + -1)), 0), 7)
+
+  a_copy[i].max (19): max(min(((min(((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + -8), (heat3d.s0.x.loop_max + -7)) + (heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min)) + -1), 7), 0)
+  a[i].max      (23): max(min(min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -9), (((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_max) + -8)), 7), 0)
+
+  a_copy[i].min (15): max(min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min), (heat3d.s0.y.loop_max + -7)) + heat3d.s0.y.yi.loop_min), 7), 0)
+  a[i].min      (16): min(max(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8))), 0), 7)
+
+  a_copy[i].max (19): max(min(((min(((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + -8), (heat3d.s0.y.loop_max + -7)) + (heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min)) + -1), 7), 0)
+  a[i].max      (23): max(min(min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -9), (((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_max) + -8)), 7), 0)
+
+  a_copy[i].min (33): min(max(min(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -8), (((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + -1)), min(((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min), (heat3d.s0.x.loop_max + -7)) + heat3d.s0.x.xi.loop_min) + 1), 7)), 0), 7)
+  a[i].min      (31): min(max(min(((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + -1), ((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -8)))), 0), 7)
+
+  a_copy[i].max (38): max(min(max(min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -9), (((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_max) + -8)), (min(((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + -8), (heat3d.s0.x.loop_max + -7)) + (heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min))), 7), 0)
+  a[i].max      (37): max(min(max(min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7)), min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -9), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8))), 7), 0)
+
+  a_copy[i].min (31): min(max(min(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8))), min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min), (heat3d.s0.y.loop_max + -7)) + heat3d.s0.y.yi.loop_min), 7)), 0), 7)
+  a[i].min      (16): min(max(min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min), ((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -7)), 0), 7)
+
+  a_copy[i].max (39): max(min(max(min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -9), (((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_max) + -8)), ((min(((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + -8), (heat3d.s0.y.loop_max + -7)) + (heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min)) + -1)), 7), 0)
+  a[i].max      (20): max(min(min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8)), 7), 0)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.loop_min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.loop_min, 0), 7)
+
+  a_copy[i].min (46): min(max(min(min(((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + -1), ((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -8)))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min), (heat3d.s0.x.loop_max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -7), min(((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -8), min((((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -6)))))), 0), 7)
+
+  a_copy[i].max (53): max(min(max(max(min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7)), min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -9), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8))), ((min(((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + -8), (heat3d.s0.x.loop_max + -7)) + (heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min)) + -1)), 7), 0)
+  a[i].max      (43): max(min(max(min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -9), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8)), min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -8), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7))), 7), 0)
+
+  a_copy[i].min (32): min(max(min(min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min), ((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -7)), min(((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min), (heat3d.s0.y.loop_max + -7)) + heat3d.s0.y.yi.loop_min) + -1), 7)), 0), 7)
+  a[i].min      (30): min(max(min(((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + -1), min(((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8))))), 0), 7)
+
+  a_copy[i].max (36): max(min(max(min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8)), ((min(((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + -8), (heat3d.s0.y.loop_max + -7)) + (heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min)) + -2)), 7), 0)
+  a[i].max      (43): max(min(max(min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -10), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)), min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -9), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8))), 7), 0)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.loop_min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.loop_min, 0), 7)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -7), min(((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -8), min((((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -6)))))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min), (heat3d.s0.x.loop_max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + -1), min(((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -8), min((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min), ((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -7)))))), 0), 7)
+
+  a_copy[i].max (59): max(min(max(max(min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -9), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8)), min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -8), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7))), ((min(((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + -8), (heat3d.s0.x.loop_max + -7)) + (heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min)) + -1)), 7), 0)
+  a[i].max      (37): max(min(max(min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7)), min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -9), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8))), 7), 0)
+
+  a_copy[i].min (46): min(max(min(min(((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + -1), min(((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8))))), min(((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min), (heat3d.s0.y.loop_max + -7)) + heat3d.s0.y.yi.loop_min) + 1), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -6), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min) + 1), min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min), min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -7), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min) + -1), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -8)))))), 0), 7)
+
+  a_copy[i].max (58): max(min(max(max(min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -10), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)), min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -9), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8))), (min(((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + -8), (heat3d.s0.y.loop_max + -7)) + (heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min))), 7), 0)
+  a[i].max      (54): max(min(max(min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -7)), max(min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8)), min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -10), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)))), 7), 0)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.loop_min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.loop_min, 0), 7)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + -1), min(((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -8), min((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min), ((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -7)))))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min), (heat3d.s0.x.loop_max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -7), min(((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -8), min((((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -6)))))), 0), 7)
+
+  a_copy[i].max (53): max(min(max(max(min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7)), min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -9), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8))), ((min(((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + -8), (heat3d.s0.x.loop_max + -7)) + (heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min)) + -1)), 7), 0)
+  a[i].max      (43): max(min(max(min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -9), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8)), min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -8), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7))), 7), 0)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -6), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min) + 1), min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min), min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -7), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min) + -1), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -8)))))), min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min), (heat3d.s0.y.loop_max + -7)) + heat3d.s0.y.yi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.loop_min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + -1), min(((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -7), min(((heat3d.s0.y.loop_min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min), min((((heat3d.s0.y.loop_min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + 1), ((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -6)))))), 0), 7)
+
+  a_copy[i].max (70): max(min(max(max(min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -7)), max(min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8)), min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -10), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)))), ((min(((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + -8), (heat3d.s0.y.loop_max + -7)) + (heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min)) + -1)), 7), 0)
+  a[i].max      (63): max(min(max(min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -10), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)), max(min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -9), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -8), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -7)))), 7), 0)
+
+  a_copy[i].min (13): min(max(min(heat3d.s0.z.loop_min, min((heat3d.s0.z.loop_min + -1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.loop_min + -1), 0), 7)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -7), min(((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -8), min((((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.loop_min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.loop_max) + -6)))))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min), (heat3d.s0.x.loop_max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min) + -1), min(((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -8), min((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_min), ((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + -7)))))), 0), 7)
+
+  a_copy[i].max (59): max(min(max(max(min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -9), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8)), min((((((heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.loop_min) + (heat3d.s0.x.x.loop_min*8)) + (heat3d.s0.x.x.loop_extent*8)) + -8), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7))), ((min(((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + -8), (heat3d.s0.x.loop_max + -7)) + (heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min)) + -1)), 7), 0)
+  a[i].max      (37): max(min(max(min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7)), min(((((((heat3d.s0.x.x.loop_extent + heat3d.s0.x.x.loop_min)*8) + heat3d.s0.x.loop_min) + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -9), (((heat3d.s0.x.loop_max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8))), 7), 0)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.loop_min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + -1), min(((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -7), min(((heat3d.s0.y.loop_min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min), min((((heat3d.s0.y.loop_min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + 1), ((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + -6)))))), min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min), (heat3d.s0.y.loop_max + -7)) + heat3d.s0.y.yi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -6), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min) + 1), min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min), min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -7), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_min) + -1), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.loop_max) + -8)))))), 0), 7)
+
+  a_copy[i].max (79): max(min(max(max(min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -10), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)), max(min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -9), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), min((((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.loop_min) + (heat3d.s0.y.y.loop_min*8)) + (heat3d.s0.y.y.loop_extent*8)) + -8), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -7)))), ((min(((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + -8), (heat3d.s0.y.loop_max + -7)) + (heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min)) + -1)), 7), 0)
+  a[i].max      (54): max(min(max(min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -7)), max(min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8)), min(((((((heat3d.s0.y.y.loop_extent + heat3d.s0.y.y.loop_min)*8) + heat3d.s0.y.loop_min) + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -10), (((heat3d.s0.y.loop_max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)))), 7), 0)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.z.loop_min + -1), min((heat3d.s0.z.loop_min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.loop_min + -1), 0), 7)
+
+  a_copy[i].max (12): max(min(max(((heat3d.s0.z.loop_min + heat3d.s0.z.loop_extent) + -1), (heat3d.s0.z.loop_extent + heat3d.s0.z.loop_min)), 7), 0)
+  a[i].max      (7): max(min((heat3d.s0.z.loop_extent + heat3d.s0.z.loop_min), 7), 0)
+
+  a_copy[i].max (108): max(min(max((int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))) + (heat3d.min.2 + (int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors))))*Rank))), ((int32(ceil_f32((8.000000f/float32(NumProcessors))))*(Rank + 1)) + -1)), 7), 0)
+  a[i].max      (78): max(min(max((((Rank + 1)*int32(ceil_f32((8.000000f/float32(NumProcessors))))) + -1), (((Rank + 1)*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors))))) + heat3d.min.2)), 7), 0)
+
+  a_copy[i].min (22): min(max(min(min((heat3d.s0.x.max + -8), (heat3d.s0.x.min + -1)), min((min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)) + 1), 7)), 0), 7)
+  a[i].min      (19): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), (heat3d.s0.x.max + -8)))), 0), 7)
+
+  a_copy[i].min (20): min(max(min(min((heat3d.s0.y.max + -7), heat3d.s0.y.min), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (10): min(max(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.min, 0), 7)
+
+  a_copy[i].min (29): min(max(min(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), (heat3d.s0.x.max + -8)))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), 0), 7)
+
+  a_copy[i].min (21): min(max(min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), min((min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)) + -1), 7)), 0), 7)
+  a[i].min      (18): min(max(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), heat3d.s0.y.min))), 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.min, 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), 0), 7)
+
+  a_copy[i].min (29): min(max(min(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), heat3d.s0.y.min))), min((min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)) + 1), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.min, 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), min(heat3d.s0.y.min, min((heat3d.s0.y.min + 1), (heat3d.s0.y.max + -6)))))), 0), 7)
+
+  a_copy[i].min (13): min(max(min(heat3d.s0.z.min, min((heat3d.s0.z.min + -1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.min + -1), 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), min(heat3d.s0.y.min, min((heat3d.s0.y.min + 1), (heat3d.s0.y.max + -6)))))), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), 0), 7)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.z.min + -1), min((heat3d.s0.z.min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.min + -1), 0), 7)
+
+  a_copy[i].min (16): max(min(((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min) + -1), 7), 0)
+  a[i].min      (17): min(max(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), (((heat3d.s0.x.xi.loop_min + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_min*8)) + -1)), 0), 7)
+
+  a_copy[i].max (19): max(min(((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1), 7), 0)
+  a[i].max      (23): max(min(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.max) + -8)), 7), 0)
+
+  a_copy[i].min (15): max(min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min), 7), 0)
+  a[i].min      (16): min(max(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8))), 0), 7)
+
+  a_copy[i].max (19): max(min(((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -1), 7), 0)
+  a[i].max      (23): max(min(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.max) + -8)), 7), 0)
+
+  a_copy[i].min (33): min(max(min(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), (((heat3d.s0.x.xi.loop_min + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_min*8)) + -1)), min(((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min) + 1), 7)), 0), 7)
+  a[i].min      (31): min(max(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8)))), 0), 7)
+
+  a_copy[i].max (38): max(min(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.max) + -8)), (min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent))), 7), 0)
+  a[i].max      (37): max(min(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), 7), 0)
+
+  a_copy[i].min (31): min(max(min(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8))), min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min), 7)), 0), 7)
+  a[i].min      (16): min(max(min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), ((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7)), 0), 7)
+
+  a_copy[i].max (39): max(min(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.max) + -8)), ((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (20): max(min(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), 7), 0)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.loop_min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.loop_min, 0), 7)
+
+  a_copy[i].min (46): min(max(min(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8)))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -7), min(((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -6)))))), 0), 7)
+
+  a_copy[i].max (53): max(min(max(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), ((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (43): max(min(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8)), min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7))), 7), 0)
+
+  a_copy[i].min (32): min(max(min(min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), ((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7)), min(((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min) + -1), 7)), 0), 7)
+  a[i].min      (30): min(max(min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8)) + -1), min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8))))), 0), 7)
+
+  a_copy[i].max (36): max(min(max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), ((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -2)), 7), 0)
+  a[i].max      (43): max(min(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)), min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8))), 7), 0)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.loop_min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.loop_min, 0), 7)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -7), min(((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -6)))))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8), min((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -7)))))), 0), 7)
+
+  a_copy[i].max (59): max(min(max(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8)), min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7))), ((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (37): max(min(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), 7), 0)
+
+  a_copy[i].min (46): min(max(min(min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8)) + -1), min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_min*8))))), min(((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min) + 1), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -6), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + 1), min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + -1), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -8)))))), 0), 7)
+
+  a_copy[i].max (58): max(min(max(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)), min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8))), (min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent))), 7), 0)
+  a[i].max      (54): max(min(max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -7)), max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)))), 7), 0)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.loop_min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.loop_min, 0), 7)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8), min((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -7)))))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -7), min(((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -6)))))), 0), 7)
+
+  a_copy[i].max (53): max(min(max(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), ((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (43): max(min(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8)), min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7))), 7), 0)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -6), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + 1), min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + -1), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -8)))))), min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + -1), min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7), min(((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min), min((((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + 1), ((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -6)))))), 0), 7)
+
+  a_copy[i].max (70): max(min(max(max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -7)), max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)))), ((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (63): max(min(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)), max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8)), min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -7)))), 7), 0)
+
+  a_copy[i].min (13): min(max(min(heat3d.s0.z.loop_min, min((heat3d.s0.z.loop_min + -1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.loop_min + -1), 0), 7)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -7), min(((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min), min(((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -8), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + -1), min((((heat3d.s0.x.min + (heat3d.s0.x.x.loop_min*8)) + heat3d.s0.x.xi.loop_min) + 1), ((heat3d.s0.x.xi.loop_min + heat3d.s0.x.max) + -6)))))), min((min(((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min), (heat3d.s0.x.max + -7)) + heat3d.s0.x.xi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -6), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + 1), min(((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + -1), min(((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -8), min((((heat3d.s0.x.x.loop_min*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min), ((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + -7)))))), 0), 7)
+
+  a_copy[i].max (59): max(min(max(max(min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -8)), min((((((heat3d.s0.x.xi.loop_extent + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.min) + (heat3d.s0.x.x.loop_extent*8)) + (heat3d.s0.x.x.loop_min*8)) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_extent) + heat3d.s0.x.xi.loop_min) + -7))), ((min(((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + -8), (heat3d.s0.x.max + -7)) + (heat3d.s0.x.xi.loop_min + heat3d.s0.x.xi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (37): max(min(max(min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -7)), min(((((((heat3d.s0.x.x.loop_min + heat3d.s0.x.x.loop_extent)*8) + heat3d.s0.x.min) + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -9), (((heat3d.s0.x.max + heat3d.s0.x.xi.loop_min) + heat3d.s0.x.xi.loop_extent) + -8))), 7), 0)
+
+  a_copy[i].min (59): min(max(min(min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -8), min((((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + -1), min(((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -7), min(((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min), min((((heat3d.s0.y.min + (heat3d.s0.y.y.loop_min*8)) + heat3d.s0.y.yi.loop_min) + 1), ((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + -6)))))), min((min(((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min), (heat3d.s0.y.max + -7)) + heat3d.s0.y.yi.loop_min), 7)), 0), 7)
+  a[i].min      (44): min(max(min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -6), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + 1), min((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min), min(((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -7), min(((((heat3d.s0.y.y.loop_min*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + -1), ((heat3d.s0.y.yi.loop_min + heat3d.s0.y.max) + -8)))))), 0), 7)
+
+  a_copy[i].max (79): max(min(max(max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -9)), max(min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -8)), min((((((heat3d.s0.y.yi.loop_extent + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.min) + (heat3d.s0.y.y.loop_extent*8)) + (heat3d.s0.y.y.loop_min*8)) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_extent) + heat3d.s0.y.yi.loop_min) + -7)))), ((min(((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + -8), (heat3d.s0.y.max + -7)) + (heat3d.s0.y.yi.loop_min + heat3d.s0.y.yi.loop_extent)) + -1)), 7), 0)
+  a[i].max      (54): max(min(max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -7)), max(min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -8)), min(((((((heat3d.s0.y.y.loop_min + heat3d.s0.y.y.loop_extent)*8) + heat3d.s0.y.min) + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -10), (((heat3d.s0.y.max + heat3d.s0.y.yi.loop_min) + heat3d.s0.y.yi.loop_extent) + -9)))), 7), 0)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.z.loop_min + -1), min((heat3d.s0.z.loop_min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.loop_min + -1), 0), 7)
+
+  a_copy[i].max (12): max(min(max(((heat3d.s0.z.loop_extent + heat3d.s0.z.loop_min) + -1), (heat3d.s0.z.loop_min + heat3d.s0.z.loop_extent)), 7), 0)
+  a[i].max      (7): max(min((heat3d.s0.z.loop_min + heat3d.s0.z.loop_extent), 7), 0)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.y.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.y.min, 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.min, 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.x.min + -1), min(heat3d.s0.x.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min(heat3d.s0.y.min, min((heat3d.s0.y.min + -1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.y.min + -1), 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.min, 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.x.min + -1), min(heat3d.s0.x.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.y.min + -1), min((heat3d.s0.y.min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.y.min + -1), 0), 7)
+
+  a_copy[i].min (9): min(max(min(heat3d.s0.z.min, 7), 0), 7)
+  a[i].min      (6): min(max(heat3d.s0.z.min, 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.x.min + -1), min(heat3d.s0.x.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.y.min + -1), min(heat3d.s0.y.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.y.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min(heat3d.s0.z.min, min((heat3d.s0.z.min + -1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.x.min + -1), min(heat3d.s0.x.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.x.min + -1), 0), 7)
+
+  a_copy[i].min (13): min(max(min((heat3d.s0.y.min + -1), min(heat3d.s0.y.min, 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.y.min + -1), 0), 7)
+
+  a_copy[i].min (14): min(max(min((heat3d.s0.z.min + -1), min((heat3d.s0.z.min + 1), 7)), 0), 7)
+  a[i].min      (7): min(max((heat3d.s0.z.min + -1), 0), 7)
+
+  a_copy[i].max (76): max(min((((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + -1), 7), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 7), 0)
+
+  a_copy[i].min (22): min(max(min(min((heat3d.s0.x.max + -8), (heat3d.s0.x.min + -1)), min((min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)) + 1), 7)), 0), 7)
+  a[i].min      (19): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), (heat3d.s0.x.max + -8)))), 0), 7)
+
+  a_copy[i].min (20): min(max(min(min((heat3d.s0.y.max + -7), heat3d.s0.y.min), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (10): min(max(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 0), 7)
+
+  a_copy[i].min (84): min(max(min(((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7)), 0), 7)
+  a[i].min      (42): min(max((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 0), 7)
+
+  a_copy[i].max (116): max(min((max((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+  a[i].max      (76): max(min((((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+
+  a_copy[i].min (29): min(max(min(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), (heat3d.s0.x.max + -8)))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), 0), 7)
+
+  a_copy[i].min (21): min(max(min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), min((min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)) + -1), 7)), 0), 7)
+  a[i].min      (18): min(max(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), heat3d.s0.y.min))), 0), 7)
+
+  a_copy[i].min (45): min(max(min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7), 0), 7)
+  a[i].min      (42): min(max(((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), 0), 7)
+
+  a_copy[i].max (148): max(min((max(((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 7), 0)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), 0), 7)
+
+  a_copy[i].min (29): min(max(min(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), heat3d.s0.y.min))), min((min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)) + 1), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), 0), 7)
+
+  a_copy[i].min (84): min(max(min(((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7)), 0), 7)
+  a[i].min      (42): min(max((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 0), 7)
+
+  a_copy[i].max (116): max(min((max((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+  a[i].max      (76): max(min((((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), min(heat3d.s0.y.min, min((heat3d.s0.y.min + 1), (heat3d.s0.y.max + -6)))))), 0), 7)
+
+  a_copy[i].min (85): min(max(min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), min(((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7)), 0), 7)
+  a[i].min      (43): min(max((((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 0), 7)
+
+  a_copy[i].max (149): max(min(max((((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), (((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + -2)), 7), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 7), 0)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), min(heat3d.s0.y.min, min((heat3d.s0.y.min + 1), (heat3d.s0.y.max + -6)))))), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), 0), 7)
+
+  a_copy[i].min (86): min(max(min((((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), min(((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + 1), 7)), 0), 7)
+  a[i].min      (43): min(max(((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 0), 7)
+
+  a_copy[i].max (116): max(min(max(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7), 0)
+  a[i].max      (75): max(min(((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7), 0)
+
+  a_copy[i].max (76): max(min((((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + -1), 7), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 7), 0)
+
+  a_copy[i].min (22): min(max(min(min((heat3d.s0.x.max + -8), (heat3d.s0.x.min + -1)), min((min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)) + 1), 7)), 0), 7)
+  a[i].min      (19): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), (heat3d.s0.x.max + -8)))), 0), 7)
+
+  a_copy[i].min (20): min(max(min(min((heat3d.s0.y.max + -7), heat3d.s0.y.min), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (10): min(max(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 0), 7)
+
+  a_copy[i].min (84): min(max(min(((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7)), 0), 7)
+  a[i].min      (42): min(max((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 0), 7)
+
+  a_copy[i].max (116): max(min((max((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+  a[i].max      (76): max(min((((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+
+  a_copy[i].min (29): min(max(min(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), (heat3d.s0.x.max + -8)))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), 0), 7)
+
+  a_copy[i].min (21): min(max(min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), min((min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)) + -1), 7)), 0), 7)
+  a[i].min      (18): min(max(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), heat3d.s0.y.min))), 0), 7)
+
+  a_copy[i].min (45): min(max(min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7), 0), 7)
+  a[i].min      (42): min(max(((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), 0), 7)
+
+  a_copy[i].max (148): max(min((max(((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 7), 0)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), 0), 7)
+
+  a_copy[i].min (29): min(max(min(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), heat3d.s0.y.min))), min((min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)) + 1), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), 0), 7)
+
+  a_copy[i].min (84): min(max(min(((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7)), 0), 7)
+  a[i].min      (42): min(max((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 0), 7)
+
+  a_copy[i].max (116): max(min((max((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+  a[i].max      (76): max(min((((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), min(heat3d.s0.y.min, min((heat3d.s0.y.min + 1), (heat3d.s0.y.max + -6)))))), 0), 7)
+
+  a_copy[i].min (85): min(max(min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), min(((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7)), 0), 7)
+  a[i].min      (43): min(max((((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 0), 7)
+
+  a_copy[i].max (149): max(min(max((((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), (((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + -2)), 7), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 7), 0)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), min(heat3d.s0.y.min, min((heat3d.s0.y.min + 1), (heat3d.s0.y.max + -6)))))), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), 0), 7)
+
+  a_copy[i].min (86): min(max(min((((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), min(((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + 1), 7)), 0), 7)
+  a[i].min      (43): min(max(((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 0), 7)
+
+  a_copy[i].max (116): max(min(max(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7), 0)
+  a[i].max      (75): max(min(((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7), 0)
+
+  a_copy[i].max (76): max(min((((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + -1), 7), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 7), 0)
+
+  a_copy[i].min (22): min(max(min(min((heat3d.s0.x.max + -8), (heat3d.s0.x.min + -1)), min((min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)) + 1), 7)), 0), 7)
+  a[i].min      (19): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), (heat3d.s0.x.max + -8)))), 0), 7)
+
+  a_copy[i].min (20): min(max(min(min((heat3d.s0.y.max + -7), heat3d.s0.y.min), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (10): min(max(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 0), 7)
+
+  a_copy[i].min (84): min(max(min(((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7)), 0), 7)
+  a[i].min      (42): min(max((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 0), 7)
+
+  a_copy[i].max (116): max(min((max((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+  a[i].max      (76): max(min((((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+
+  a_copy[i].min (29): min(max(min(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), (heat3d.s0.x.max + -8)))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), 0), 7)
+
+  a_copy[i].min (21): min(max(min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), min((min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)) + -1), 7)), 0), 7)
+  a[i].min      (18): min(max(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), heat3d.s0.y.min))), 0), 7)
+
+  a_copy[i].min (45): min(max(min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7), 0), 7)
+  a[i].min      (42): min(max(((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), 0), 7)
+
+  a_copy[i].max (148): max(min((max(((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 7), 0)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), 0), 7)
+
+  a_copy[i].min (29): min(max(min(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), heat3d.s0.y.min))), min((min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)) + 1), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), 0), 7)
+
+  a_copy[i].min (84): min(max(min(((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7)), 0), 7)
+  a[i].min      (42): min(max((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 0), 7)
+
+  a_copy[i].max (116): max(min((max((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+  a[i].max      (76): max(min((((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7), 0)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), min(heat3d.s0.y.min, min((heat3d.s0.y.min + 1), (heat3d.s0.y.max + -6)))))), 0), 7)
+
+  a_copy[i].min (85): min(max(min((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), min(((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 7)), 0), 7)
+  a[i].min      (43): min(max((((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 0), 7)
+
+  a_copy[i].max (149): max(min(max((((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), (((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + -2)), 7), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), 7), 0)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.x.max + -7), min(heat3d.s0.x.min, min((heat3d.s0.x.max + -8), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.min + 1), (heat3d.s0.x.max + -6)))))), min(min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.x.max + -6), min((heat3d.s0.x.min + 1), min((heat3d.s0.x.min + -1), min((heat3d.s0.x.max + -8), min(heat3d.s0.x.min, (heat3d.s0.x.max + -7)))))), 0), 7)
+
+  a_copy[i].min (36): min(max(min(min((heat3d.s0.y.max + -8), min((heat3d.s0.y.min + -1), min((heat3d.s0.y.max + -7), min(heat3d.s0.y.min, min((heat3d.s0.y.min + 1), (heat3d.s0.y.max + -6)))))), min(min(heat3d.s0.y.min, (heat3d.s0.y.max + -7)), 7)), 0), 7)
+  a[i].min      (26): min(max(min((heat3d.s0.y.max + -6), min((heat3d.s0.y.min + 1), min(heat3d.s0.y.min, min((heat3d.s0.y.max + -7), min((heat3d.s0.y.min + -1), (heat3d.s0.y.max + -8)))))), 0), 7)
+
+  a_copy[i].min (86): min(max(min((((Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), min(((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + 1), 7)), 0), 7)
+  a[i].min      (43): min(max(((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + -1), 0), 7)
+
+  a_copy[i].max (116): max(min(max(((((Rank + 1)*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors))))) + heat3d.s0.z.min) + -1), ((heat3d.s0.z.min + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7), 0)
+  a[i].max      (75): max(min(((int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))) + heat3d.s0.z.min) + (Rank*int32(ceil_f32((float32(((heat3d.s0.z.max - heat3d.s0.z.min) + 1))/float32(NumProcessors)))))), 7), 0)
+
+  halide_intersect[i].min (32): max(min(max(min(((heat3d.min.0 + heat3d.extent.0) + -7), min((heat3d.min.0 + 1), min((heat3d.min.0 + -1), min(((heat3d.min.0 + heat3d.extent.0) + -9), min(heat3d.min.0, ((heat3d.min.0 + heat3d.extent.0) + -8)))))), 0), 7), 0)
+  nfm_intersect[i].min    (29): min(max(min(((heat3d.extent.0 + heat3d.min.0) + -8), min(heat3d.min.0, min(((heat3d.extent.0 + heat3d.min.0) + -9), min((heat3d.min.0 + -1), min((heat3d.min.0 + 1), ((heat3d.extent.0 + heat3d.min.0) + -7)))))), 0), 7)
+
+  halide_intersect[i].max (81): min(max(min(max(min((((((heat3d.extent.0 + -1)/8)*8) + heat3d.min.0) + 8), (heat3d.min.0 + heat3d.extent.0)), min((((((heat3d.extent.0 + -1)/8)*8) + heat3d.min.0) + 7), ((heat3d.min.0 + heat3d.extent.0) + -1))), 7), 0), 7)
+  nfm_intersect[i].max    (78): max(min(max(min((((((heat3d.extent.0 + -1)/8)*8) + heat3d.min.0) + 7), ((heat3d.min.0 + heat3d.extent.0) + -1)), min((((((heat3d.extent.0 + -1)/8)*8) + heat3d.min.0) + 8), (heat3d.min.0 + heat3d.extent.0))), 7), 0)
+
+  halide_intersect[i].min (32): max(min(max(min(((heat3d.min.1 + heat3d.extent.1) + -7), min((heat3d.min.1 + 1), min(heat3d.min.1, min(((heat3d.min.1 + heat3d.extent.1) + -8), min((heat3d.min.1 + -1), ((heat3d.min.1 + heat3d.extent.1) + -9)))))), 0), 7), 0)
+  nfm_intersect[i].min    (29): min(max(min(((heat3d.extent.1 + heat3d.min.1) + -9), min((heat3d.min.1 + -1), min(((heat3d.extent.1 + heat3d.min.1) + -8), min(heat3d.min.1, min((heat3d.min.1 + 1), ((heat3d.extent.1 + heat3d.min.1) + -7)))))), 0), 7)
+
+  halide_intersect[i].max (81): min(max(min(max(min((((((heat3d.extent.1 + -1)/8)*8) + heat3d.min.1) + 8), (heat3d.min.1 + heat3d.extent.1)), min((((((heat3d.extent.1 + -1)/8)*8) + heat3d.min.1) + 7), ((heat3d.min.1 + heat3d.extent.1) + -1))), 7), 0), 7)
+  nfm_intersect[i].max    (78): max(min(max(min((((((heat3d.extent.1 + -1)/8)*8) + heat3d.min.1) + 7), ((heat3d.min.1 + heat3d.extent.1) + -1)), min((((((heat3d.extent.1 + -1)/8)*8) + heat3d.min.1) + 8), (heat3d.min.1 + heat3d.extent.1))), 7), 0)
+
+  halide_intersect[i].min (76): max((int32(ceil_f32((8.000000f/float32(NumProcessors))))*Rank), min(max(((heat3d.min.2 + (r*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))) + -1), 0), 7))
+  nfm_intersect[i].min    (111): min(max((Rank*int32(ceil_f32((8.000000f/float32(NumProcessors))))), 7), max(max((Rank*int32(ceil_f32((8.000000f/float32(NumProcessors))))), (((r*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors))))) + heat3d.min.2) + -1)), 0))
+
+  halide_intersect[i].max (111): min((min((int32(ceil_f32((8.000000f/float32(NumProcessors))))*(Rank + 1)), 8) + -1), max(min(((int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))) + heat3d.min.2) + (r*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))), 7), 0))
+  nfm_intersect[i].max    (115): max(min((((Rank + 1)*int32(ceil_f32((8.000000f/float32(NumProcessors))))) + -1), 0), min(min((((Rank + 1)*int32(ceil_f32((8.000000f/float32(NumProcessors))))) + -1), (((r + 1)*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors))))) + heat3d.min.2)), 7))
+
+  halide_encloses (183): (((int32(ceil_f32((8.000000f/float32(NumProcessors))))*r) <= min(max(((heat3d.min.2 + (r*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))) + -1), 0), 7)) && ((max(min(((int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))) + heat3d.min.2) + (r*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))), 7), 0) + 1) <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(r + 1))))
+  nfm_encloses    (565): (((((((-7 <= ((int32(ceil_f32((8.000000f/float32(NumProcessors))))*-1)*r)) && (1 <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(r + 1)))) && ((heat3d.min.2 + 1) <= ((int32(ceil_f32((8.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))*(r + 1)))) && ((1 - heat3d.min.2) <= ((int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))) - int32(ceil_f32((8.000000f/float32(NumProcessors)))))*r))) || (((0 <= ((int32(ceil_f32((8.000000f/float32(NumProcessors))))*-1)*r)) && (1 <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(r + 1)))) && ((heat3d.min.2 + 1) <= ((int32(ceil_f32((8.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))*(r + 1))))) || (((-7 <= ((int32(ceil_f32((8.000000f/float32(NumProcessors))))*-1)*r)) && (8 <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(r + 1)))) && ((1 - heat3d.min.2) <= ((int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))) - int32(ceil_f32((8.000000f/float32(NumProcessors)))))*r)))) || ((0 <= ((int32(ceil_f32((8.000000f/float32(NumProcessors))))*-1)*r)) && (8 <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(r + 1)))))
+
+  halide_intersect[i].min (32): max(min(max(min(((heat3d.min.0 + heat3d.extent.0) + -7), min((heat3d.min.0 + 1), min((heat3d.min.0 + -1), min(((heat3d.min.0 + heat3d.extent.0) + -9), min(heat3d.min.0, ((heat3d.min.0 + heat3d.extent.0) + -8)))))), 0), 7), 0)
+  nfm_intersect[i].min    (29): min(max(min(((heat3d.extent.0 + heat3d.min.0) + -8), min(heat3d.min.0, min(((heat3d.extent.0 + heat3d.min.0) + -9), min((heat3d.min.0 + -1), min((heat3d.min.0 + 1), ((heat3d.extent.0 + heat3d.min.0) + -7)))))), 0), 7)
+
+  halide_intersect[i].max (81): min(max(min(max(min((((((heat3d.extent.0 + -1)/8)*8) + heat3d.min.0) + 8), (heat3d.min.0 + heat3d.extent.0)), min((((((heat3d.extent.0 + -1)/8)*8) + heat3d.min.0) + 7), ((heat3d.min.0 + heat3d.extent.0) + -1))), 7), 0), 7)
+  nfm_intersect[i].max    (78): max(min(max(min((((((heat3d.extent.0 + -1)/8)*8) + heat3d.min.0) + 7), ((heat3d.min.0 + heat3d.extent.0) + -1)), min((((((heat3d.extent.0 + -1)/8)*8) + heat3d.min.0) + 8), (heat3d.min.0 + heat3d.extent.0))), 7), 0)
+
+  halide_intersect[i].min (32): max(min(max(min(((heat3d.min.1 + heat3d.extent.1) + -7), min((heat3d.min.1 + 1), min(heat3d.min.1, min(((heat3d.min.1 + heat3d.extent.1) + -8), min((heat3d.min.1 + -1), ((heat3d.min.1 + heat3d.extent.1) + -9)))))), 0), 7), 0)
+  nfm_intersect[i].min    (29): min(max(min(((heat3d.extent.1 + heat3d.min.1) + -9), min((heat3d.min.1 + -1), min(((heat3d.extent.1 + heat3d.min.1) + -8), min(heat3d.min.1, min((heat3d.min.1 + 1), ((heat3d.extent.1 + heat3d.min.1) + -7)))))), 0), 7)
+
+  halide_intersect[i].max (81): min(max(min(max(min((((((heat3d.extent.1 + -1)/8)*8) + heat3d.min.1) + 8), (heat3d.min.1 + heat3d.extent.1)), min((((((heat3d.extent.1 + -1)/8)*8) + heat3d.min.1) + 7), ((heat3d.min.1 + heat3d.extent.1) + -1))), 7), 0), 7)
+  nfm_intersect[i].max    (78): max(min(max(min((((((heat3d.extent.1 + -1)/8)*8) + heat3d.min.1) + 7), ((heat3d.min.1 + heat3d.extent.1) + -1)), min((((((heat3d.extent.1 + -1)/8)*8) + heat3d.min.1) + 8), (heat3d.min.1 + heat3d.extent.1))), 7), 0)
+
+  halide_intersect[i].min (76): max((int32(ceil_f32((8.000000f/float32(NumProcessors))))*r), min(max(((heat3d.min.2 + (Rank*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))) + -1), 0), 7))
+  nfm_intersect[i].min    (111): min(max((r*int32(ceil_f32((8.000000f/float32(NumProcessors))))), 7), max(max((r*int32(ceil_f32((8.000000f/float32(NumProcessors))))), (((Rank*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors))))) + heat3d.min.2) + -1)), 0))
+
+  halide_intersect[i].max (111): min((min((int32(ceil_f32((8.000000f/float32(NumProcessors))))*(r + 1)), 8) + -1), max(min(((int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))) + heat3d.min.2) + (Rank*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))), 7), 0))
+  nfm_intersect[i].max    (115): max(min((((r + 1)*int32(ceil_f32((8.000000f/float32(NumProcessors))))) + -1), 0), min(min((((r + 1)*int32(ceil_f32((8.000000f/float32(NumProcessors))))) + -1), (((Rank + 1)*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors))))) + heat3d.min.2)), 7))
+
+  halide_encloses (183): (((int32(ceil_f32((8.000000f/float32(NumProcessors))))*Rank) <= min(max(((heat3d.min.2 + (Rank*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))) + -1), 0), 7)) && ((max(min(((int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))) + heat3d.min.2) + (Rank*int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))), 7), 0) + 1) <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(Rank + 1))))
+  nfm_encloses    (685): (((((((-7 <= ((int32(ceil_f32((8.000000f/float32(NumProcessors))))*-1)*Rank)) && (1 <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(Rank + 1)))) && ((((heat3d.min.2 - ((int32(ceil_f32((8.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))*Rank)) + int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors))))) + 1) <= int32(ceil_f32((8.000000f/float32(NumProcessors)))))) && ((1 - ((int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))) - int32(ceil_f32((8.000000f/float32(NumProcessors)))))*Rank)) <= heat3d.min.2)) || (((0 <= ((int32(ceil_f32((8.000000f/float32(NumProcessors))))*-1)*Rank)) && (1 <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(Rank + 1)))) && ((((heat3d.min.2 - ((int32(ceil_f32((8.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))))*Rank)) + int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors))))) + 1) <= int32(ceil_f32((8.000000f/float32(NumProcessors))))))) || (((-7 <= ((int32(ceil_f32((8.000000f/float32(NumProcessors))))*-1)*Rank)) && (8 <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(Rank + 1)))) && ((1 - ((int32(ceil_f32((float32(heat3d.extent.2)/float32(NumProcessors)))) - int32(ceil_f32((8.000000f/float32(NumProcessors)))))*Rank)) <= heat3d.min.2))) || ((0 <= ((int32(ceil_f32((8.000000f/float32(NumProcessors))))*-1)*Rank)) && (8 <= (int32(ceil_f32((8.000000f/float32(NumProcessors))))*(Rank + 1)))))
+Timing: <1> ranks <0.000017> seconds, 20/80 percentile <0.000016,0.000024>
+Heat test succeeded!

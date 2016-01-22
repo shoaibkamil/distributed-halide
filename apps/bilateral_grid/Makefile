@@ -43,5 +43,5 @@ clean:
 distrib: distributed_bilateral_grid
 	$(LD_PATH_SETUP) HL_DEBUG_CODEGEN=1 ./distributed_bilateral_grid 8 8
 
-run:
+run: bilateral_grid
 	$(LD_PATH_SETUP) ./bilateral_grid 8

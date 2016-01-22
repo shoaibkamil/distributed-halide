@@ -42,3 +42,5 @@ bench_64x64: bench_fft
 
 clean:
 	rm -f bench_fft c2c.html r2c.html c2r.html
+
+run: bench_16x16

@@ -57,5 +57,8 @@ test: $(BUILD_DIR)/wavelet
 	@echo Testing wavelet...
 	@$< ../images/gray.png $(BUILD_DIR)
 
+distrib: distributed_wavelet
+	$(LD_PATH_SETUP) ./distributed_wavelet 512 512
+
 # Don't auto-delete the generators.
 .SECONDARY:

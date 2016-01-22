@@ -2,6 +2,7 @@
 #include "mpi_timing.h"
 #include <stdio.h>
 #include <assert.h>
+#include <sys/time.h>
 
 using namespace Halide;
 

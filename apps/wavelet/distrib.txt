@@ -1,0 +1,180 @@
+LD_LIBRARY_PATH=:../../non-linear-FM/bin/:../../non-linear-FM/isl-0.15/release/lib ./distributed_wavelet 512 512
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.loop_min*2) + -1), min(((f5.s0.v0.loop_min*2) + 1), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.loop_min*2) + -1), 0), 511)
+
+  a_copy[i].max (19): max(min(max((((f5.s0.v0.loop_extent + f5.s0.v0.loop_min)*2) + -2), (((f5.s0.v0.loop_min + f5.s0.v0.loop_extent)*2) + -1)), 511), 0)
+  a[i].max      (11): max(min((((f5.s0.v0.loop_min + f5.s0.v0.loop_extent)*2) + -1), 511), 0)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.loop_min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.loop_min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.loop_min*2) + -1), min(((f5.s0.v0.loop_min*2) + 2), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.loop_min*2) + -1), 0), 511)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.loop_min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.loop_min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 1), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 2), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.loop_min*2) + -1), min(((f5.s0.v0.loop_min*2) + 1), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.loop_min*2) + -1), 0), 511)
+
+  a_copy[i].max (19): max(min(max((((f5.s0.v0.loop_min + f5.s0.v0.loop_extent)*2) + -2), (((f5.s0.v0.loop_extent + f5.s0.v0.loop_min)*2) + -1)), 511), 0)
+  a[i].max      (11): max(min((((f5.s0.v0.loop_extent + f5.s0.v0.loop_min)*2) + -1), 511), 0)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.loop_min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.loop_min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.loop_min*2) + -1), min(((f5.s0.v0.loop_min*2) + 2), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.loop_min*2) + -1), 0), 511)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.loop_min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.loop_min, 0), 511)
+
+  a_copy[i].max (108): max(min((max(((f5.min.1 + (int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))*Rank)) + int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))), (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(Rank + 1))) + -1), 511), 0)
+  a[i].max      (78): max(min((max(((Rank + 1)*int32(ceil_f32((512.000000f/float32(NumProcessors))))), (((Rank + 1)*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) + f5.min.1)) + -1), 511), 0)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 1), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 2), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.loop_min*2) + -1), min(((f5.s0.v0.loop_min*2) + 1), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.loop_min*2) + -1), 0), 511)
+
+  a_copy[i].max (19): max(min(max((((f5.s0.v0.loop_extent + f5.s0.v0.loop_min)*2) + -2), (((f5.s0.v0.loop_min + f5.s0.v0.loop_extent)*2) + -1)), 511), 0)
+  a[i].max      (11): max(min((((f5.s0.v0.loop_min + f5.s0.v0.loop_extent)*2) + -1), 511), 0)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.loop_min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.loop_min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.loop_min*2) + -1), min(((f5.s0.v0.loop_min*2) + 2), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.loop_min*2) + -1), 0), 511)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.loop_min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.loop_min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 1), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.min, 0), 511)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 2), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (9): min(max(min(f5.s0.v1.min, 511), 0), 511)
+  a[i].min      (6): min(max(f5.s0.v1.min, 0), 511)
+
+  a_copy[i].max (76): max(min((((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + -1), 511), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min) + -1), 511), 0)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 1), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (84): min(max(min(((Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min), min((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), 511)), 0), 511)
+  a[i].min      (42): min(max((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), 0), 511)
+
+  a_copy[i].max (116): max(min((max((((Rank + 1)*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min), ((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + -1), 511), 0)
+  a[i].max      (76): max(min((((int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))) + f5.s0.v1.min) + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + -1), 511), 0)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 2), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (45): min(max(min((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), 511), 0), 511)
+  a[i].min      (42): min(max(((Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min), 0), 511)
+
+  a_copy[i].max (148): max(min((max(((int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))) + f5.s0.v1.min) + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), ((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + -1), 511), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min) + -1), 511), 0)
+
+  a_copy[i].max (76): max(min((((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + -1), 511), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min) + -1), 511), 0)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 1), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (84): min(max(min(((Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min), min((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), 511)), 0), 511)
+  a[i].min      (42): min(max((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), 0), 511)
+
+  a_copy[i].max (116): max(min((max((((Rank + 1)*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min), ((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + -1), 511), 0)
+  a[i].max      (76): max(min((((int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))) + f5.s0.v1.min) + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + -1), 511), 0)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 2), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (45): min(max(min((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), 511), 0), 511)
+  a[i].min      (42): min(max(((Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min), 0), 511)
+
+  a_copy[i].max (148): max(min((max(((int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))) + f5.s0.v1.min) + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), ((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + -1), 511), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min) + -1), 511), 0)
+
+  a_copy[i].max (76): max(min((((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + -1), 511), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min) + -1), 511), 0)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 1), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (84): min(max(min(((Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min), min((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), 511)), 0), 511)
+  a[i].min      (42): min(max((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), 0), 511)
+
+  a_copy[i].max (116): max(min((max((((Rank + 1)*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min), ((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + -1), 511), 0)
+  a[i].max      (76): max(min((((int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))) + f5.s0.v1.min) + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + -1), 511), 0)
+
+  a_copy[i].min (20): min(max(min(((f5.s0.v0.min*2) + -1), min(((f5.s0.v0.min*2) + 2), 511)), 0), 511)
+  a[i].min      (10): min(max(((f5.s0.v0.min*2) + -1), 0), 511)
+
+  a_copy[i].min (45): min(max(min((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), 511), 0), 511)
+  a[i].min      (42): min(max(((Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min), 0), 511)
+
+  a_copy[i].max (148): max(min((max(((int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))) + f5.s0.v1.min) + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))), ((f5.s0.v1.min + (Rank*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors)))))) + -1), 511), 0)
+  a[i].max      (44): max(min(((((Rank + 1)*int32(ceil_f32((float32(((f5.s0.v1.max - f5.s0.v1.min) + 1))/float32(NumProcessors))))) + f5.s0.v1.min) + -1), 511), 0)
+
+  halide_intersect[i].min (13): max(min(max(((f5.min.0*2) + -1), 0), 511), 0)
+  nfm_intersect[i].min    (10): min(max(((f5.min.0*2) + -1), 0), 511)
+
+  halide_intersect[i].max (13): min(max(min(((f5.min.0 + f5.extent.0)*2), 511), 0), 511)
+  nfm_intersect[i].max    (10): max(min(((f5.extent.0 + f5.min.0)*2), 511), 0)
+
+  halide_intersect[i].min (75): max((int32(ceil_f32((512.000000f/float32(NumProcessors))))*Rank), min(max(((r*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) + f5.min.1), 0), 511))
+  nfm_intersect[i].min    (110): min(max((Rank*int32(ceil_f32((512.000000f/float32(NumProcessors))))), 511), max(max((Rank*int32(ceil_f32((512.000000f/float32(NumProcessors))))), (f5.min.1 + (r*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))))), 0))
+
+  halide_intersect[i].max (82): min((min((int32(ceil_f32((512.000000f/float32(NumProcessors))))*(Rank + 1)), 512) + -1), max(min(((((r + 1)*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) + f5.min.1) + -1), 511), 0))
+  nfm_intersect[i].max    (145): max(min((((Rank + 1)*int32(ceil_f32((512.000000f/float32(NumProcessors))))) + -1), 0), min((min(((Rank + 1)*int32(ceil_f32((512.000000f/float32(NumProcessors))))), ((int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))) + f5.min.1) + (r*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))))) + -1), 511))
+
+  halide_encloses (153): (((int32(ceil_f32((512.000000f/float32(NumProcessors))))*r) <= min(max(((r*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) + f5.min.1), 0), 511)) && ((max(min(((((r + 1)*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) + f5.min.1) + -1), 511), 0) + 1) <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(r + 1))))
+  nfm_encloses    (563): (((((((f5.min.1 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))))*(r + 1))) && (-511 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors))))*-1)*r))) && ((0 - f5.min.1) <= ((int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))) - int32(ceil_f32((512.000000f/float32(NumProcessors)))))*r))) && (1 <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(r + 1)))) || (((0 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors))))*-1)*r)) && (f5.min.1 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))))*(r + 1)))) && (1 <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(r + 1))))) || (((-511 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors))))*-1)*r)) && ((0 - f5.min.1) <= ((int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))) - int32(ceil_f32((512.000000f/float32(NumProcessors)))))*r))) && (512 <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(r + 1))))) || ((0 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors))))*-1)*r)) && (512 <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(r + 1)))))
+
+  halide_intersect[i].min (13): max(min(max(((f5.min.0*2) + -1), 0), 511), 0)
+  nfm_intersect[i].min    (10): min(max(((f5.min.0*2) + -1), 0), 511)
+
+  halide_intersect[i].max (13): min(max(min(((f5.min.0 + f5.extent.0)*2), 511), 0), 511)
+  nfm_intersect[i].max    (10): max(min(((f5.extent.0 + f5.min.0)*2), 511), 0)
+
+  halide_intersect[i].min (75): max((int32(ceil_f32((512.000000f/float32(NumProcessors))))*r), min(max(((Rank*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) + f5.min.1), 0), 511))
+  nfm_intersect[i].min    (110): min(max((r*int32(ceil_f32((512.000000f/float32(NumProcessors))))), 511), max(max((r*int32(ceil_f32((512.000000f/float32(NumProcessors))))), (f5.min.1 + (Rank*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))))), 0))
+
+  halide_intersect[i].max (82): min((min((int32(ceil_f32((512.000000f/float32(NumProcessors))))*(r + 1)), 512) + -1), max(min(((((Rank + 1)*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) + f5.min.1) + -1), 511), 0))
+  nfm_intersect[i].max    (145): max(min((((r + 1)*int32(ceil_f32((512.000000f/float32(NumProcessors))))) + -1), 0), min((min(((r + 1)*int32(ceil_f32((512.000000f/float32(NumProcessors))))), ((int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))) + f5.min.1) + (Rank*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))))) + -1), 511))
+
+  halide_encloses (153): (((int32(ceil_f32((512.000000f/float32(NumProcessors))))*Rank) <= min(max(((Rank*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) + f5.min.1), 0), 511)) && ((max(min(((((Rank + 1)*int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) + f5.min.1) + -1), 511), 0) + 1) <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(Rank + 1))))
+  nfm_encloses    (683): (((((((-511 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors))))*-1)*Rank)) && (1 <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(Rank + 1)))) && (((f5.min.1 - ((int32(ceil_f32((512.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))))*Rank)) + int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) <= int32(ceil_f32((512.000000f/float32(NumProcessors)))))) && ((0 - ((int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))) - int32(ceil_f32((512.000000f/float32(NumProcessors)))))*Rank)) <= f5.min.1)) || (((0 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors))))*-1)*Rank)) && (1 <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(Rank + 1)))) && (((f5.min.1 - ((int32(ceil_f32((512.000000f/float32(NumProcessors)))) - int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))))*Rank)) + int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors))))) <= int32(ceil_f32((512.000000f/float32(NumProcessors))))))) || (((-511 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors))))*-1)*Rank)) && (512 <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(Rank + 1)))) && ((0 - ((int32(ceil_f32((float32(f5.extent.1)/float32(NumProcessors)))) - int32(ceil_f32((512.000000f/float32(NumProcessors)))))*Rank)) <= f5.min.1))) || ((0 <= ((int32(ceil_f32((512.000000f/float32(NumProcessors))))*-1)*Rank)) && (512 <= (int32(ceil_f32((512.000000f/float32(NumProcessors))))*(Rank + 1)))))
+Timing: <1> ranks <0.000864> seconds, 20/80 percentile <0.000858,0.001028>
+Wavelet test succeeded!

@@ -23,9 +23,9 @@ else
 OPENMP_FLAGS=
 endif
 
-distributed_matrix_multiply: ../../ matrix_multiply_distributed.cpp
-	$(MAKE) -C ../../ $(LIB_HALIDE)
-	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -I$(NFM_HEADER) -O3 matrix_multiply_distributed.cpp ../../$(LIB_HALIDE) -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp -o distributed_matrix_multiply -ldl -ltinfo -lpthread -lz $(LDFLAGS)
+distributed_matrix_multiply: matrix_multiply_distributed.cpp
+	#$(MAKE) -C $(LIB_HALIDE)
+	$(CXX) $(MPI_CXX_FLAGS) $(CXXFLAGS) -I$(NFM_HEADER) -O3 matrix_multiply_distributed.cpp $(LIB_HALIDE) -L$(NFM_LIB) -lnfm -L$(ISL_LIB) -lisl -lgmp -o distributed_matrix_multiply -ldl -ltinfo -lpthread -lz $(LDFLAGS)
 
 clean:
 	rm -f test distributed_matrix_multiply

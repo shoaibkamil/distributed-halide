@@ -47,3 +47,6 @@ distributed_local_laplacian: ../../ local_laplacian_distributed.cpp
 
 clean:
 	rm -f process local_laplacian.o process_viz local_laplacian_viz.o local_laplacian_gen local_laplacian.mp4 distributed_local_laplacian
+
+run: local_laplacian_gen
+	$(LD_PATH_SETUP) ./local_laplacian_gen

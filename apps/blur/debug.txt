@@ -1,0 +1,50 @@
+mpicxx -std=c++11 -I ../../include/ -I ../../tools/ -I ../../apps/support/ -I../../non-linear-FM/src/ halide_blur.cpp ../../bin/libHalide.a -L../../non-linear-FM/bin/ -lnfm -L../../non-linear-FM/isl-0.15/release/lib -lisl -lgmp -o halide_blur -ldl -ltinfo -lpthread -lz 
+LD_LIBRARY_PATH=:../../non-linear-FM/bin/:../../non-linear-FM/isl-0.15/release/lib ./halide_blur
+
+  a_copy[i].min (12): min(min((blur_x.s0.x.max + -7), blur_x.s0.x.min), (min(blur_x.s0.x.min, (blur_x.s0.x.max + -7)) + 2))
+  a[i].min      (4): min(blur_x.s0.x.min, (blur_x.s0.x.max + -7))
+
+  a_copy[i].min (12): min(min((blur_y.s0.y.max + -7), blur_y.s0.y.min), (min(blur_y.s0.y.min, (blur_y.s0.y.max + -7)) + 2))
+  a[i].min      (4): min(blur_y.s0.y.min, (blur_y.s0.y.max + -7))
+
+  a_copy[i].min (9): (min(((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min), (blur_y.s0.x.loop_max + -7)) + blur_y.s0.x.v0.loop_min)
+  a[i].min      (10): min(((blur_y.s0.x.v0.loop_min + blur_y.s0.x.loop_max) + -7), ((blur_y.s0.x.v0.loop_min + blur_y.s0.x.loop_min) + (blur_y.s0.x.x.loop_min*8)))
+
+  a_copy[i].max (13): ((min(((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + -8), (blur_y.s0.x.loop_max + -7)) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -1)
+  a[i].max      (17): min((((((blur_y.s0.x.v0.loop_min + blur_y.s0.x.v0.loop_extent) + blur_y.s0.x.loop_min) + (blur_y.s0.x.x.loop_min*8)) + (blur_y.s0.x.x.loop_extent*8)) + -9), (((blur_y.s0.x.v0.loop_min + blur_y.s0.x.v0.loop_extent) + blur_y.s0.x.loop_max) + -8))
+
+  a_copy[i].min (22): min(min(((blur_y.s0.x.v0.loop_min + blur_y.s0.x.loop_max) + -7), ((blur_y.s0.x.v0.loop_min + blur_y.s0.x.loop_min) + (blur_y.s0.x.x.loop_min*8))), (min(((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min), (blur_y.s0.x.loop_max + -7)) + blur_y.s0.x.v0.loop_min))
+  a[i].min      (10): min((((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min) + blur_y.s0.x.v0.loop_min), ((blur_y.s0.x.loop_max + blur_y.s0.x.v0.loop_min) + -7))
+
+  a_copy[i].max (33): max(min((((((blur_y.s0.x.v0.loop_min + blur_y.s0.x.v0.loop_extent) + blur_y.s0.x.loop_min) + (blur_y.s0.x.x.loop_min*8)) + (blur_y.s0.x.x.loop_extent*8)) + -9), (((blur_y.s0.x.v0.loop_min + blur_y.s0.x.v0.loop_extent) + blur_y.s0.x.loop_max) + -8)), ((min(((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + -8), (blur_y.s0.x.loop_max + -7)) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -1))
+  a[i].max      (14): min(((((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + blur_y.s0.x.v0.loop_extent) + blur_y.s0.x.v0.loop_min) + -9), (((blur_y.s0.x.loop_max + blur_y.s0.x.v0.loop_extent) + blur_y.s0.x.v0.loop_min) + -8))
+
+  a_copy[i].min (6): min((blur_y.s0.y.yi.loop_min + blur_y.s0.y.yi.base), ((blur_y.s0.y.yi.base + blur_y.s0.y.yi.loop_min) + 2))
+  a[i].min      (1): (blur_y.s0.y.yi.base + blur_y.s0.y.yi.loop_min)
+
+  a_copy[i].max (8): max(((blur_y.s0.y.yi.loop_min + blur_y.s0.y.yi.loop_extent) + blur_y.s0.y.yi.base), ((blur_y.s0.y.yi.base + (blur_y.s0.y.yi.loop_extent + blur_y.s0.y.yi.loop_min)) + 1))
+  a[i].max      (3): (((blur_y.s0.y.yi.base + blur_y.s0.y.yi.loop_extent) + blur_y.s0.y.yi.loop_min) + 1)
+
+  a_copy[i].min (60): min(min((((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min) + blur_y.s0.x.v0.loop_min), ((blur_y.s0.x.loop_max + blur_y.s0.x.v0.loop_min) + -7)), (let t12.s = ((min(((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + -8), (blur_y.s0.x.loop_max + -7)) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) - (min(((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min), (blur_y.s0.x.loop_max + -7)) + blur_y.s0.x.v0.loop_min)) in (let t15 = min((min(((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min), (blur_y.s0.x.loop_max + -7)) + blur_y.s0.x.v0.loop_min), ((min(((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + -8), (blur_y.s0.x.loop_max + -7)) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -8)) in t15)))
+  a[i].min      (40): (let t15 = min(min((((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min) + blur_y.s0.x.v0.loop_min), ((blur_y.s0.x.loop_max + blur_y.s0.x.v0.loop_min) + -7)), min((((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -16), ((blur_y.s0.x.loop_max + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -15))) in min(t15, min(((blur_y.s0.x.loop_max + blur_y.s0.x.v0.loop_min) + -7), ((blur_y.s0.x.v0.loop_min + blur_y.s0.x.loop_min) + (blur_y.s0.x.x.loop_min*8)))))
+
+  a_copy[i].max (94): max(min(((((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + blur_y.s0.x.v0.loop_extent) + blur_y.s0.x.v0.loop_min) + -9), (((blur_y.s0.x.loop_max + blur_y.s0.x.v0.loop_extent) + blur_y.s0.x.v0.loop_min) + -8)), (let t12.s = ((min(((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + -8), (blur_y.s0.x.loop_max + -7)) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) - (min(((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min), (blur_y.s0.x.loop_max + -7)) + blur_y.s0.x.v0.loop_min)) in (let t14 = min(((((t12.s + -1)/8)*8) + (min(((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min), (blur_y.s0.x.loop_max + -7)) + blur_y.s0.x.v0.loop_min)), ((min(((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + -8), (blur_y.s0.x.loop_max + -7)) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -8)) in (t14 + 7))))
+  a[i].max      (131): (let t12.s = (min((((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -8), ((blur_y.s0.x.loop_max + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -7)) - min((((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min) + blur_y.s0.x.v0.loop_min), ((blur_y.s0.x.loop_max + blur_y.s0.x.v0.loop_min) + -7))) in (let t14 = min(min(((((t12.s + -1)/8)*8) + (((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min) + blur_y.s0.x.v0.loop_min)), (((((t12.s + -1)/8)*8) + (blur_y.s0.x.loop_max + blur_y.s0.x.v0.loop_min)) + -7)), min((((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -16), ((blur_y.s0.x.loop_max + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) + -15))) in max((t14 + 7), min((((((blur_y.s0.x.v0.loop_min + blur_y.s0.x.v0.loop_extent) + blur_y.s0.x.loop_min) + (blur_y.s0.x.x.loop_min*8)) + (blur_y.s0.x.x.loop_extent*8)) + -9), (((blur_y.s0.x.loop_max + blur_y.s0.x.v0.loop_min) + blur_y.s0.x.v0.loop_extent) + -8)))))
+
+  a_copy[i].min (27): min((blur_y.s0.y.yi.base + blur_y.s0.y.yi.loop_min), (let t12.s = ((min(((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + -8), (blur_y.s0.x.loop_max + -7)) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) - (min(((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min), (blur_y.s0.x.loop_max + -7)) + blur_y.s0.x.v0.loop_min)) in (blur_y.s0.y.yi.base + blur_y.s0.y.yi.loop_min)))
+  a[i].min      (1): (blur_y.s0.y.yi.loop_min + blur_y.s0.y.yi.base)
+
+  a_copy[i].max (31): max((((blur_y.s0.y.yi.base + blur_y.s0.y.yi.loop_extent) + blur_y.s0.y.yi.loop_min) + 1), (let t12.s = ((min(((((blur_y.s0.x.x.loop_extent + blur_y.s0.x.x.loop_min)*8) + blur_y.s0.x.loop_min) + -8), (blur_y.s0.x.loop_max + -7)) + (blur_y.s0.x.v0.loop_extent + blur_y.s0.x.v0.loop_min)) - (min(((blur_y.s0.x.x.loop_min*8) + blur_y.s0.x.loop_min), (blur_y.s0.x.loop_max + -7)) + blur_y.s0.x.v0.loop_min)) in ((blur_y.s0.y.yi.base + (blur_y.s0.y.yi.loop_extent + blur_y.s0.y.yi.loop_min)) + 1)))
+  a[i].max      (3): (((blur_y.s0.y.yi.loop_min + blur_y.s0.y.yi.loop_extent) + blur_y.s0.y.yi.base) + 1)
+
+  a_copy[i].min (6): min((blur_y.s0.y.yi + blur_y.s0.y.yi.base), ((blur_y.s0.y.yi.base + blur_y.s0.y.yi) + 2))
+  a[i].min      (1): (blur_y.s0.y.yi.base + blur_y.s0.y.yi)
+
+  a_copy[i].max (7): max(((blur_y.s0.y.yi + blur_y.s0.y.yi.base) + 1), ((blur_y.s0.y.yi.base + blur_y.s0.y.yi) + 2))
+  a[i].max      (2): ((blur_y.s0.y.yi.base + blur_y.s0.y.yi) + 2)
+
+  a_copy[i].min (23): min(min((blur_y.s0.x.loop_max + -7), blur_y.s0.x.loop_min), (let t19 = min(min(blur_y.s0.x.loop_min, (blur_y.s0.x.loop_max + -7)), (min((((blur_y.s0.x.x.loop_extent*8) + blur_y.s0.x.loop_min) + -1), blur_y.s0.x.loop_max) + -7)) in t19))
+  a[i].min      (19): (let t19 = min(min(blur_y.s0.x.loop_min, (((blur_y.s0.x.x.loop_extent*8) + blur_y.s0.x.loop_min) + -8)), (blur_y.s0.x.loop_max + -7)) in min(t19, min(blur_y.s0.x.loop_min, (blur_y.s0.x.loop_max + -7))))
+
+  a_copy[i].max (69): max(min((((blur_y.s0.x.x.loop_extent*8) + blur_y.s0.x.loop_min) + -1), blur_y.s0.x.loop_max), (let t18 = min((min(blur_y.s0.x.loop_min, (blur_y.s0.x.loop_max + -7)) + (((min((((blur_y.s0.x.x.loop_extent*8) + blur_y.s0.x.loop_min) + -1), blur_y.s0.x.loop_max) - min(blur_y.s0.x.loop_min, (blur_y.s0.x.loop_max + -7)))/8)*8)), (min((((blur_y.s0.x.x.loop_extent*8) + blur_y.s0.x.loop_min) + -1), blur_y.s0.x.loop_max) + -7)) in (t18 + 7)))
+  a[i].max      (110): (let t18 = min(min((blur_y.s0.x.loop_min + (((min((((blur_y.s0.x.x.loop_extent*8) + blur_y.s0.x.loop_min) + -1), blur_y.s0.x.loop_max) - min(blur_y.s0.x.loop_min, (blur_y.s0.x.loop_max + -7)))/8)*8)), ((blur_y.s0.x.loop_max + (((min((((blur_y.s0.x.x.loop_extent*8) + blur_y.s0.x.loop_min) + -1), blur_y.s0.x.loop_max) - min(blur_y.s0.x.loop_min, (blur_y.s0.x.loop_max + -7)))/8)*8)) + -7)), min((((blur_y.s0.x.x.loop_extent*8) + blur_y.s0.x.loop_min) + -8), (blur_y.s0.x.loop_max + -7))) in max((t18 + 7), min(((blur_y.s0.x.loop_min + (blur_y.s0.x.x.loop_extent*8)) + -1), blur_y.s0.x.loop_max)))

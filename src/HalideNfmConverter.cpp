@@ -99,6 +99,149 @@ vector<T> operator-(const vector<T>& a, const vector<T>& b) {
     return result;
 }
 
+class NumOpsCounter : public IRMutator {
+public:
+    NumOpsCounter() : count(0) {}
+    int get_count() { return count; }
+protected:
+    using IRMutator::visit;
+
+    void visit(const IntImm *) { count = 0; }
+    void visit(const UIntImm *) { count = 0; }
+    void visit(const FloatImm *) { count = 0; }
+    void visit(const Variable *) { count = 0; }
+
+    void visit(const Cast *op) { update_simple(op->value, COST_CAST); }
+    void visit(const Add *op) { update_simple(op->a, op->b, COST_ADD); }
+    void visit(const Sub *op) { update_simple(op->a, op->b, COST_SUB); }
+    void visit(const Mul *op) { update_simple(op->a, op->b, COST_MUL); }
+    void visit(const Div *op) { update_simple(op->a, op->b, COST_DIV); }
+    void visit(const Mod *op) { update_simple(op->a, op->b, COST_MOD); }
+
+    void visit(const Min *op) { update_min_max(op->a, op->b); }
+    void visit(const Max *op) { update_min_max(op->a, op->b); }
+
+    void visit(const EQ *op) { update_simple(op->a, op->b, COST_COMPARE); }
+    void visit(const NE *op) { update_simple(op->a, op->b, COST_COMPARE); }
+    void visit(const LT *op) { update_simple(op->a, op->b, COST_COMPARE); }
+    void visit(const LE *op) { update_simple(op->a, op->b, COST_COMPARE); }
+    void visit(const GT *op) { update_simple(op->a, op->b, COST_COMPARE); }
+    void visit(const GE *op) { update_simple(op->a, op->b, COST_COMPARE); }
+    void visit(const And *op) { update_simple(op->a, op->b, COST_AND); }
+    void visit(const Or *op) { update_simple(op->a, op->b, COST_OR); }
+    void visit(const Not *op) { update_simple(op->a, COST_NOT); }
+
+    void visit(const Select *op) {
+        int cond = 0;
+        mutate(op->condition);
+        swap(cond, count);
+
+        int left = 0;
+        mutate(op->true_value);
+        swap(left, count);
+
+        int right = 0;
+        mutate(op->false_value);
+        swap(right, count);
+
+        count = std::max(left, right) + cond + COST_RETURN;
+    }
+
+    void visit(const Call *op) {
+        for (const auto& expr : op->args) {
+            update_simple(expr, COST_CALL);
+        }
+    }
+
+    void visit(const Let *op) {
+        int val = 0;
+        mutate(op->value);
+        swap(val, count);
+
+        int body = 0;
+        mutate(op->body);
+        swap(body, count);
+
+        count = val + body;
+    }
+
+    void visit(const StringImm *) { error("StringImm"); }
+    void visit(const Load *) { error("Load"); }
+    void visit(const Ramp *) { error("Ramp"); }
+    void visit(const Broadcast *) { error("Broadcast"); }
+    void visit(const LetStmt *) { error("LetStmt"); }
+    void visit(const AssertStmt *) { error("AssertStmt"); }
+    void visit(const ProducerConsumer *) { error("ProducerConsumer"); }
+    void visit(const For *) { error("For"); }
+    void visit(const Store *) { error("Store"); }
+    void visit(const Provide *) { error("Provide"); }
+    void visit(const Allocate *) { error("Allocate"); }
+    void visit(const Free *) { error("Free"); }
+    void visit(const Realize *) { error("Realize"); }
+    void visit(const Block *) { error("Block"); }
+    void visit(const IfThenElse *) { error("IfThenElse"); }
+    void visit(const Evaluate *) { error("Evaluate"); }
+
+private:
+    static const int COST_CAST = 1;
+    static const int COST_ADD = 1;
+    static const int COST_SUB = 1;
+    static const int COST_MUL = 3;
+    static const int COST_DIV = 24;
+    static const int COST_MOD = 1;
+    static const int COST_RETURN = 1;
+    static const int COST_COMPARE = 2; // Subtract + Jump
+    static const int COST_AND = 1;
+    static const int COST_OR = 1;
+    static const int COST_NOT = 1;
+    static const int COST_CALL = 3;
+
+    int count;
+
+    void error(const std::string& op_name) {
+        internal_error << "NumOpsCounter can't handle " << op_name << "\n";
+    }
+
+    void update_simple(const Expr& a, int cost) {
+        int val = 0;
+        mutate(a);
+        swap(val, count);
+
+        count = val + cost;
+    }
+
+    void update_simple(const Expr& a, const Expr&b, int cost) {
+        int left = 0;
+        mutate(a);
+        swap(left, count);
+
+        int right = 0;
+        mutate(b);
+        swap(right, count);
+
+        count = left + right + cost;
+    }
+
+    void update_min_max(const Expr& a, const Expr&b) {
+        int left = 0;
+        mutate(a);
+        swap(left, count);
+
+        int right = 0;
+        mutate(b);
+        swap(right, count);
+
+        count = left + right + COST_COMPARE + COST_RETURN;
+    }
+
+    void swap(int& a, int&b) {
+        int temp = a;
+        a = b;
+        b = temp;
+    }
+};
+
+
 class HalideNfmConverter : public IRMutator {
 protected:
     using IRMutator::visit;
@@ -1627,7 +1770,7 @@ public:
 
     NfmUnionDomain convert_to_nfm() {
         //debug(0) << "CONVERTING " << in_expr << "\n\n";
-        debug(0) << "CONVERTING START: " << simplify(in_expr) << "\n\n";
+        //debug(0) << "CONVERTING START: " << simplify(in_expr) << "\n\n";
         NfmUnionDomain union_dom(sym_const_names, dim_names);
         if (!in_expr.defined() || is_one(in_expr)) { // Undefined expression -> no constraint (universe)
             NfmDomain domain(sym_const_names, dim_names);
@@ -1725,13 +1868,13 @@ public:
 
         NfmUnionDomain simplified_union_dom = NfmSolver::nfm_union_domain_simplify(union_dom);
         //debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n" << simplified_union_dom.to_string() << "\n\n";
-        debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
+        /*debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
         simplified_union_dom.sort();
         for (const auto& dom : simplified_union_dom.get_domains()) {
             debug(0) << dom << "\n";
             debug(0) << "    Context: " << dom.get_context_domain() << "\n";
         }
-        debug(0) << "\n\n";
+        debug(0) << "\n\n";*/
         return simplified_union_dom;
     }
 
@@ -2011,10 +2154,8 @@ void ir_nfm_test() {
     std::cout << convert.get_result() << "\n\n";*/
 
     Expr expr = w <= max(((0 + select((x < 22), (x + 1), x)) - 1), y);
-    NumOpsCounter counter;
-    counter.mutate(expr);
     std::cout << "Expr: " << expr << "\n";
-    std::cout << "Count: " << counter.get_count() << "\n";
+    std::cout << "Count: " << count_expr(expr) << "\n";
     //Expr expr = max(min((((max((max(s, 1) + -1), 0)*16) + y) + 15), x), z);
     /*std::cout << "Before mutating: " << expr << "\n\n";
     PreProcessor process;
@@ -2112,6 +2253,12 @@ void ir_nfm_test() {
     //std::cout << simplify(res);
     Interval interval = convert_nfm_union_domain_to_halide_interval(Int(32), union_dom, "w");
     std::cout << "\nInterval:\n  Min: " << interval.min << "\n  Max: " << interval.max << "\n";*/
+}
+
+int count_expr(const Expr& expr) {
+    NumOpsCounter counter;
+    counter.mutate(expr);
+    return counter.get_count();
 }
 
 vector<vector<Expr>> split_expr_into_dnf(Expr expr) {
