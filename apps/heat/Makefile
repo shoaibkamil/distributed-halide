@@ -23,5 +23,5 @@ distributed_heat: heat_distributed.cpp
 clean:
 	rm -f distributed_heat
 
-run:
+run: distributed_heat
 	$(LD_PATH_SETUP) ./distributed_heat 8 8 8

@@ -840,6 +840,161 @@ int test_redundant(struct isl_ctx *ctx) {
     return 0;
 }
 
+int test_correctness(struct isl_ctx *ctx) {
+    /*
+       -a - x - y + 16 >= 0
+       -a + x + y      >= 0
+        a - x - y      >= 0
+        a + x + y - 16 >= 0
+       -b + 8 >= 0
+        b - 8 >= 0
+    */
+    std::vector<std::string> param_names = {"x", "y"};
+    std::vector<std::string> dim_names = {"a", "b"};
+    NfmSpace coeff_space(param_names);
+    NfmSpace space(dim_names);
+
+    std::map<std::vector<int>, NfmPolyCoeff> terms1 = {
+        {{1, 0}, -NfmPolyCoeff::make_one(coeff_space)},
+        {{0, 0}, NfmPolyCoeff({{{1, 0}, -1}, {{0, 1}, -1}, {{0, 0}, 16}}, param_names, NFM_UNKNOWN)},
+    };
+    std::map<std::vector<int>, NfmPolyCoeff> terms2 = {
+        {{1, 0}, -NfmPolyCoeff::make_one(coeff_space)},
+        {{0, 0}, NfmPolyCoeff({{{1, 0}, 1}, {{0, 1}, 1}}, param_names, NFM_UNKNOWN)},
+    };
+    std::map<std::vector<int>, NfmPolyCoeff> terms3 = {
+        {{1, 0}, NfmPolyCoeff::make_one(coeff_space)},
+        {{0, 0}, NfmPolyCoeff({{{1, 0}, -1}, {{0, 1}, -1}}, param_names, NFM_UNKNOWN)},
+    };
+    std::map<std::vector<int>, NfmPolyCoeff> terms4 = {
+        {{1, 0}, NfmPolyCoeff::make_one(coeff_space)},
+        {{0, 0}, NfmPolyCoeff({{{1, 0}, 1}, {{0, 1}, 1}, {{0, 0}, -16}}, param_names, NFM_UNKNOWN)},
+    };
+    std::map<std::vector<int>, NfmPolyCoeff> terms5 = {
+        {{0, 1}, -NfmPolyCoeff::make_one(coeff_space)},
+        {{0, 0}, NfmPolyCoeff(8, {0, 0}, param_names, NFM_UNKNOWN)}
+    };
+    std::map<std::vector<int>, NfmPolyCoeff> terms6 = {
+        {{0, 1}, NfmPolyCoeff::make_one(coeff_space)},
+        {{0, 0}, NfmPolyCoeff(-8, {0, 0}, param_names, NFM_UNKNOWN)}
+    };
+
+    NfmPoly p1(coeff_space, space, terms1);
+    NfmPoly p2(coeff_space, space, terms2);
+    NfmPoly p3(coeff_space, space, terms3);
+    NfmPoly p4(coeff_space, space, terms4);
+    NfmPoly p5(coeff_space, space, terms5);
+    NfmPoly p6(coeff_space, space, terms6);
+
+    NfmConstraint c1(coeff_space, space, p1, false);
+    NfmConstraint c2(coeff_space, space, p2, false);
+    NfmConstraint c3(coeff_space, space, p3, false);
+    NfmConstraint c4(coeff_space, space, p4, false);
+    NfmConstraint c5(coeff_space, space, p5, false);
+    NfmConstraint c6(coeff_space, space, p6, false);
+
+    NfmDomain dom1(coeff_space, space);
+    dom1.add_constraint(c1);
+    dom1.add_constraint(c2);
+    dom1.add_constraint(c3);
+    dom1.add_constraint(c4);
+    dom1.add_constraint(c5);
+    dom1.add_constraint(c6);
+
+    NfmUnionDomain udom(coeff_space, space);
+    udom.add_domain(dom1);
+
+    printf("\nBefore simplification\n");
+    for (auto& dom : udom.get_domains()) {
+        printf("Domain: \n");
+        for (auto& cst : dom.get_constraints()) {
+            printf("  %s\n", cst.to_string().c_str());
+        }
+    }
+
+    NfmUnionDomain norm = NfmSolver::nfm_union_domain_simplify(udom);
+    norm.sort();
+    printf("\nAfter simplification NFM\n");
+    for (auto& dom : norm.get_domains()) {
+        printf("Domain: \n");
+        for (auto& cst : dom.get_constraints()) {
+            printf("  %s\n", cst.to_string().c_str());
+        }
+        printf("Context: \n  %s\n", dom.get_context_domain().to_string().c_str());
+    }
+
+    NfmUnionDomain simplified_isl = udom.simplify();
+    printf("\nAfter simplification ISL\n");
+    for (auto& dom : simplified_isl.get_domains()) {
+        printf("Domain: \n");
+        for (auto& cst : dom.get_constraints()) {
+            printf("  %s\n", cst.to_string().c_str());
+        }
+    }
+    return 0;
+}
+
+int test_correctness2(struct isl_ctx *ctx) {
+    /*
+        a - x - y      = 0
+        x + y - 8 = 0
+    */
+    std::vector<std::string> param_names = {"x", "y"};
+    std::vector<std::string> dim_names = {"a", "b"};
+    NfmSpace coeff_space(param_names);
+    NfmSpace space(dim_names);
+
+    std::map<std::vector<int>, NfmPolyCoeff> terms1 = {
+        {{1, 0}, -NfmPolyCoeff::make_one(coeff_space)},
+        {{0, 0}, NfmPolyCoeff({{{1, 0}, -1}, {{0, 1}, -1}, {{0, 0}, 16}}, param_names, NFM_UNKNOWN)},
+    };
+    std::map<std::vector<int>, NfmPolyCoeff> terms2 = {
+        {{0, 0}, NfmPolyCoeff({{{1, 0}, 1}, {{0, 1}, 1}, {{0, 0}, -8}}, param_names, NFM_UNKNOWN)},
+    };
+
+    NfmPoly p1(coeff_space, space, terms1);
+    NfmPoly p2(coeff_space, space, terms2);
+
+    NfmConstraint c1(coeff_space, space, p1, true);
+    NfmConstraint c2(coeff_space, space, p2, true);
+
+    NfmDomain dom1(coeff_space, space);
+    dom1.add_constraint(c1);
+    dom1.add_constraint(c2);
+
+    NfmUnionDomain udom(coeff_space, space);
+    udom.add_domain(dom1);
+
+    printf("\nBefore simplification\n");
+    for (auto& dom : udom.get_domains()) {
+        printf("Domain: \n");
+        for (auto& cst : dom.get_constraints()) {
+            printf("  %s\n", cst.to_string().c_str());
+        }
+    }
+
+    NfmUnionDomain norm = NfmSolver::nfm_union_domain_simplify(udom);
+    norm.sort();
+    printf("\nAfter simplification NFM\n");
+    for (auto& dom : norm.get_domains()) {
+        printf("Domain: \n");
+        for (auto& cst : dom.get_constraints()) {
+            printf("  %s\n", cst.to_string().c_str());
+        }
+        printf("Context: \n  %s\n", dom.get_context_domain().to_string().c_str());
+    }
+
+    NfmUnionDomain simplified_isl = udom.simplify();
+    printf("\nAfter simplification ISL\n");
+    for (auto& dom : simplified_isl.get_domains()) {
+        printf("Domain: \n");
+        for (auto& cst : dom.get_constraints()) {
+            printf("  %s\n", cst.to_string().c_str());
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
     struct isl_ctx *ctx;
     struct isl_options *options;
@@ -857,12 +1012,13 @@ int main(int argc, char **argv) {
         "max(max(max(s, u), u), max(max(max(min((((y - x)/2)*2) + x, y - 1) + 1, 3), x), u)) + 1"
         "- min(min(min(z, t), t), min(min(min(min(x, y-1) + 0, 3), z), t))}";*/
 
-    /*std::string str = "{[x, y, w] : w <= max(min(2*y - x + 3, y), y)}";
+    std::string str = "[x, y] -> {[a, b] : a + x + y + -16 = 0 and x+y-8 = 0}";
     isl_set *set = isl_set_read_from_str(ctx, str.c_str());
+    isl_set_dump(set);
     //printf("set size: %d\n", isl_set_n_basic_set(set));
     //printf("is universe? %d\n", isl_set_plain_is_universe(set));
     //printf("is empty? %d\n", isl_set_plain_is_empty(set));
-    isl_bset_list *bset_list = isl_set_get_bsets_list(set);
+    /*isl_bset_list *bset_list = isl_set_get_bsets_list(set);
     isl_bset_list_dump(bset_list);
     isl_bset_list_free(bset_list);
 
@@ -873,9 +1029,9 @@ int main(int argc, char **argv) {
     isl_bset_list_free(bset_list);
     isl_set_free(disjoint);*/
 
-    //isl_set_free(set);
+    isl_set_free(set);
 
-    test_parse(ctx);
+    //test_parse(ctx);
     //test_classify_unknown(ctx);
     //test_dom1(ctx);
     //test_dom2(ctx);
@@ -885,6 +1041,7 @@ int main(int argc, char **argv) {
     //test_poly_term(ctx);
     //test_poly_compare(ctx);
     //test_redundant(ctx);
+    //test_correctness2(ctx);
     isl_ctx_free(ctx);
 
     return 0;

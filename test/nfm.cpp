@@ -263,6 +263,16 @@ void boxes_overlap_test() {
     vector<string> sym_consts = {"P", "N", "M"};
     vector<string> dims = {"x", "y", "z", "w"};
 
+    /*
+    INTERSECT BOXES
+      Box A:
+    Dim (_interval$2976) min: 0; max: ((0 + ((7 - 0) + 1)) - 1)
+    Dim (_interval$2978) min: (x*M); max: (((x*M) + ((min(((x*(M + 1)) + -1), 7) - (x*M)) + 1)) - 1)
+      Box B:
+    Dim (_interval$5537) min: min(max(min(((y + z) + -8), min(y, min(((y + z) + -7), min((y + 1), min(((y + z) + -9), (y + -1)))))), 0), 7); max: max(min(max(min((((((z + -1)/8)*8) + y) + 7), ((y + z) + -1)), max(min((((((z + -1)/8)*8) + y) + 8), (y + z)), min((((((z + -1)/8)*8) + y) + 6), ((y + z) + -2)))), 7), 0)
+    Dim (_interval$5538) min: min(max((((r*s) + t) + -1), 0), 7); max: max(min((((r + 1)*s) + t), 7), 0)
+    */
+
     Box a, b;
     a.push_back(Interval("dim0", x + y, x + y));
     a.push_back(Interval("dim1", 8, 8));
@@ -275,6 +285,13 @@ void boxes_overlap_test() {
 
     bool is_overlap_halide = boxes_overlap_halide(a, b);
     printf("is overlap halide? %d\n", is_overlap_halide);
+
+    Box intersection = boxes_intersection_nfm(a, b);
+    std::cout << "\nBox intersection NFM:\n";
+    for (size_t i = 0; i < intersection.size(); ++i) {
+        std::cout << "Dim: " << intersection[i].var << "\n  min: " << intersection[i].min
+                  << "\n  max: " << intersection[i].max << "\n";
+    }
 }
 
 void boxes_intersect_test() {
@@ -301,7 +318,7 @@ void boxes_intersect_test() {
     Box intersection = boxes_intersection_nfm(a, b);
     /*std::cout << "\nBox intersection NFM:\n";
     for (size_t i = 0; i < intersection.size(); ++i) {
-        std::cout << "Dim: " << intersection[i].var << "\n  min: " << a[i].min
+        std::cout << "Dim: " << intersection[i].var << "\n  min: " << intersection[i].min
                   << "\n  max: " << intersection[i].max << "\n";
     }
     Expr empty_intersection = is_box_empty_nfm(intersection);
@@ -310,7 +327,7 @@ void boxes_intersect_test() {
     Box intersection_halide = boxes_intersection_halide(a, b);
     std::cout << "\nBox intersection Halide:\n";
     for (size_t i = 0; i < intersection_halide.size(); ++i) {
-        std::cout << "Dim: " << intersection_halide[i].var << "\n  min: " << a[i].min
+        std::cout << "Dim: " << intersection_halide[i].var << "\n  min: " << intersection_halide[i].min
                   << "\n  max: " << intersection_halide[i].max << "\n";
     }
     Expr empty_intersection_halide = is_box_empty_halide(intersection);

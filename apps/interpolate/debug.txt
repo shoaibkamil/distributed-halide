@@ -1,3 +1,5 @@
+mpicxx -std=c++11 -I ../../include/ -I ../../tools/ -I ../../apps/support/ -g -Wall -I../../non-linear-FM/src/ interpolate.cpp ../../bin/libHalide.a -L../../non-linear-FM/bin/ -lnfm -L../../non-linear-FM/isl-0.15/release/lib -lisl -lgmp -o interpolate -lpthread -ldl -ltinfo -lz \
+	-L/usr/lib/x86_64-linux-gnu -lpng12 -I/usr/include/libpng12  
 LD_LIBRARY_PATH=:../../non-linear-FM/bin/:../../non-linear-FM/isl-0.15/release/lib ./interpolate ../images/rgba.png out.png
 Finished function setup.
 Flat schedule with parallelization + vectorization.
@@ -8282,7 +8284,7 @@ Flat schedule with parallelization + vectorization.
   a_copy[i].min (110): min(min((((min(f28.s0.y.min, (f28.s0.y.max + -15)) + 1)/2)*2), min((((min(f28.s0.y.min, (f28.s0.y.max + -15))/2)*2) + -1), min(f28.s0.y.min, (f28.s0.y.max + -15)))), ((((min(f28.s0.y.min, (f28.s0.y.max + -15)) + 1)/2)*2) + 1))
   a[i].min      (74): min((f28.s0.y.max + -15), min(f28.s0.y.min, min((((min(f28.s0.y.min, (f28.s0.y.max + -15))/2)*2) + -1), (((min(f28.s0.y.min, (f28.s0.y.max + -15)) + 1)/2)*2))))
 Running... 
- took 87.586000 msec.
+ took 91.977000 msec.
 
   a_copy[i].min (15): max((min((min(f1.s0.x.min, (f1.s0.x.max + -3))*2), (p0.min.0 + p0.extent.0)) + -1), p0.min.0)
   a[i].min      (19): max(min(((p0.extent.0 + p0.min.0) + -1), min(((f1.s0.x.max*2) + -7), ((f1.s0.x.min*2) + -1))), p0.min.0)

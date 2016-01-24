@@ -1850,31 +1850,31 @@ public:
         }
         union_dom.update_coeff_space(std::move(NfmSpace(sym_const_names)));
         //debug(0) << "\nUnion Domain (" << union_dom.get_domains().size() << "): \n" << union_dom.to_string() << "\n\n";
-        debug(0) << "\nUnion Domain (" << union_dom.get_domains().size() << ")\n";
-        union_dom.sort();
+        //debug(0) << "\nUnion Domain (" << union_dom.get_domains().size() << ")\n";
+        /*union_dom.sort();
         for (const auto& dom : union_dom.get_domains()) {
             debug(0) << dom << "\n";
         }
-        debug(0) << "\n";
+        debug(0) << "\n";*/
 
-        NfmUnionDomain simplified_isl = union_dom.simplify();
+        //NfmUnionDomain simplified_isl = union_dom.simplify();
         //debug(0) << "Union Domain (AFTER SIMPLIFY using ISL) (" << simplified_isl.get_domains().size() << "): \n" << simplified_isl.to_string() << "\n";
-        debug(0) << "Union Domain (AFTER SIMPLIFY using ISL) (" << simplified_isl.get_domains().size() << "): \n";
+        /*debug(0) << "Union Domain (AFTER SIMPLIFY using ISL) (" << simplified_isl.get_domains().size() << "): \n";
         simplified_isl.sort();
         for (const auto& dom : simplified_isl.get_domains()) {
             debug(0) << dom << "\n";
         }
-        debug(0) << "\n";
+        debug(0) << "\n";*/
 
         NfmUnionDomain simplified_union_dom = NfmSolver::nfm_union_domain_simplify(union_dom);
         //debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n" << simplified_union_dom.to_string() << "\n\n";
-        debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
+        /*debug(0) << "Union Domain (AFTER SIMPLIFY using NFM) (" << simplified_union_dom.get_domains().size() << "): \n";
         simplified_union_dom.sort();
         for (const auto& dom : simplified_union_dom.get_domains()) {
             debug(0) << dom << "\n";
             debug(0) << "    Context: " << dom.get_context_domain() << "\n";
         }
-        debug(0) << "\n\n";
+        debug(0) << "\n\n";*/
         return simplified_union_dom;
     }
 

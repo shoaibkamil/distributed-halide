@@ -1391,7 +1391,7 @@ bool boxes_overlap_halide(const Box &a, const Box &b) {
             overlap = overlap && a[i].max >= b[i].min;
         }
     }
-
+    std::cout << "Overlap: " << overlap << "\n";
     return !is_zero(simplify(overlap));
 }
 
@@ -1458,6 +1458,7 @@ bool boxes_overlap_nfm(const Box &a, const Box &b) {
     collect.mutate(expr);
     NfmUnionDomain union_dom = convert_halide_expr_to_nfm_union_domain(
         expr, collect.get_sym_consts(), collect.get_dims());
+    std::cout << union_dom.to_string() << "\n";
     return !union_dom.is_empty();
 }
 

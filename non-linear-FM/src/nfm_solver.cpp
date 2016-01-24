@@ -668,6 +668,14 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
     // Return index of (in-)equality with same non-constant terms' coeffs as
     // (in-)eq at index k. Return -1 if there isn't any.
     auto get_duplicate_index = [](const vector<NfmConstraint>& constraints, int k) {
+        for (int i = 0; i < (int)constraints.size(); ++i) {
+            if (k == i) {
+                continue;
+            }
+            if (constraints[k] == constraints[i]) {
+                return i;
+            }
+        }
         NfmConstraint cst = constraints[k] - constraints[k].get_constant();
         for (int i = 0; i < (int)constraints.size(); ++i) {
             if (k == i) {
@@ -752,8 +760,8 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
             }
         } else if (nfm_poly_coeff_is_neg(ctx_dom, constant_sum)) {
             /*printf("  %s and %s, constant_sum: %s\n", dom.ineqs_[k].to_string().c_str(),
-                   dom.ineqs_[l].to_string().c_str(), constant_sum.to_string().c_str());*/
-            //printf("  Infeasible domain, constant sum is not non-negative/unknown\n");
+                   dom.ineqs_[l].to_string().c_str(), constant_sum.to_string().c_str());
+            printf("  Infeasible domain, constant sum is not non-negative/unknown\n");*/
             return NfmDomain::empty_domain(dom.get_coeff_space(), dom.get_space());
         }
     }
@@ -787,7 +795,14 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
             continue;
         }
         const NfmConstraint& other_eq = dom.eqs_[l];
-        if (eq.get_constant() != other_eq.get_constant()) {
+
+        NfmSign sign = eq.get_constant().compare(other_eq.get_constant());
+        if (sign == NFM_UNKNOWN) { // other_ineq.constant ? ineq.constant
+            /*printf("  Found 2 eqs with the same dims' coeffs but different constant. "
+                   "Constant diff is unknown; need to be added to context\n");
+            printf("    Eq1: %s, Eq2: %s\n", eq.to_string().c_str(), other_eq.to_string().c_str());*/
+            dom.add_context(NfmContext(eq.get_constant() - other_eq.get_constant(), true));
+        } else if (sign != NFM_ZERO) {
             //printf("  Infeasible domain, found 2 eqs with the same dims' coeffs but different constant\n");
             return NfmDomain::empty_domain(dom.get_coeff_space(), dom.get_space());
         }
@@ -813,6 +828,8 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
             }
         }
     }
+    /*printf("After nfm_domain_remove_duplicate_constraints: %s\n  context: %s\n\n",
+        dom.to_string().c_str(), dom.get_context_domain().to_string().c_str());*/
     return dom;
 }
 
@@ -1083,8 +1100,11 @@ NfmDomain NfmSolver::nfm_domain_simplify(const NfmDomain& p_dom) {
         dom = nfm_domain_gauss(dom, &progress);
         dom = nfm_domain_remove_duplicate_constraints(dom, &progress);
     }
-    /*printf("\nBefore simplify dom:\n    %s\n", p_dom.to_string().c_str());
-    printf("After simplify dom:\n    %s\n\n", dom.to_string().c_str());*/
+    dom.context_dom_.simplify();
+    /*printf("\nBefore simplify dom:\n    %s\ncontext:\n%s\n",
+        p_dom.to_string().c_str(), p_dom.get_context_domain().to_string().c_str());
+    printf("After simplify dom:\n    %s\ncontext:\n%s\n\n",
+        dom.to_string().c_str(), dom.get_context_domain().to_string().c_str());*/
     return dom;
 }
 

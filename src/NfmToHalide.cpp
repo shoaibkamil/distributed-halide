@@ -87,6 +87,7 @@ enum VarDomainBoundType {
 };
 
 struct NfmBound {
+    int dom_idx;
     int idx;
     NfmBoundType type;
     // If lower bound, lsh >= rhs. If upper bound, lhs <= rhs. If equality, lhs==rhs.
@@ -98,28 +99,31 @@ struct NfmBound {
 
     explicit NfmBound(const NfmSpace& p_coeff_space,
                       const NfmSpace& p_space)
-        : idx(-1)
+        : dom_idx(-1)
+        , idx(-1)
         , type(UNDEFINED)
         , lhs(NfmPoly(p_coeff_space, p_space))
         , rhs(NfmPolyFrac(p_coeff_space, p_space)) {}
 
-    NfmBound(const NfmPoly&& lhs, NfmBoundType type, int idx=-1)
-        : idx(idx)
+    NfmBound(const NfmPoly&& lhs, NfmBoundType type, int idx=-1, int dom_idx=-1)
+        : dom_idx(dom_idx)
+        , idx(idx)
         , type(type)
         , lhs(std::move(lhs))
         , rhs(NfmPolyFrac::make_zero(lhs.get_coeff_space(), lhs.get_space())) {}
 
-    NfmBound(const NfmPoly&& lhs, const NfmPolyFrac&& rhs, NfmBoundType type, int idx=-1)
-        : idx(idx), type(type), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+    NfmBound(const NfmPoly&& lhs, const NfmPolyFrac&& rhs, NfmBoundType type, int idx=-1, int dom_idx=-1)
+        : dom_idx(dom_idx), idx(idx), type(type), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
 
-    NfmBound(const NfmPoly& lhs, NfmBoundType type, int idx=-1)
-        : idx(idx)
+    NfmBound(const NfmPoly& lhs, NfmBoundType type, int idx=-1, int dom_idx=-1)
+        : dom_idx(dom_idx)
+        , idx(idx)
         , type(type)
         , lhs(lhs)
         , rhs(NfmPolyFrac::make_zero(lhs.get_coeff_space(), lhs.get_space())) {}
 
-    NfmBound(const NfmPoly& lhs, const NfmPolyFrac& rhs, NfmBoundType type, int idx=-1)
-        : idx(idx), type(type), lhs(lhs), rhs(rhs) {}
+    NfmBound(const NfmPoly& lhs, const NfmPolyFrac& rhs, NfmBoundType type, int idx=-1, int dom_idx=-1)
+        : dom_idx(dom_idx), idx(idx), type(type), lhs(lhs), rhs(rhs) {}
 
     string to_string() const {
         ostringstream stream;
@@ -739,7 +743,7 @@ Expr convert_to_let_helper(const vector<Expr>& ands, size_t start, const Expr& v
 }
 
 NfmBound convert_nfm_context_poly_coeff_to_bound(
-        const NfmSpace& coeff_space, const NfmSpace& space,
+        int dom_idx, const NfmSpace& coeff_space, const NfmSpace& space,
         const NfmPolyCoeff& poly, bool is_equality,
         const vector<string> *let_assignments, bool *is_let=NULL) {
     //std::cout << "convert_nfm_poly_coeff_to_halide_expr " << poly << " to halide\n";
@@ -750,7 +754,7 @@ NfmBound convert_nfm_context_poly_coeff_to_bound(
         //std::cout << "Converting context linear cst: " << poly << " >= 0\n";
         NfmPoly lhs(coeff_space, space, poly);
         //std::cout << "  lhs: " << lhs << "\n";
-        return NfmBound(std::move(lhs), CONDITION_INEQ);
+        return NfmBound(std::move(lhs), CONDITION_INEQ, -1, dom_idx);
     }
 
     //std::cout << "Converting context linear cst: " << poly << " == 0\n";
@@ -769,26 +773,26 @@ NfmBound convert_nfm_context_poly_coeff_to_bound(
             if (coeff.is_one()) {
                 NfmPolyFrac rhs(NfmPoly(coeff_space, space, rhs_poly.neg()));
                 //std::cout << "  lhs: " << lhs << "; rhs: " << rhs << "\n";
-                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx+coeff_space.size());
+                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx+coeff_space.size(), dom_idx);
             } else if (coeff.is_neg_one()) {
                 NfmPolyFrac rhs(NfmPoly(coeff_space, space, rhs_poly));
                 //std::cout << "  lhs: " << lhs << "; rhs: " << rhs << "\n";
-                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx+coeff_space.size());
+                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx+coeff_space.size(), dom_idx);
             } else {
                 NfmPolyFrac rhs(NfmPoly(coeff_space, space, rhs_poly.neg()), coeff);
                 //std::cout << "  lhs: " << lhs << "; rhs: " << rhs << "\n";
-                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx+coeff_space.size());
+                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx+coeff_space.size(), dom_idx);
             }
         }
     }
     NfmPoly lhs(coeff_space, space, poly);
     //std::cout << "  lhs: " << lhs << "\n";
-    return NfmBound(std::move(lhs), CONDITION_EQ);
+    return NfmBound(std::move(lhs), CONDITION_EQ, -1, dom_idx);
 }
 
 BoundConditions convert_nfm_context_domain_to_conditions(
-        const NfmSpace& coeff_space, const NfmSpace& space, NfmContextDomain& ctx_dom,
-        const vector<string> *let_assignments) {
+        int dom_idx, const NfmSpace& coeff_space, const NfmSpace& space,
+        NfmContextDomain& ctx_dom, const vector<string> *let_assignments) {
     BoundConditions result;
     ctx_dom.simplify();
     if (ctx_dom.is_empty()) {
@@ -804,30 +808,31 @@ BoundConditions convert_nfm_context_domain_to_conditions(
     for (const auto& ctx : linear) {
         bool is_let = false;
         NfmBound bound = convert_nfm_context_poly_coeff_to_bound(
-            coeff_space, space, ctx.get_context(), ctx.is_equality(),
+            dom_idx, coeff_space, space, ctx.get_context(), ctx.is_equality(),
             let_assignments, &is_let);
         result.insert(std::move(bound), is_let);
     }
     for (const auto& ctx : non_linear) {
         bool is_let = false;
         NfmBound bound = convert_nfm_context_poly_coeff_to_bound(
-            coeff_space, space, ctx.get_context(), ctx.is_equality(),
+            dom_idx, coeff_space, space, ctx.get_context(), ctx.is_equality(),
             let_assignments, &is_let);
         result.insert(std::move(bound), is_let);
     }
     return result;
 }
 
-NfmBound convert_nfm_constraint_to_bound(
-        const NfmSpace& coeff_space, const NfmSpace& space,
-        const NfmContextDomain& ctx_dom, const NfmConstraint& cst,
-        const vector<string> *let_assignments, bool *is_let=NULL) {
-    //std::cout << "convert_nfm_constraint_to_bound " << cst << "\n";
+// Only process conditional constraint
+NfmBound convert_nfm_constraint_to_bound_condition(
+        int dom_idx, const NfmSpace& coeff_space, const NfmSpace& space,
+        const NfmContextDomain& ctx_dom, NfmConstraint& cst,
+        const vector<string> *let_assignments, bool *is_let) {
+    //std::cout << "convert_nfm_constraint_to_bound_condition " << cst << " to halide\n";
     if (is_let != NULL) {
         *is_let = false;
     }
     if (!cst.is_equality()) {
-        return NfmBound(cst.get_constraint(), CONDITION_INEQ);
+        return NfmBound(cst.get_constraint(), CONDITION_INEQ, -1, dom_idx);
     }
 
     for (int idx = find_first_index_in_vec(let_assignments, space.get_names(), space.size());
@@ -841,35 +846,24 @@ NfmBound convert_nfm_constraint_to_bound(
             NfmPoly lhs(coeff_space, space, NfmPolyCoeff::make_one(coeff_space));
             if (coeff.is_one()) {
                 NfmPolyFrac rhs(poly.neg());
-                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx);
+                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx, dom_idx);
             } else if (coeff.is_neg_one()) {
                 NfmPolyFrac rhs(poly);
-                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx);
+                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx, dom_idx);
             } else {
                 NfmPolyFrac rhs(poly.neg(), coeff);
-                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx);
+                return NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx, dom_idx);
             }
             break;
         }
     }
-    return NfmBound(cst.get_constraint(), CONDITION_EQ);
-}
-
-// Only process conditional constraint
-NfmBound convert_nfm_constraint_to_bound_condition(
-        const NfmSpace& coeff_space, const NfmSpace& space,
-        const NfmContextDomain& ctx_dom, NfmConstraint& cst,
-        const vector<string> *let_assignments, bool *is_let) {
-    //std::cout << "convert_nfm_constraint_to_bound_condition " << cst << " to halide\n";
-    return convert_nfm_constraint_to_bound(coeff_space, space, ctx_dom, cst,
-        let_assignments, is_let);
+    return NfmBound(cst.get_constraint(), CONDITION_EQ, -1, dom_idx);
 }
 
 // Ignore constraint not involving the dim (return undefined BoundExpr)
 NfmBound convert_nfm_constraint_to_bound_non_condition(
-        const NfmSpace& coeff_space, const NfmSpace& space,
-        const NfmContextDomain& ctx_dom, NfmConstraint& cst,
-        int dim_idx) {
+        int dom_idx, const NfmSpace& coeff_space, const NfmSpace& space,
+        const NfmContextDomain& ctx_dom, NfmConstraint& cst, int dim_idx) {
     user_assert(dim_idx >= 0 && dim_idx < (int)space.size())
         << "dim_idx: " << dim_idx << "; size: " << space.size() << "\n";
     assert(NfmSolver::nfm_constraint_involves(ctx_dom, cst, dim_idx));
@@ -909,13 +903,13 @@ NfmBound convert_nfm_constraint_to_bound_non_condition(
         assert(false); // Unknown sign, should not have had reached here
     }
     //std::cout << "  lhs: " << lhs << "; rhs: " << rhs << "\n";
-    return NfmBound(std::move(lhs), std::move(rhs), type, dim_idx);
+    return NfmBound(std::move(lhs), std::move(rhs), type, dim_idx, dom_idx);
 }
 
 void convert_to_value_helper(
-        Type type, const vector<Expr>& sym_const_vars, const vector<Expr>& dim_vars,
-        BoundConditions conditions, const AndNfmBounds& bounds, bool is_lower_bound,
-        map<Expr, Expr, IRDeepCompare>& val_cond) {
+        Type type, const NfmUnionDomain& union_dom, const vector<Expr>& sym_const_vars,
+        const vector<Expr>& dim_vars, BoundConditions conditions, const AndNfmBounds& bounds,
+        bool is_lower_bound, int bound_size, map<Expr, Expr, IRDeepCompare>& val_cond) {
 
     assert(!conditions.empty());
     assert(bounds.size() > 0);
@@ -933,12 +927,75 @@ void convert_to_value_helper(
     }
 
     Expr temp1; // cond
-    for (auto& bound : conditions.normal_conditions) {
-        Expr cond = convert_bound_to_halide_expr_helper(type, bound, sym_const_vars, dim_vars);
-        if (temp1.defined()) {
-            temp1 = And::make(temp1, cond);
-        } else {
-            temp1 = cond;
+    if ((bound_size == 1) && (conditions.normal_conditions.size() == 1) &&
+            (conditions.normal_conditions[0].type == CONDITION_EQ)) {
+        const auto& bound = conditions.normal_conditions[0];
+        assert(bound.dom_idx >= 0 && bound.dom_idx < (int)union_dom.get_num_domains());
+        const NfmContextDomain& ctx_dom = union_dom[bound.dom_idx].get_context_domain();
+        const auto& coeff_space = bound.lhs.get_coeff_space();
+        const auto& space = bound.lhs.get_space();
+
+        int idx;
+        for (idx = dim_vars.size()-1; idx >= 0; --idx) {
+            if (idx == bound.idx) {
+                continue;
+            }
+            NfmPolyCoeff coeff = bound.lhs.get_coeff(idx);
+            if (!NfmSolver::nfm_poly_coeff_is_zero(ctx_dom, coeff)) {
+                NfmPoly poly = bound.lhs.drop_term(idx);
+                NfmPoly lhs(coeff_space, space, NfmPolyCoeff::make_one(coeff_space));
+                if (coeff.is_one()) {
+                    NfmPolyFrac rhs(poly.neg());
+                    conditions.insert_let_condition(std::move(
+                        NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx, bound.dom_idx)));
+                } else if (coeff.is_neg_one()) {
+                    NfmPolyFrac rhs(poly);
+                    conditions.insert_let_condition(std::move(
+                        NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx, bound.dom_idx)));
+                } else {
+                    NfmPolyFrac rhs(poly.neg(), coeff);
+                    conditions.insert_let_condition(std::move(
+                        NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx, bound.dom_idx)));
+                }
+                break;
+            }
+        }
+        if (idx == -1) {
+            for (idx = sym_const_vars.size()-1; idx >= 0; --idx) {
+                const NfmPolyCoeff& poly = bound.lhs.get_constant();
+                std::pair<NfmPolyCoeff, NfmPolyCoeff> term = poly.get_coeff_involving_dim(idx);
+                const auto& coeff = term.second;
+                if (!coeff.is_zero()) {
+                    NfmPoly lhs(coeff_space, space, term.first.exquo(term.second));
+
+                    NfmPolyCoeff rhs_poly = poly-term.first;
+                    if (coeff.is_one()) {
+                        NfmPolyFrac rhs(NfmPoly(coeff_space, space, rhs_poly.neg()));
+                        //std::cout << "  lhs: " << lhs << "; rhs: " << rhs << "\n";
+                        conditions.insert_let_condition(std::move(
+                            NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx+coeff_space.size(), bound.dom_idx)));
+                    } else if (coeff.is_neg_one()) {
+                        NfmPolyFrac rhs(NfmPoly(coeff_space, space, rhs_poly));
+                        //std::cout << "  lhs: " << lhs << "; rhs: " << rhs << "\n";
+                        conditions.insert_let_condition(std::move(
+                            NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx+coeff_space.size(), bound.dom_idx)));
+                    } else {
+                        NfmPolyFrac rhs(NfmPoly(coeff_space, space, rhs_poly.neg()), coeff);
+                        //std::cout << "  lhs: " << lhs << "; rhs: " << rhs << "\n";
+                        conditions.insert_let_condition(std::move(
+                            NfmBound(std::move(lhs), std::move(rhs), CONDITION_EQ, idx+coeff_space.size(), bound.dom_idx)));
+                    }
+                }
+            }
+        }
+    } else {
+        for (auto& bound : conditions.normal_conditions) {
+            Expr cond = convert_bound_to_halide_expr_helper(type, bound, sym_const_vars, dim_vars);
+            if (temp1.defined()) {
+                temp1 = And::make(temp1, cond);
+            } else {
+                temp1 = cond;
+            }
         }
     }
     //std::cout << "    temp1: " << temp1 << "\n";
@@ -964,14 +1021,15 @@ void convert_to_value_helper(
     }
 }
 
-Expr convert_to_value(Type type, const vector<Expr>& sym_const_vars, const vector<Expr>& dim_vars,
+Expr convert_to_value(Type type, const NfmUnionDomain& union_dom,
+                      const vector<Expr>& sym_const_vars, const vector<Expr>& dim_vars,
                       bool is_lower_bound, map<BoundConditions, AndNfmBounds>& bounds) {
     assert(bounds.size() > 0);
 
     map<Expr, Expr, IRDeepCompare> val_cond; // Map from value to condition
     for (auto& iter : bounds) {
-        convert_to_value_helper(type, sym_const_vars, dim_vars, iter.first,
-                                iter.second, is_lower_bound, val_cond);
+        convert_to_value_helper(type, union_dom, sym_const_vars, dim_vars, iter.first,
+                                iter.second, is_lower_bound, bounds.size(), val_cond);
     }
     assert(val_cond.size() > 0);
 
@@ -1240,7 +1298,7 @@ Expr convert_nfm_domain_to_halide_expr(
 }
 
 VarDomainBound convert_nfm_domain_to_bound(
-        NfmDomain& dom, const string& dim_name, int dim_idx,
+        int dom_idx, NfmDomain& dom, const string& dim_name, int dim_idx,
         const vector<string> *let_assignments) {
     assert(dim_name.length() >= 0);
     assert(dim_idx >= 0);
@@ -1253,7 +1311,7 @@ VarDomainBound convert_nfm_domain_to_bound(
     }
     NfmContextDomain& ctx_dom = dom.get_context_domain();
     BoundConditions ctx_conds = convert_nfm_context_domain_to_conditions(
-        dom.get_coeff_space(), dom.get_space(), ctx_dom, let_assignments);
+        dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, let_assignments);
     if (ctx_conds.is_always_false()) { // The condition is never true
         result.feasible = false;
         return result;
@@ -1268,14 +1326,14 @@ VarDomainBound convert_nfm_domain_to_bound(
         if (!NfmSolver::nfm_constraint_involves(ctx_dom, eq, dim_idx)) {
             bool is_let = false;
             NfmBound bound = convert_nfm_constraint_to_bound_condition(
-                dom.get_coeff_space(), dom.get_space(), ctx_dom, eq,
+                dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, eq,
                 let_assignments, &is_let);
             assert(bound.type == CONDITION_EQ);
             //std::cout << "convert_nfm_domain_to_bound EQ cond: " << bound.to_string() << "\n";
             result.insert_condition(std::move(bound), is_let);
         } else {
             NfmBound bound = convert_nfm_constraint_to_bound_non_condition(
-                dom.get_coeff_space(), dom.get_space(), ctx_dom, eq, dim_idx);
+                dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, eq, dim_idx);
             assert(bound.type == EQUAL);
             user_assert(!result.has_lower_bound() && !result.has_upper_bound())
                 << "can only have one equality\n";
@@ -1292,7 +1350,7 @@ VarDomainBound convert_nfm_domain_to_bound(
         if (!NfmSolver::nfm_constraint_involves(ctx_dom, ineq, dim_idx)) {
             bool is_let = false;
             NfmBound bound = convert_nfm_constraint_to_bound_condition(
-                dom.get_coeff_space(), dom.get_space(), ctx_dom, ineq,
+                dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, ineq,
                 let_assignments, &is_let);
             assert(bound.type == CONDITION_INEQ);
             assert(is_let == false);
@@ -1300,7 +1358,7 @@ VarDomainBound convert_nfm_domain_to_bound(
             result.insert_condition(std::move(bound), is_let);
         } else {
             NfmBound bound = convert_nfm_constraint_to_bound_non_condition(
-                dom.get_coeff_space(), dom.get_space(), ctx_dom, ineq, dim_idx);
+                dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, ineq, dim_idx);
             switch (bound.type) {
                 case LOWER_BOUND:
                     if (result.type == BOUND_EQUALITY) {
@@ -1330,9 +1388,8 @@ VarDomainBound convert_nfm_domain_to_bound(
 }
 
 vector<VarDomainBound> convert_nfm_domain_to_bound_box_helper(
-        NfmDomain& dom, const std::vector<std::string>& box_dims,
-        int start_dim_idx,int end_dim_idx,
-        const vector<string> *let_assignments) {
+        int dom_idx, NfmDomain& dom, const std::vector<std::string>& box_dims,
+        int start_dim_idx, int end_dim_idx, const vector<string> *let_assignments) {
     assert(box_dims.size() >= 0);
     assert(start_dim_idx <= end_dim_idx);
     assert(start_dim_idx >= 0 && end_dim_idx >= 0);
@@ -1353,7 +1410,7 @@ vector<VarDomainBound> convert_nfm_domain_to_bound_box_helper(
 
     NfmContextDomain& ctx_dom = dom.get_context_domain();
     BoundConditions ctx_conds = convert_nfm_context_domain_to_conditions(
-        dom.get_coeff_space(), dom.get_space(), ctx_dom, let_assignments);
+        dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, let_assignments);
     if (ctx_conds.is_always_false()) { // The condition is never true
         for (size_t i = 0; i < box_dims.size(); ++i) {
             results[i].feasible = false;
@@ -1382,7 +1439,7 @@ vector<VarDomainBound> convert_nfm_domain_to_bound_box_helper(
             eq_is_visited[j] = true;
 
             NfmBound bound = convert_nfm_constraint_to_bound_non_condition(
-                dom.get_coeff_space(), dom.get_space(), ctx_dom, eq, dim_idx);
+                dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, eq, dim_idx);
             assert(bound.type == EQUAL);
             user_assert(!result.has_lower_bound() && !result.has_upper_bound())
                 << "can only have one equality\n";
@@ -1402,7 +1459,7 @@ vector<VarDomainBound> convert_nfm_domain_to_bound_box_helper(
             ineq_is_visited[j] = true;
 
             NfmBound bound = convert_nfm_constraint_to_bound_non_condition(
-                dom.get_coeff_space(), dom.get_space(), ctx_dom, ineq, dim_idx);
+                dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, ineq, dim_idx);
             switch (bound.type) {
                 case LOWER_BOUND:
                     if (result.type == BOUND_EQUALITY) {
@@ -1435,7 +1492,7 @@ vector<VarDomainBound> convert_nfm_domain_to_bound_box_helper(
 
             bool is_let = false;
             NfmBound bound = convert_nfm_constraint_to_bound_condition(
-                dom.get_coeff_space(), dom.get_space(), ctx_dom, eq,
+                dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, eq,
                 let_assignments, &is_let);
             assert(bound.type == CONDITION_EQ);
             //std::cout << "convert_nfm_domain_to_bound EQ cond: " << bound.to_string() << "\n";
@@ -1448,7 +1505,7 @@ vector<VarDomainBound> convert_nfm_domain_to_bound_box_helper(
 
             bool is_let = false;
             NfmBound bound = convert_nfm_constraint_to_bound_condition(
-                dom.get_coeff_space(), dom.get_space(), ctx_dom, ineq,
+                dom_idx, dom.get_coeff_space(), dom.get_space(), ctx_dom, ineq,
                 let_assignments, &is_let);
             assert(bound.type == CONDITION_INEQ);
             assert(is_let == false);
@@ -1572,7 +1629,7 @@ Interval convert_nfm_union_domain_to_halide_interval(
     auto& domains = union_dom.get_domains();
     for (size_t i = 0; i < domains.size(); ++i) { // OR of lower/upper bound (IF-ELSE IF-....-ELSE)
         VarDomainBound bound = convert_nfm_domain_to_bound(
-            domains[i], dim_name, dim_idx, let_assignments);
+            i, domains[i], dim_name, dim_idx, let_assignments);
         //std::cout << "\nBOUND: \n" << bound.to_string() << "\n";
 
         if (!bound.is_feasible()) { // Empty domain
@@ -1709,12 +1766,12 @@ Interval convert_nfm_union_domain_to_halide_interval(
     //std::cout << "\nSTART INTERVAL COMPUTATION\n";
     //std::cout << "Computing interval lower bound\n";
     if (lower_bounds.size() > 0) {
-        result.min = convert_to_value(type, sym_const_vars, dim_vars, true, lower_bounds);
+        result.min = convert_to_value(type, union_dom, sym_const_vars, dim_vars, true, lower_bounds);
     }
 
     //std::cout << "\nComputing interval upper bound\n";
     if (upper_bounds.size() > 0) {
-        result.max = convert_to_value(type, sym_const_vars, dim_vars, false, upper_bounds);
+        result.max = convert_to_value(type, union_dom, sym_const_vars, dim_vars, false, upper_bounds);
     }
 
     for (auto& bounds : lower_bounds_no_cond) {
@@ -1842,7 +1899,7 @@ Box convert_nfm_union_domain_to_halide_box(
     auto& domains = union_dom.get_domains();
     for (size_t i = 0; i < domains.size(); ++i) { // OR of lower/upper bound (IF-ELSE IF-....-ELSE)
         vector<VarDomainBound> bounds = convert_nfm_domain_to_bound_box_helper(
-            domains[i], box_dims, start_dim_idx, end_dim_idx, let_assignments);
+            i, domains[i], box_dims, start_dim_idx, end_dim_idx, let_assignments);
         assert(bounds.size() == box_dims.size());
 
         for (int j = box_dims.size()-1; j >= 0; --j) {
@@ -1852,7 +1909,7 @@ Box convert_nfm_union_domain_to_halide_box(
             vector<AndNfmBounds>& upper_bounds_no_cond = upper_bounds_no_cond_list[j];
 
             VarDomainBound& bound = bounds[j];
-            std::cout << "\nBOUND: \n" << bound.to_string() << "\n";
+            //std::cout << "\nBOUND: \n" << bound.to_string() << "\n";
             if (!bound.is_feasible()) { // Empty domain
                 continue;
             }
@@ -1993,12 +2050,12 @@ Box convert_nfm_union_domain_to_halide_box(
         //std::cout << "\nSTART INTERVAL COMPUTATION\n";
         //std::cout << "Computing interval lower bound\n";
         if (lower_bounds.size() > 0) {
-            result.min = convert_to_value(type, sym_const_vars, dim_vars, true, lower_bounds);
+            result.min = convert_to_value(type, union_dom, sym_const_vars, dim_vars, true, lower_bounds);
         }
 
         //std::cout << "\nComputing interval upper bound\n";
         if (upper_bounds.size() > 0) {
-            result.max = convert_to_value(type, sym_const_vars, dim_vars, false, upper_bounds);
+            result.max = convert_to_value(type, union_dom, sym_const_vars, dim_vars, false, upper_bounds);
         }
 
         for (auto& bounds : lower_bounds_no_cond) {

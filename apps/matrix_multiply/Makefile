@@ -31,4 +31,4 @@ clean:
 	rm -f test distributed_matrix_multiply
 
 run: distributed_matrix_multiply
-	$(LD_PATH_SETUP)  ./distributed_matrix_multiply 16 16
+	$(LD_PATH_SETUP)  ./distributed_matrix_multiply 8 8

@@ -1,4 +1,3 @@
-mpicxx -std=c++11 -I ../../include/ -I ../../tools/ -I ../../apps/support/ -g -Wall -I../../non-linear-FM/src/ resize.cpp ../../bin/libHalide.a -L../../non-linear-FM/bin/ -lnfm -L../../non-linear-FM/isl-0.15/release/lib -lisl -lgmp -ltinfo -o resize -lpthread -ldl -lz -L/usr/lib/x86_64-linux-gnu -lpng12 -I/usr/include/libpng12 
 LD_LIBRARY_PATH=:../../non-linear-FM/bin/:../../non-linear-FM/isl-0.15/release/lib ./resize ../images/rgba.png out.png -f 2.0 -t cubic -s 3
 Finished function setup.
 
@@ -138,4 +137,4 @@ Finished function setup.
   a[i].max      (2): ((kernely.s0.y.loop_extent + kernely.s0.y.loop_min) + -1)
 Loading '../images/rgba.png'
 Resampling '../images/rgba.png' from 1536x2560 to 3072x5120 using cubic interpolation
- took min=161.185000 msec.
+ took min=162.707000 msec.

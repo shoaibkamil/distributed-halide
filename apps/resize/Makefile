@@ -39,3 +39,6 @@ clean:
 
 run: resize
 	$(LD_PATH_SETUP) ./resize ../images/rgba.png out.png -f 2.0 -t cubic -s 3
+
+distrib: distributed_resize
+	$(LD_PATH_SETUP) ./distributed_resize 8 8
