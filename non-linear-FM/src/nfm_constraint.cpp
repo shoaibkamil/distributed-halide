@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <assert.h>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sstream>
@@ -152,16 +153,19 @@ NfmConstraint NfmConstraint::simplify() const {
 
 // Return True if the Constraint can be determined as infeasible.
 bool NfmConstraint::is_infeasible() const {
+    if (!is_constant()) {
+        return false;
+    }
+    const auto& constant = get_constant();
+    if (constant.is_unknown()) {
+        return false;
+    }
     if (!is_equality()) {
-        if (is_constant()) {
-            // Ineq: constant >= 0 where constant < 0 is infeasible
-            return get_constant().is_neg();
-        }
+        // Ineq: constant >= 0 where constant < 0 is infeasible
+        return get_constant().is_neg();
     } else {
-        if (is_constant()) {
-            // Eq: constant == 0 where constant != 0 is infeasible
-            return !get_constant().is_zero();
-        }
+        // Eq: constant == 0 where constant != 0 is infeasible
+        return !get_constant().is_zero();
     }
     return false;
 }

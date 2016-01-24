@@ -194,9 +194,11 @@ NfmSign NfmSolver::nfm_poly_coeff_linear_get_sign(
     assert(ctx_dom.get_space() == coeff.get_space());
     assert(coeff.is_linear());
 
+    //printf("Calling NfmSolver::nfm_poly_coeff_linear_get_sign\n");
+
     // First assume that coeff >= 0
     NfmContextDomain context_dom1(ctx_dom);
-    context_dom1.add_context(NfmContext(coeff, false)); // Add coeff >= 0
+    context_dom1.add_context(NfmContext(coeff.set_sign(NFM_NON_NEGATIVE), false)); // Add coeff >= 0
     context_dom1.simplify();
     if (context_dom1.is_empty()) {
         // Since coeff >= 0 isn't possible, it must have been negative
@@ -205,7 +207,7 @@ NfmSign NfmSolver::nfm_poly_coeff_linear_get_sign(
 
     // Assume that coeff <= 0
     NfmContextDomain context_dom2(ctx_dom);
-    context_dom2.add_context(NfmContext(-coeff, false)); // Add coeff <= 0
+    context_dom2.add_context(NfmContext((-coeff).set_sign(NFM_NON_NEGATIVE), false)); // Add coeff <= 0
     context_dom2.simplify();
     if (context_dom2.is_empty()) {
         // Since coeff <= 0 isn't possible, it must have been positive
@@ -215,7 +217,7 @@ NfmSign NfmSolver::nfm_poly_coeff_linear_get_sign(
     NfmSign sign = NFM_UNKNOWN;
     // Assume that coeff > 0
     NfmContextDomain context_dom3(ctx_dom);
-    context_dom3.add_context(NfmContext(coeff-1, false)); // Add coeff > 0
+    context_dom3.add_context(NfmContext((coeff-1).set_sign(NFM_NON_NEGATIVE), false)); // Add coeff > 0
     context_dom3.simplify();
     if (context_dom3.is_empty()) {
         // Since coeff > 0 isn't possible, it must have been <= 0
@@ -224,7 +226,7 @@ NfmSign NfmSolver::nfm_poly_coeff_linear_get_sign(
 
     // Assume that coeff < 0
     NfmContextDomain context_dom4(ctx_dom);
-    context_dom4.add_context(NfmContext(-coeff-1, false)); // Add coeff < 0
+    context_dom4.add_context(NfmContext((-coeff-1).set_sign(NFM_NON_NEGATIVE), false)); // Add coeff < 0
     context_dom4.simplify();
     if (context_dom4.is_empty()) {
         // Since coeff < 0 isn't possible, it must have been >= 0
@@ -234,6 +236,7 @@ NfmSign NfmSolver::nfm_poly_coeff_linear_get_sign(
         }
         sign = NFM_NON_NEGATIVE;
     }
+    //printf("DONE NfmSolver::nfm_poly_coeff_linear_get_sign: sign %s\n", nfm_sign_print_str(sign).c_str());
     return sign;
 }
 
@@ -291,22 +294,24 @@ vector<NfmSolver::NfmContextConstraint> NfmSolver::nfm_constraint_classify_unkno
     vector<NfmContextConstraint> result;
     // Positive
     // a > 0 equal to a - 1 >= 0
-    result.push_back({NfmContext(coeff-1, false),
+    result.push_back({NfmContext((coeff-1).set_sign(NFM_NON_NEGATIVE), false),
                       p_cst.set_coeff_sign(pos, NFM_POSITIVE)});
 
     // Negative
     // a < 0 equal to -a - 1 >= 0
-    result.push_back({NfmContext(-coeff-1, false),
+    result.push_back({NfmContext((-coeff-1).set_sign(NFM_NON_NEGATIVE), false),
                       p_cst.set_coeff_sign(pos, NFM_NEGATIVE)});
 
     // Zero
-    result.push_back({NfmContext(coeff, true),
+    result.push_back({NfmContext(coeff.set_sign(NFM_NON_NEGATIVE), true),
                       p_cst.set_coeff_sign(pos, NFM_ZERO)});
     return result;
 }
 
 vector<NfmDomain> NfmSolver::nfm_domain_classify_unknown_coefficient_helper(
         NfmDomain& p_dom, size_t pos) {
+    //printf("Calling NfmSolver::nfm_domain_classify_unknown_coefficient_helper\n");
+
     assert(pos < p_dom.space_.size());
     if (p_dom.is_empty() || p_dom.is_universe()) {
         return {p_dom};
@@ -348,6 +353,7 @@ vector<NfmDomain> NfmSolver::nfm_domain_classify_unknown_coefficient_helper(
         }
         result = temp;
     }
+    //printf("END NfmSolver::nfm_domain_classify_unknown_coefficient_helper\n");
     return result;
 }
 
@@ -436,7 +442,6 @@ int NfmSolver::nfm_domain_drop_inequality(NfmDomain& dom, size_t pos) {
     if (pos >= dom.get_num_inequalities()) {
         return -1;
     }
-    //printf("  Dropping inequality (pos: %d): %s\n", (int)pos, dom.ineqs_[pos].to_string().c_str());
     if (pos != dom.get_num_inequalities() - 1) {
        size_t back = dom.get_num_inequalities()-1;
        std::iter_swap(dom.ineqs_.begin()+pos, dom.ineqs_.begin()+back);
@@ -525,6 +530,7 @@ bool NfmSolver::nfm_domain_eliminate_var_using_equality(
         NfmDomain& dom, size_t pos, NfmConstraint& eq, int *progress) {
     assert(pos < eq.get_space().size());
 
+    //printf("Call NfmSolver::nfm_domain_eliminate_var_using_equality\n");
     NfmContextDomain& ctx_dom = dom.get_context_domain();
     assert(!nfm_poly_coeff_is_zero(ctx_dom, eq[pos]));
     assert(!nfm_poly_coeff_is_unknown(ctx_dom, eq[pos]));
@@ -548,14 +554,10 @@ bool NfmSolver::nfm_domain_eliminate_var_using_equality(
         }
         NfmConstraint elim_eq = nfm_constraint_elim(ctx_dom, dom.eqs_[k], eq, pos);
         /*printf("  Eliminate (dim: %s):\n    eq  %s \n    eq  %s \n    Res:  %s\n",
-               dom.get_space()[pos].c_str(), dom.eqs_[k].to_string().c_str(),
-               eq.to_string().c_str(), elim_eq.to_string().c_str());*/
+               dom.get_space()[pos].c_str(), dom.eqs_[k].to_string_with_sign().c_str(),
+               eq.to_string_with_sign().c_str(), elim_eq.to_string_with_sign().c_str());*/
         if (elim_eq.is_infeasible()) {
             return false;
-        }
-        if (elim_eq.is_constant() && (!nfm_poly_coeff_is_zero(ctx_dom, elim_eq.get_constant()))) {
-            // Update context: constant == 0
-            dom.add_context(NfmContext(elim_eq.get_constant(), true));
         }
         dom.eqs_[k] = elim_eq;
     }
@@ -573,22 +575,21 @@ bool NfmSolver::nfm_domain_eliminate_var_using_equality(
         }
         NfmConstraint elim_ineq = nfm_constraint_elim(ctx_dom, dom.ineqs_[k], eq, pos);
         /*printf("  Eliminate (dim: %s):\n    ineq  %s \n    eq  %s \n    Res:  %s\n",
-               dom.get_space()[pos].c_str(), dom.ineqs_[k].to_string().c_str(),
-               eq.to_string().c_str(), elim_ineq.to_string().c_str());*/
+               dom.get_space()[pos].c_str(), dom.ineqs_[k].to_string_with_sign().c_str(),
+               eq.to_string_with_sign().c_str(), elim_ineq.to_string_with_sign().c_str());*/
         if (elim_ineq.is_infeasible()) {
             return false;
         }
-        if (elim_ineq.is_constant() && (!nfm_poly_coeff_is_zero(ctx_dom, elim_ineq.get_constant()))) {
-            // Update context: constant >= 0
-            dom.add_context(NfmContext(elim_ineq.get_constant(), false));
-        }
         dom.ineqs_[k] = elim_ineq;
     }
+    //printf("After nfm_domain_eliminate_var_using_equality\nDom: %s\n", dom.to_string().c_str());
+    //printf("# of ineqs: %d, # of eqs: %d\n", (int)dom.get_num_inequalities(), (int)dom.get_num_equalities());
     return true;
 }
 
 // Divide equalities and inequalities by their gcd
 NfmDomain NfmSolver::nfm_domain_normalize_constraints(NfmDomain& dom) {
+    //printf("Call NfmSolver::nfm_domain_normalize_constraints\n");
     if (dom.is_empty() || dom.is_universe()) {
         return dom;
     }
@@ -601,8 +602,9 @@ NfmDomain NfmSolver::nfm_domain_normalize_constraints(NfmDomain& dom) {
         if (dim_gcd == 0) { // It only has (symbolic) constant term
             if (nfm_poly_coeff_is_unknown(ctx_dom, constant)) {
                 // Update context: constant == 0
-                new_dom.add_context(NfmContext(constant, true));
-                //printf("  Adding new constraint to context: %s\n", eq.to_string().c_str());
+                NfmContext new_ctx = NfmContext(constant, true);
+                //printf("  Normalize Constraint: Adding new constraint to context: %s\n", new_ctx.to_string().c_str());
+                new_dom.add_context(std::move(new_ctx));
                 continue;
             } else if (!nfm_poly_coeff_is_zero(ctx_dom, constant)) { // Infeasible domain
                 //printf("  Infeasible Equality: coeffs of dims are all zero, but constant is non-zero\n");
@@ -634,8 +636,9 @@ NfmDomain NfmSolver::nfm_domain_normalize_constraints(NfmDomain& dom) {
         if (dim_gcd == 0) { // It only has (symbolic) constant term
             if (nfm_poly_coeff_is_unknown(ctx_dom, constant)) {
                 // Update context: constant >= 0
-                new_dom.add_context(NfmContext(constant, false));
-                //printf("  Adding new constraint to context: %s\n", ineq.to_string().c_str());
+                NfmContext new_ctx = NfmContext(constant.set_sign(NFM_NON_NEGATIVE), false);
+                //printf("  Normalize Constraint: Adding new constraint to context: %s\n", new_ctx.to_string().c_str());
+                new_dom.add_context(std::move(new_ctx));
                 continue;
             } else if (nfm_poly_coeff_is_neg(ctx_dom, constant)) { // Infeasible domain
                 //printf("  Infeasible Inequality: coeffs of dims are all zero, but constant is negative\n");
@@ -651,6 +654,8 @@ NfmDomain NfmSolver::nfm_domain_normalize_constraints(NfmDomain& dom) {
         int gcd = non_neg_gcd(dim_gcd, constant.content()); // GCD of the whole terms' coeffs
         new_dom.add_constraint(ineq.fdiv(gcd));
     }
+    //printf("After nfm_domain_normalize_constraints\nDom: %s\n", new_dom.to_string().c_str());
+    //printf("# of ineqs: %d, # of eqs: %d\n", (int)new_dom.get_num_inequalities(), (int)new_dom.get_num_equalities());
     return new_dom;
 }
 
@@ -658,6 +663,7 @@ NfmDomain NfmSolver::nfm_domain_normalize_constraints(NfmDomain& dom) {
 // indicating whether there are duplicates. If we find implicit equalities in
 // inequalities contraints, we convert it into an explicit equality.
 NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int *progress) {
+    //printf("Call NfmSolver::nfm_domain_remove_duplicate_constraints\n");
     if (progress) {
         *progress = 0;
     }
@@ -697,9 +703,7 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
             if (nfm_poly_coeff_is_pos(ctx_dom, constant) ||
                     nfm_poly_coeff_is_zero(ctx_dom, constant)) {
                 nfm_domain_drop_inequality(dom, k);
-                if (k > 1) {
-                    k -= 1;
-                }
+                --k;
                 continue;
             } else if (nfm_poly_coeff_is_neg(ctx_dom, constant)) {
                 /*printf("  Infeasible domain: ineq dims' coeffs are all zero but "
@@ -707,11 +711,11 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
                 return NfmDomain::empty_domain(dom.get_coeff_space(), dom.get_space());
             } else {
                 // Update context: constant >= 0
-                dom.add_context(NfmContext(constant, false));
+                NfmContext new_ctx = NfmContext(constant.set_sign(NFM_NON_NEGATIVE), false);
+                //printf("  Remove Dup INEQ: Adding new constraint to context: %s\n", new_ctx.to_string_with_sign().c_str());
+                dom.add_context(std::move(new_ctx));
                 nfm_domain_drop_inequality(dom, k);
-                if (k > 1) {
-                    k -= 1;
-                }
+                --k;
                 continue;
             }
         }
@@ -734,9 +738,7 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
             nfm_domain_swap_inequality(dom, k, l);
         }
         nfm_domain_drop_inequality(dom, k);
-        if (k > 1) {
-            k -= 1;
-        }
+        --k;
     }
 
     for (int k = 0; k < (int)dom.get_num_inequalities()-1; ++k) {
@@ -755,9 +757,7 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
                 *progress = 1;
             }
             nfm_domain_inequality_to_equality(dom, k, l);
-            if (k > 1) {
-                k -= 1;
-            }
+            --k;
         } else if (nfm_poly_coeff_is_neg(ctx_dom, constant_sum)) {
             /*printf("  %s and %s, constant_sum: %s\n", dom.ineqs_[k].to_string().c_str(),
                    dom.ineqs_[l].to_string().c_str(), constant_sum.to_string().c_str());
@@ -772,17 +772,15 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
             NfmPolyCoeff& constant = eq.get_constant();
             if (nfm_poly_coeff_is_zero(ctx_dom, constant)) {
                 nfm_domain_drop_equality(dom, k);
-                if (k > 1) {
-                    k -= 1;
-                }
+                --k;
                 continue;
             } else if (nfm_poly_coeff_is_unknown(ctx_dom, constant)) {
                 // Update context: constant == 0
-                dom.add_context(NfmContext(constant, true));
+                NfmContext new_ctx = NfmContext(constant, true);
+                //printf("  Remove Dup EQ: Adding new constraint to context: %s\n", new_ctx.to_string().c_str());
+                dom.add_context(std::move(new_ctx));
                 nfm_domain_drop_equality(dom, k);
-                if (k > 1) {
-                    k -= 1;
-                }
+                --k;
                 continue;
             } else {
                 /*printf("  Infeasible domain: eq dims' coeffs are all zero but "
@@ -801,7 +799,10 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
             /*printf("  Found 2 eqs with the same dims' coeffs but different constant. "
                    "Constant diff is unknown; need to be added to context\n");
             printf("    Eq1: %s, Eq2: %s\n", eq.to_string().c_str(), other_eq.to_string().c_str());*/
-            dom.add_context(NfmContext(eq.get_constant() - other_eq.get_constant(), true));
+
+            NfmContext new_ctx = NfmContext(eq.get_constant() - other_eq.get_constant(), true);
+            //printf("  Remove Dup: Adding new constraint to context: %s\n", new_ctx.to_string().c_str());
+            dom.add_context(std::move(new_ctx));
         } else if (sign != NFM_ZERO) {
             //printf("  Infeasible domain, found 2 eqs with the same dims' coeffs but different constant\n");
             return NfmDomain::empty_domain(dom.get_coeff_space(), dom.get_space());
@@ -810,9 +811,7 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
             *progress = 1;
         }
         nfm_domain_drop_equality(dom, k);
-        if (k > 1) {
-            k -= 1;
-        }
+        --k;
     }
 
     for (size_t i = 0; i < dom.get_num_inequalities(); ++i) {
@@ -823,13 +822,12 @@ NfmDomain NfmSolver::nfm_domain_remove_duplicate_constraints(NfmDomain& dom, int
         if (elim_dom.is_empty()) {
             //printf("  Redundant ineq constraint: %s\n", temp.to_string().c_str());
             nfm_domain_drop_inequality(dom, i);
-            if (i > 1) {
-                i -= 1;
-            }
+            --i;
         }
     }
     /*printf("After nfm_domain_remove_duplicate_constraints: %s\n  context: %s\n\n",
-        dom.to_string().c_str(), dom.get_context_domain().to_string().c_str());*/
+        dom.to_string().c_str(), dom.get_context_domain().to_string().c_str());
+    printf("# of ineqs: %d, # of eqs: %d\n", (int)dom.get_num_inequalities(), (int)dom.get_num_equalities());*/
     return dom;
 }
 
@@ -964,9 +962,9 @@ NfmDomain NfmSolver::nfm_domain_eliminate_dims_helper(
             }
             NfmConstraint cst = nfm_constraint_elim(ctx_dom, dom.ineqs_[i], dom.ineqs_[j], pos);
             /*printf("  Eliminate %s with %s\n    Result: %s\n",
-                   dom.ineqs_[i].to_string_with_sign().c_str(),
-                   dom.ineqs_[j].to_string_with_sign().c_str(),
-                   cst.to_string_with_sign().c_str());*/
+                   dom.ineqs_[i].to_string().c_str(),
+                   dom.ineqs_[j].to_string().c_str(),
+                   cst.to_string().c_str());*/
             dom.add_constraint(std::move(cst));
         }
         nfm_domain_drop_inequality(dom, i);
@@ -1022,7 +1020,7 @@ NfmUnionDomain NfmSolver::nfm_domain_eliminate_dims(const NfmDomain& p_dom,
             vector<NfmDomain> classified_doms =
                 nfm_domain_classify_unknown_coefficient_helper(dom, d);
             for (NfmDomain& cdom : classified_doms) {
-                //printf("From domain %s\n", cdom.to_string_with_sign().c_str());
+                //printf("From domain %s\n", cdom.to_string().c_str());
                 NfmDomain res_dom = nfm_domain_eliminate_dims_helper(cdom, (size_t)d);
                 if (res_dom.is_empty()) {
                     // Since NfmUnionDomain is OR of NfmDomain, we can drop the
@@ -1089,10 +1087,10 @@ NfmDomain NfmSolver::nfm_domain_simplify(const NfmDomain& p_dom) {
     if (p_dom.is_empty() || p_dom.is_universe()) {
         return p_dom;
     }
-    NfmUnionDomain elim_dom = nfm_domain_eliminate_dims(p_dom, 0);
+    /*NfmUnionDomain elim_dom = nfm_domain_eliminate_dims(p_dom, 0);
     if (elim_dom.is_empty()) {
         return NfmDomain::empty_domain(p_dom.coeff_space_, p_dom.space_);
-    }
+    }*/
     NfmDomain dom(p_dom);
     while (progress) {
         progress = 0;

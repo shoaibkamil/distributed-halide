@@ -936,31 +936,48 @@ int test_correctness(struct isl_ctx *ctx) {
 
 int test_correctness2(struct isl_ctx *ctx) {
     /*
-        a - x - y      = 0
-        x + y - 8 = 0
+       -w + 7 >= 0
+       -w + 2*x -1 >= 0
+       -w + z >= 0
+        w - x >= 0
     */
-    std::vector<std::string> param_names = {"x", "y"};
-    std::vector<std::string> dim_names = {"a", "b"};
+    std::vector<std::string> param_names = {"x", "y", "z"};
+    std::vector<std::string> dim_names = {"w"};
     NfmSpace coeff_space(param_names);
     NfmSpace space(dim_names);
 
     std::map<std::vector<int>, NfmPolyCoeff> terms1 = {
-        {{1, 0}, -NfmPolyCoeff::make_one(coeff_space)},
-        {{0, 0}, NfmPolyCoeff({{{1, 0}, -1}, {{0, 1}, -1}, {{0, 0}, 16}}, param_names, NFM_UNKNOWN)},
+        {{1}, NfmPolyCoeff(-1, {0, 0, 0}, param_names, NFM_UNKNOWN)},
+        {{0}, NfmPolyCoeff(7, {0, 0, 0}, param_names, NFM_UNKNOWN)}
     };
     std::map<std::vector<int>, NfmPolyCoeff> terms2 = {
-        {{0, 0}, NfmPolyCoeff({{{1, 0}, 1}, {{0, 1}, 1}, {{0, 0}, -8}}, param_names, NFM_UNKNOWN)},
+        {{1}, -NfmPolyCoeff::make_one(coeff_space)},
+        {{0}, NfmPolyCoeff({{{1, 0, 0}, 2}, {{0, 0, 0}, -1}}, param_names, NFM_UNKNOWN)},
+    };
+    std::map<std::vector<int>, NfmPolyCoeff> terms3 = {
+        {{1}, -NfmPolyCoeff::make_one(coeff_space)},
+        {{0}, NfmPolyCoeff({{{0, 0, 1}, 1}}, param_names, NFM_UNKNOWN)},
+    };
+    std::map<std::vector<int>, NfmPolyCoeff> terms4 = {
+        {{1}, NfmPolyCoeff::make_one(coeff_space)},
+        {{0}, NfmPolyCoeff(-1, {1, 0, 0}, param_names, NFM_UNKNOWN)}
     };
 
     NfmPoly p1(coeff_space, space, terms1);
     NfmPoly p2(coeff_space, space, terms2);
+    NfmPoly p3(coeff_space, space, terms3);
+    NfmPoly p4(coeff_space, space, terms4);
 
-    NfmConstraint c1(coeff_space, space, p1, true);
-    NfmConstraint c2(coeff_space, space, p2, true);
+    NfmConstraint c1(coeff_space, space, p1, false);
+    NfmConstraint c2(coeff_space, space, p2, false);
+    NfmConstraint c3(coeff_space, space, p3, false);
+    NfmConstraint c4(coeff_space, space, p4, false);
 
     NfmDomain dom1(coeff_space, space);
     dom1.add_constraint(c1);
     dom1.add_constraint(c2);
+    dom1.add_constraint(c3);
+    dom1.add_constraint(c4);
 
     NfmUnionDomain udom(coeff_space, space);
     udom.add_domain(dom1);
@@ -1012,9 +1029,9 @@ int main(int argc, char **argv) {
         "max(max(max(s, u), u), max(max(max(min((((y - x)/2)*2) + x, y - 1) + 1, 3), x), u)) + 1"
         "- min(min(min(z, t), t), min(min(min(min(x, y-1) + 0, 3), z), t))}";*/
 
-    std::string str = "[x, y] -> {[a, b] : a + x + y + -16 = 0 and x+y-8 = 0}";
+    /*std::string str = "[x, y] -> {[a, b] : a + x + y + -16 = 0 and x+y-8 = 0}";
     isl_set *set = isl_set_read_from_str(ctx, str.c_str());
-    isl_set_dump(set);
+    isl_set_dump(set);*/
     //printf("set size: %d\n", isl_set_n_basic_set(set));
     //printf("is universe? %d\n", isl_set_plain_is_universe(set));
     //printf("is empty? %d\n", isl_set_plain_is_empty(set));
@@ -1029,7 +1046,7 @@ int main(int argc, char **argv) {
     isl_bset_list_free(bset_list);
     isl_set_free(disjoint);*/
 
-    isl_set_free(set);
+    //isl_set_free(set);
 
     //test_parse(ctx);
     //test_classify_unknown(ctx);
@@ -1041,7 +1058,8 @@ int main(int argc, char **argv) {
     //test_poly_term(ctx);
     //test_poly_compare(ctx);
     //test_redundant(ctx);
-    //test_correctness2(ctx);
+    //test_correctness(ctx);
+    test_correctness2(ctx);
     isl_ctx_free(ctx);
 
     return 0;

@@ -146,19 +146,49 @@ ostream& operator<<(ostream& out, const NfmContextDomain& dom) {
 }
 
 void NfmContextDomain::add_context(const NfmContext& context) {
+    //std::cout << "ADDING CONTEXT: " << context.to_string_with_sign() << "\n";
     assert(context.get_space() == space_);
     if (context.is_linear()) {
+        for (auto& ctx : linear_) {
+            //std::cout << "  linear: " << ctx.to_string_with_sign() << "; equal? " << (ctx == context) << "\n";
+            if (ctx == context) {
+                //std::cout << "\t\tADDING DUPLICATE CONTEXT: " << context.to_string_with_sign() << "\n";
+                return;
+            }
+        }
         linear_.push_back(context);
     } else {
+        for (auto& ctx : non_linear_) {
+            //std::cout << "  non-linear: " << ctx.to_string_with_sign() << "; equal? " << (ctx == context) << "\n";
+            if (ctx == context) {
+                //std::cout << "\t\tADDING DUPLICATE CONTEXT: " << context.to_string_with_sign() << "\n";
+                return;
+            }
+        }
         non_linear_.push_back(context);
     }
 }
 
 void NfmContextDomain::add_context(const NfmContext&& context) {
+    //std::cout << "ADDING CONTEXT: " << context.to_string_with_sign() << "\n";
     assert(context.get_space() == space_);
     if (context.is_linear()) {
+        for (auto& ctx : linear_) {
+            //std::cout << "   linear: " << ctx.to_string_with_sign() << "; equal? " << (ctx == context) << "\n";
+            if (ctx == context) {
+                //std::cout << "\t\tADDING DUPLICATE CONTEXT: " << context.to_string_with_sign() << "\n";
+                return;
+            }
+        }
         linear_.push_back(std::move(context));
     } else {
+        for (auto& ctx : non_linear_) {
+            //std::cout << "   non-linear: " << ctx.to_string_with_sign() << "; equal? " << (ctx == context) << "\n";
+            if (ctx == context) {
+                //std::cout << "\t\tADDING DUPLICATE CONTEXT: " << context.to_string_with_sign() << "\n";
+                return;
+            }
+        }
         non_linear_.push_back(std::move(context));
     }
 }

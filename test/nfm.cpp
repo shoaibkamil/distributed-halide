@@ -255,6 +255,9 @@ void boxes_overlap_test() {
     Expr x = Variable::make(Int(32), "x");
     Expr y = Variable::make(Int(32), "y");
     Expr z = Variable::make(Int(32), "z");
+    Expr r = Variable::make(Int(32), "r");
+    Expr s = Variable::make(Int(32), "s");
+    Expr t = Variable::make(Int(32), "t");
     Expr w = Variable::make(Int(32), "w");
     Expr M = Variable::make(Int(32), "M");
     Expr N = Variable::make(Int(32), "N");
@@ -274,17 +277,26 @@ void boxes_overlap_test() {
     */
 
     Box a, b;
-    a.push_back(Interval("dim0", x + y, x + y));
-    a.push_back(Interval("dim1", 8, 8));
+    //a.push_back(Interval("dim0", x + y, x + y));
+    //a.push_back(Interval("dim1", 8, 8));
+    a.push_back(Interval("dim1", x, min(x*2-1, 7)));
 
-    b.push_back(Interval("dim0", (((x*-1) - y) + 16), (((x*-1) - y) + 16)));
-    b.push_back(Interval("dim1", 8, 8));
+    //b.push_back(Interval("dim0", (((x*-1) - y) + 16), (((x*-1) - y) + 16)));
+    //b.push_back(Interval("dim1", 8, 8));
+    b.push_back(Interval("dim1", min(max(y, 0), 7), z));
 
-    bool is_overlap_nfm = boxes_overlap_nfm(a, b);
+    /*bool is_overlap_nfm = boxes_overlap_nfm(a, b);
     printf("is overlap nfm? %d\n", is_overlap_nfm);
 
     bool is_overlap_halide = boxes_overlap_halide(a, b);
     printf("is overlap halide? %d\n", is_overlap_halide);
+
+    Box intersection_halide = boxes_intersection_halide(a, b);
+    std::cout << "\nBox intersection Halide:\n";
+    for (size_t i = 0; i < intersection_halide.size(); ++i) {
+        std::cout << "Dim: " << intersection_halide[i].var << "\n  min: " << intersection_halide[i].min
+                  << "\n  max: " << intersection_halide[i].max << "\n";
+    }*/
 
     Box intersection = boxes_intersection_nfm(a, b);
     std::cout << "\nBox intersection NFM:\n";

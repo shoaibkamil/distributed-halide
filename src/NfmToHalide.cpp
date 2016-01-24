@@ -528,8 +528,8 @@ bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
     user_assert(lhs.type == rhs.type) << "lhs: " << lhs.to_string() << "; lhs.type: " << lhs.type
         << "; rhs: " << rhs.to_string() << "; rhs.type: " << rhs.type << ";is_min: " << is_min << "\n";
     NfmPolyFrac diff = lhs.rhs - rhs.rhs;
-    //debug(0) << "do_subsume context: " << ctx_dom.to_string() << "\n";
-    //debug(0) << "   lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+    debug(0) << "do_subsume context: " << ctx_dom.to_string() << "\n";
+    debug(0) << "   lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
     NfmSign sign = NfmSolver::nfm_poly_frac_get_sign(ctx_dom, diff);
     if (is_min) {
         if ((sign == NFM_NEGATIVE) || (sign == NFM_NON_POSITIVE)) {
@@ -537,7 +537,7 @@ bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
             rhs = lhs;
         } else if (!((sign == NFM_ZERO) || (sign == NFM_POSITIVE) || (sign == NFM_NON_NEGATIVE))) {
             // NOT(== 0 or >= 0 or > 0)
-            //debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+            debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
             return false;
         }
     } else {
@@ -546,11 +546,11 @@ bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
             rhs = lhs;
         } else if (!((sign == NFM_ZERO) || (sign == NFM_NEGATIVE) || (sign == NFM_NON_POSITIVE))) {
             // NOT(== 0 or <= 0 or < 0)
-            //debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+            debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
             return false;
         }
     }
-    //debug(0) << "  TRUE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+    debug(0) << "  TRUE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
     return true;
 }
 
@@ -1909,7 +1909,7 @@ Box convert_nfm_union_domain_to_halide_box(
             vector<AndNfmBounds>& upper_bounds_no_cond = upper_bounds_no_cond_list[j];
 
             VarDomainBound& bound = bounds[j];
-            //std::cout << "\nBOUND: \n" << bound.to_string() << "\n";
+            std::cout << "\nBOUND: \n" << bound.to_string() << "\n";
             if (!bound.is_feasible()) { // Empty domain
                 continue;
             }
@@ -1932,18 +1932,18 @@ Box convert_nfm_union_domain_to_halide_box(
                             is_subsumed |= do_subsume(lhs, rhs, true);
                         }
                         if (!is_subsumed) {
-                            //std::cout << "  Lower bound adding " << lhs.to_string() << " to temp\n";
+                            std::cout << "  Lower bound adding " << lhs.to_string() << " to temp\n";
                             AndNfmBounds temp = {lhs};
                             lower_bounds_no_cond.push_back(std::move(temp));
-                        } /*else {
+                        } else {
                             std::cout << "  Lower bound adding " << lhs.to_string() << " is SUBSUMED\n";
-                        }*/
+                        }
                     }
                 } else {
                     // Should only appear once (bound with same conditions should have
                     // ended up in the same domain in the first place)
-                    /*std::cout << "  Lower bound adding: \n  COND:\n" << bound.conditions.to_string()
-                        << "\n; size: " << lower_bounds.size() << "\n";*/
+                    std::cout << "  Lower bound adding: \n  COND:\n" << bound.conditions.to_string()
+                        << "\n; size: " << lower_bounds.size() << "\n";
                     bound.conditions.dom_idx = i;
                     assert(lower_bounds.find(bound.conditions) == lower_bounds.end());
                     lower_bounds.emplace(bound.conditions, bound.lower_bounds);
@@ -1964,12 +1964,12 @@ Box convert_nfm_union_domain_to_halide_box(
                             is_subsumed |= do_subsume(lhs, rhs, false);
                         }
                         if (!is_subsumed) {
-                            //std::cout << "  Upper bound adding " << lhs.to_string() << " to temp\n";
+                            std::cout << "  Upper bound adding " << lhs.to_string() << " to temp\n";
                             AndNfmBounds temp = {lhs};
                             upper_bounds_no_cond.push_back(std::move(temp));
-                        } /*else {
+                        } else {
                             std::cout << "  Upper bound adding " << lhs.to_string() << " is SUBSUMED\n";
-                        }*/
+                        }
                     }
                 } else {
                     assert(upper_bounds.find(bound.conditions) == upper_bounds.end());
@@ -1998,11 +1998,11 @@ Box convert_nfm_union_domain_to_halide_box(
                     }
                 }
                 if ((lower_bounds.size() == 0) || (size < lower_bounds.size())) {
-                    //std::cout << "  no cond lb " << lhs.to_string() << " to temp\n";
+                    std::cout << "  no cond lb " << lhs.to_string() << " to temp\n";
                     temp_no_cond.push_back(lhs);
-                } /*else {
+                } else {
                     std::cout << "  no cond lb " << lhs.to_string() << " DROPPING\n";
-                }*/
+                }
             }
             if (temp_no_cond.size() > 0) {
                 if (bounds.size() > 1) { // Can't drop the AND bound if one of them is not dropped
@@ -2026,11 +2026,11 @@ Box convert_nfm_union_domain_to_halide_box(
                     }
                 }
                 if ((upper_bounds.size() == 0) || (size < upper_bounds.size())) {
-                    //std::cout << "  no cond ub " << lhs.to_string() << " to temp\n";
+                    std::cout << "  no cond ub " << lhs.to_string() << " to temp\n";
                     temp_no_cond.push_back(lhs);
-                } /*else {
+                } else {
                     std::cout << "  no cond ub " << lhs.to_string() << " DROPPING\n";
-                }*/
+                }
             }
             if (temp_no_cond.size() > 0) {
                 if (bounds.size() > 1) { // Can't drop the AND bound if one of them is not dropped
@@ -2047,13 +2047,13 @@ Box convert_nfm_union_domain_to_halide_box(
         // all conditions are the universe (which is always true for Halide interval)
         Interval& result = results[j];
 
-        //std::cout << "\nSTART INTERVAL COMPUTATION\n";
-        //std::cout << "Computing interval lower bound\n";
+        std::cout << "\nSTART INTERVAL COMPUTATION\n";
+        std::cout << "Computing interval lower bound\n";
         if (lower_bounds.size() > 0) {
             result.min = convert_to_value(type, union_dom, sym_const_vars, dim_vars, true, lower_bounds);
         }
 
-        //std::cout << "\nComputing interval upper bound\n";
+        std::cout << "\nComputing interval upper bound\n";
         if (upper_bounds.size() > 0) {
             result.max = convert_to_value(type, union_dom, sym_const_vars, dim_vars, false, upper_bounds);
         }
@@ -2093,8 +2093,8 @@ Box convert_nfm_union_domain_to_halide_box(
             }
         }
 
-        //debug(0) << "\nresult[" << j << "].min: " << result.min << "\n";
-        //debug(0) << "result[" << j << "].max: " << result.max << "\n";
+        debug(0) << "\nresult[" << j << "].min: " << result.min << "\n";
+        debug(0) << "result[" << j << "].max: " << result.max << "\n";
         if ((let_substitutions != NULL) && !let_substitutions->empty()) {
             if (result.min.defined()) {
                 result.min = Let::make((*let_substitutions)[let_substitutions->size()-1].first,
@@ -2118,8 +2118,8 @@ Box convert_nfm_union_domain_to_halide_box(
             result.min = simplify(result.min); // NOTE: Simplify sometimes give odd-looking results
             result.max = simplify(result.max);
         }
-        //debug(0) << "\nAFTER SUBSTITUTION result[" << j << "].min: " << result.min << "\n";
-        //debug(0) << "result[" << j << "].max: " << result.max << "\n";
+        debug(0) << "\nAFTER SUBSTITUTION result[" << j << "].min: " << result.min << "\n";
+        debug(0) << "result[" << j << "].max: " << result.max << "\n";
     }
     return results;
 }

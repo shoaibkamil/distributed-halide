@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <assert.h>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sstream>
@@ -26,6 +27,17 @@ string NfmContext::to_string() const {
     return stream.str();
 }
 
+string NfmContext::to_string_with_sign() const {
+    ostringstream stream;
+    stream << "(" << context_.to_string_with_sign();
+    if (is_eq_) {
+        stream << ") = 0";
+    } else {
+        stream << ") >= 0";
+    }
+    return stream.str();
+}
+
 ostream& operator<<(ostream& out, const NfmContext& context) {
     return out << context.to_string();
 }
@@ -47,7 +59,7 @@ bool operator!=(const NfmContext& lhs, const NfmContext& rhs) {
     return !(lhs == rhs);
 }
 
-// Divide all coeffs (including constant) by common term (positive term) if 
+// Divide all coeffs (including constant) by common term (positive term) if
 // applicable, e.g. (4a)x + (2ab)y + (a^2) z >= 0 becomes (4)x + (2b)y + (a)z >= 0
 void NfmContext::simplify() {
     int gcd = context_.content();

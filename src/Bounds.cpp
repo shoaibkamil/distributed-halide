@@ -1530,7 +1530,7 @@ Box boxes_intersection_halide(const Box &a, const Box &b) {
     return result;
 }
 
-Box boxes_intersection_nfm(const Box &a, const Box &b) {
+/*Box boxes_intersection_nfm(const Box &a, const Box &b) {
     // If one box is scalar and the other is not, the boxes cannot
     // intersect.
     if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
@@ -1549,11 +1549,11 @@ Box boxes_intersection_nfm(const Box &a, const Box &b) {
         result.push_back(nfm_simplify_interval(interval));
     }
     return result;
-}
+}*/
 
 // Return a Box representing intersection of Box A and Box B.
 // Ignore the "used" condition
-/*Box boxes_intersection_nfm(const Box &a, const Box &b) {
+Box boxes_intersection_nfm(const Box &a, const Box &b) {
     // If one box is scalar and the other is not, the boxes cannot
     // intersect.
     if (a.size() != b.size() && (a.size() == 0 || b.size() == 0)) {
@@ -1604,7 +1604,7 @@ Box boxes_intersection_nfm(const Box &a, const Box &b) {
     Box result = convert_nfm_union_domain_to_halide_box(type, union_dom, dim_names,
         &let_assignments, &expr_substitutions, &let_substitutions);
     return result;
-}*/
+}
 
 Expr box_encloses(const Box &a, const Box &b) {
     /*std::cout << "\nBOX ENCLOSE\n";

@@ -18,6 +18,7 @@ public:
         , context_(poly) {}
 
     std::string to_string() const;
+    std::string to_string_with_sign() const;
     friend std::ostream& operator<<(std::ostream& out, const NfmContext& context);
 
     const NfmSpace& get_space() const { return space_; }

@@ -463,9 +463,9 @@ bool NfmPolyCoeff::operator<(const NfmPolyCoeff& other) const {
 }
 
 bool operator==(const NfmPolyCoeff& lhs, const NfmPolyCoeff& rhs) {
-    if (lhs.sign_ != rhs.sign_) {
+    /*if (lhs.sign_ != rhs.sign_) {
         return false;
-    }
+    }*/
     if (lhs.space_ != rhs.space_) {
         return false;
     }

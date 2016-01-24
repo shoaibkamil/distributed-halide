@@ -39,9 +39,9 @@ inline std::string nfm_sign_print_op(NfmSign sign) {
     } else if (sign == NFM_NEGATIVE) {
         return "< 0";
     } else if (sign == NFM_NON_POSITIVE) {
-        return ">= 0";
-    } else if (sign == NFM_NON_NEGATIVE) {
         return "<= 0";
+    } else if (sign == NFM_NON_NEGATIVE) {
+        return ">= 0";
     } else {
         return "? 0";
     }
