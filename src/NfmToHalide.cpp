@@ -2190,6 +2190,12 @@ Expr nfm_simplify_expr(const Expr& expr) {
     std::cout << "is universe? " << union_dom.is_universe() << "\n";
     std::cout << "is empty? " << union_dom.is_empty() << "\n";*/
 
+    if (union_dom.is_universe()) {
+        return make_const(UInt(1), 1);
+    } else if (union_dom.is_empty()) {
+        return make_const(UInt(1), 0);
+    }
+
     result = convert_nfm_union_domain_to_halide_expr(
         Int(32), union_dom, &let_assignments, &expr_substitutions, &let_substitutions);
     //std::cout << "Result nfm_simplify_expr: " << result << "\n";

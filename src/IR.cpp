@@ -237,7 +237,8 @@ Expr Or::make(Expr a, Expr b) {
 
 Expr Not::make(Expr a) {
     internal_assert(a.defined()) << "Not of undefined\n";
-    internal_assert(a.type().is_bool()) << "argument of Not is not a bool\n";
+    internal_assert(a.type().is_bool()) << "argument of Not is not a bool\n"
+        << "a: " << a << "; type: " << a.type() << "\n";
 
     Not *node = new Not;
     node->type = Bool(a.type().lanes());
