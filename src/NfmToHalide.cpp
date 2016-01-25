@@ -528,8 +528,8 @@ bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
     user_assert(lhs.type == rhs.type) << "lhs: " << lhs.to_string() << "; lhs.type: " << lhs.type
         << "; rhs: " << rhs.to_string() << "; rhs.type: " << rhs.type << ";is_min: " << is_min << "\n";
     NfmPolyFrac diff = lhs.rhs - rhs.rhs;
-    debug(0) << "do_subsume context: " << ctx_dom.to_string() << "\n";
-    debug(0) << "   lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+    //debug(0) << "do_subsume context: " << ctx_dom.to_string() << "\n";
+    //debug(0) << "   lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
     NfmSign sign = NfmSolver::nfm_poly_frac_get_sign(ctx_dom, diff);
     if (is_min) {
         if ((sign == NFM_NEGATIVE) || (sign == NFM_NON_POSITIVE)) {
@@ -537,7 +537,7 @@ bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
             rhs = lhs;
         } else if (!((sign == NFM_ZERO) || (sign == NFM_POSITIVE) || (sign == NFM_NON_NEGATIVE))) {
             // NOT(== 0 or >= 0 or > 0)
-            debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+            //debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
             return false;
         }
     } else {
@@ -546,11 +546,11 @@ bool do_subsume(const NfmContextDomain& ctx_dom, const NfmBound& lhs,
             rhs = lhs;
         } else if (!((sign == NFM_ZERO) || (sign == NFM_NEGATIVE) || (sign == NFM_NON_POSITIVE))) {
             // NOT(== 0 or <= 0 or < 0)
-            debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+            //debug(0) << "  FALSE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
             return false;
         }
     }
-    debug(0) << "  TRUE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
+    //debug(0) << "  TRUE do_subsume(min? " << is_min << ") lhs: " << lhs.to_string() << "; rhs: " << rhs.to_string() << "\n";
     return true;
 }
 

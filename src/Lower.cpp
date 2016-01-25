@@ -144,9 +144,9 @@ Stmt lower(const vector<Function> &outputs, const string &pipeline_name, const T
     s = sliding_window(s, env);
     debug(2) << "Lowering after sliding window:\n" << s << '\n';
 
-    debug(1) << "Performing allocation bounds inference...\n";
+    debug(0) << "Performing allocation bounds inference...\n";
     s = allocation_bounds_inference(s, env, func_bounds);
-    debug(2) << "Lowering after allocation bounds inference:\n" << s << '\n';
+    debug(0) << "Lowering after allocation bounds inference:\n" << s << '\n';
 
     debug(1) << "Removing code that depends on undef values...\n";
     s = remove_undef(s);

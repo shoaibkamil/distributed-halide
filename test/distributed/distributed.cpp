@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 
     Var x, y, z;
 
-    /*{
+    {
         DistributedImage<int> in(20);
         Func f;
         f(x) = in(x) + 1;
@@ -200,9 +200,9 @@ int main(int argc, char **argv) {
                 return -1;
             }
         }
-    }*/
+    }
 
-    {
+    /*{
         DistributedImage<int> in(20);
 
         Func clamped;
@@ -246,9 +246,9 @@ int main(int argc, char **argv) {
                 return -1;
             }
         }
-    }
+    }*/
 
-    /*{
+    {
         DistributedImage<int> in(20);
 
         Expr clamped_x = clamp(x, 0, in.global_width()-1);
@@ -1559,7 +1559,7 @@ int main(int argc, char **argv) {
                 }
             }
         }
-    }*/
+    }
 
     printf("Rank %d Success!\n", rank);
 

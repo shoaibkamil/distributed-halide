@@ -283,7 +283,7 @@ void boxes_overlap_test() {
 
     //b.push_back(Interval("dim0", (((x*-1) - y) + 16), (((x*-1) - y) + 16)));
     //b.push_back(Interval("dim1", 8, 8));
-    b.push_back(Interval("dim1", min(max(y, 0), 7), z));
+    b.push_back(Interval("dim1", z, min(max(y, 0), 7)));
 
     /*bool is_overlap_nfm = boxes_overlap_nfm(a, b);
     printf("is overlap nfm? %d\n", is_overlap_nfm);

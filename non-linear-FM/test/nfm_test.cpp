@@ -938,8 +938,9 @@ int test_correctness2(struct isl_ctx *ctx) {
     /*
        -w + 7 >= 0
        -w + 2*x -1 >= 0
-       -w + z >= 0
+        w - z >= 0
         w - x >= 0
+       -w >= 0
     */
     std::vector<std::string> param_names = {"x", "y", "z"};
     std::vector<std::string> dim_names = {"w"};
@@ -955,29 +956,35 @@ int test_correctness2(struct isl_ctx *ctx) {
         {{0}, NfmPolyCoeff({{{1, 0, 0}, 2}, {{0, 0, 0}, -1}}, param_names, NFM_UNKNOWN)},
     };
     std::map<std::vector<int>, NfmPolyCoeff> terms3 = {
-        {{1}, -NfmPolyCoeff::make_one(coeff_space)},
+        {{1}, NfmPolyCoeff::make_one(coeff_space)},
         {{0}, NfmPolyCoeff({{{0, 0, 1}, 1}}, param_names, NFM_UNKNOWN)},
     };
     std::map<std::vector<int>, NfmPolyCoeff> terms4 = {
         {{1}, NfmPolyCoeff::make_one(coeff_space)},
         {{0}, NfmPolyCoeff(-1, {1, 0, 0}, param_names, NFM_UNKNOWN)}
     };
+    std::map<std::vector<int>, NfmPolyCoeff> terms5 = {
+        {{1}, -NfmPolyCoeff::make_one(coeff_space)}
+    };
 
     NfmPoly p1(coeff_space, space, terms1);
     NfmPoly p2(coeff_space, space, terms2);
     NfmPoly p3(coeff_space, space, terms3);
     NfmPoly p4(coeff_space, space, terms4);
+    NfmPoly p5(coeff_space, space, terms5);
 
     NfmConstraint c1(coeff_space, space, p1, false);
     NfmConstraint c2(coeff_space, space, p2, false);
     NfmConstraint c3(coeff_space, space, p3, false);
     NfmConstraint c4(coeff_space, space, p4, false);
+    NfmConstraint c5(coeff_space, space, p5, false);
 
     NfmDomain dom1(coeff_space, space);
     dom1.add_constraint(c1);
     dom1.add_constraint(c2);
     dom1.add_constraint(c3);
     dom1.add_constraint(c4);
+    dom1.add_constraint(c5);
 
     NfmUnionDomain udom(coeff_space, space);
     udom.add_domain(dom1);
@@ -1001,14 +1008,14 @@ int test_correctness2(struct isl_ctx *ctx) {
         printf("Context: \n  %s\n", dom.get_context_domain().to_string().c_str());
     }
 
-    NfmUnionDomain simplified_isl = udom.simplify();
+    /*NfmUnionDomain simplified_isl = udom.simplify();
     printf("\nAfter simplification ISL\n");
     for (auto& dom : simplified_isl.get_domains()) {
         printf("Domain: \n");
         for (auto& cst : dom.get_constraints()) {
             printf("  %s\n", cst.to_string().c_str());
         }
-    }
+    }*/
     return 0;
 }
 
@@ -1029,17 +1036,18 @@ int main(int argc, char **argv) {
         "max(max(max(s, u), u), max(max(max(min((((y - x)/2)*2) + x, y - 1) + 1, 3), x), u)) + 1"
         "- min(min(min(z, t), t), min(min(min(min(x, y-1) + 0, 3), z), t))}";*/
 
-    /*std::string str = "[x, y] -> {[a, b] : a + x + y + -16 = 0 and x+y-8 = 0}";
+    /*std::string str = "[x, y, z] -> {[w] : (-1*w + 7 >= 0 and -1*w >= 0 and -1*w + 7 >= 0 and -1*w + 2*x + -1 >= 0 and w + -1*x >= 0 and w + -1*z >= 0)"
+        "or (-1*w + 7 >= 0 and -1*w + 7 >= 0 and -1*w + 2*x + -1 >= 0 and -1*w + y >= 0 and w + -1*x >= 0 and w + -1*z >= 0)}";
     isl_set *set = isl_set_read_from_str(ctx, str.c_str());
-    isl_set_dump(set);*/
-    //printf("set size: %d\n", isl_set_n_basic_set(set));
-    //printf("is universe? %d\n", isl_set_plain_is_universe(set));
-    //printf("is empty? %d\n", isl_set_plain_is_empty(set));
-    /*isl_bset_list *bset_list = isl_set_get_bsets_list(set);
+    isl_set_dump(set);
+    printf("set size: %d\n", isl_set_n_basic_set(set));
+    printf("is universe? %d\n", isl_set_plain_is_universe(set));
+    printf("is empty? %d\n", isl_set_plain_is_empty(set));
+    isl_bset_list *bset_list = isl_set_get_bsets_list(set);
     isl_bset_list_dump(bset_list);
-    isl_bset_list_free(bset_list);
+    isl_bset_list_free(bset_list);*/
 
-    printf("\n");
+    /*printf("\n");
     isl_set *disjoint = isl_set_make_disjoint(set);
     bset_list = isl_set_get_bsets_list(disjoint);
     isl_bset_list_dump(bset_list);

@@ -971,7 +971,7 @@ void Pipeline::realize(Realization dst, const Target &t) {
     Target target = t;
     user_assert(defined()) << "Can't realize an undefined Pipeline\n";
 
-    debug(2) << "Realizing Pipeline for " << target.to_string() << "\n";
+    debug(0) << "Realizing Pipeline for " << target.to_string() << "\n";
 
     // If target is unspecified...
     if (target.os == Target::OSUnknown) {
