@@ -10,6 +10,10 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 
+    auto proc_grid = approx_factors_near_cubert(numprocs);
+    int p = proc_grid[0], q = proc_grid[1], r = proc_grid[2];
+    if (rank == 0) printf("Using process grid %dx%dx%d\n", p, q, r);
+
     const int w = std::stoi(argv[1]), h = std::stoi(argv[2]), d = std::stoi(argv[3]);
     Var x("x"), y("y"), z("z"), xi("xi"), yi("yi");
 
@@ -32,18 +36,18 @@ int main(int argc, char **argv) {
     // buffered.compute_root()
     //     .tile(x, y, xi, yi, 8, 8).vectorize(xi).unroll(yi)
     //     .parallel(z)
-    //     .distribute(z);
+    //     .distribute(x, y, z, p, q, r);
     heat3d
         .tile(x, y, xi, yi, 8, 8).vectorize(xi).unroll(yi)
         .parallel(z)
-        .distribute(z);
+        .distribute(x, y, z, p, q, r);
 
     output.set_domain(x, y, z);
-    output.placement().distribute(z);
+    output.placement().tile(x, y, xi, yi, 8, 8).distribute(x, y, z, p, q, r);
     output.allocate();
 
     input.set_domain(x, y, z);
-    input.placement().distribute(z);
+    input.placement().tile(x, y, xi, yi, 8, 8).distribute(x, y, z, p, q, r);
     input.allocate(heat3d, output);
 
     for (int z = 0; z < input.channels(); z++) {
@@ -54,15 +58,14 @@ int main(int argc, char **argv) {
         }
     }
 
-    // Realize once to compile
-    heat3d.realize(input.get_buffer());
+    heat3d.compile_jit();
     // Run the program and test output for correctness
-    const int niters = 100;
+    const int niters = 50;
     MPITiming timing(MPI_COMM_WORLD);
     timing.barrier();
     for (int i = 0; i < niters; i++) {
         timing.start();
-        heat3d.realize(output.get_buffer());
+        heat3d.realize(output);
         MPITiming::timing_t t = timing.stop();
         timing.record(t);
     }

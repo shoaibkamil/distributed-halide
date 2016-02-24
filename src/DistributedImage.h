@@ -180,6 +180,19 @@ public:
         internal_assert(allocated.size() == local_concrete.size());
 
         for (unsigned i = 0; i < allocated.size(); i++) {
+            // If local min exceeds the global extent, we set
+            // everything to zero extent. This can happen because of
+            // the ceil when calculating slice size. E.g. let w = 1000
+            // and numprocs = 64. ceil(w/numprocs) = 16. But then rank
+            // 63 will start at 16*63 = 1008, which exceeds the global
+            // bounds.
+            if (local_concrete[i].min >= full_extents[i]) {
+                local_concrete[i] = IntInterval(full_extents[i]-1, full_extents[i]-1);
+                local[i] = Interval(full_extents[i]-1, full_extents[i]-1);
+                allocated_concrete[i] = IntInterval(full_extents[i]-1, full_extents[i]-1);
+                allocated[i] = Interval(full_extents[i]-1, full_extents[i]-1);
+            }
+
             global_mins.push_back(allocated_concrete[i].min);
             allocated_extents.push_back(allocated_concrete[i].max - allocated_concrete[i].min + 1);
             allocated_mins_parameterized.push_back(allocated[i].min);
